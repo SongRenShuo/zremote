@@ -280,8 +280,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('运行历史'));
     await tester.pumpAndSettle();
-    // 宿主真实 run 无 title 字段 → 标题回落为 automationId。
-    expect(find.text('a1'), findsWidgets);
+    // 宿主 run 无任务名 → 用 automationId 关联定时计划名称（P3-3 修复验证）。
+    expect(find.text('定时-a1'), findsWidgets);
     expect(find.text('失败'), findsOneWidget);
     expect(find.text('已完成'), findsOneWidget);
     expect(find.textContaining('最后同步'), findsOneWidget);

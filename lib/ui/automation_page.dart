@@ -602,15 +602,25 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
           title: l10n.automationHistoryCount(runs.length),
         ),
         const SizedBox(height: 8),
-        for (final run in runs) _runCard(l10n, run),
+        for (final run in runs) _runCard(l10n, run, board),
       ],
     );
   }
 
-  Widget _runCard(AppLocalizations l10n, AutomationRun run) {
-    final title = run.title.isNotEmpty
+  Widget _runCard(AppLocalizations l10n, AutomationRun run, AutomationBoard board) {
+    // 宿主 run 无任务名（2026-11-15 实测），用 automationId 关联定时计划名称。
+    Automation? auto;
+    for (final a in board.automations) {
+      if (a.automationId == run.automationId) {
+        auto = a;
+        break;
+      }
+    }
+    final title = auto != null && auto.title.isNotEmpty
+        ? auto.title
+        : (run.title.isNotEmpty
         ? run.title
-        : (run.prompt.isNotEmpty ? run.prompt : run.automationId);
+        : (run.prompt.isNotEmpty ? run.prompt : run.automationId));
     final zt = context.zt;
     return BevelCard(
       margin: const EdgeInsets.only(bottom: 12),

@@ -1446,5 +1446,25 @@
   "automationModeBuild": "Build",
   "@automationModeBuild": {
     "description": "Permission mode: build"
+  },
+  "automationModeDefault": "Default",
+  "@automationModeDefault": {
+    "description": "Permission mode: default"
+  },
+  "automationModeGuarded": "Guarded",
+  "@automationModeGuarded": {
+    "description": "Permission mode: guarded"
+  },
+  "automationThoughtLow": "Low",
+  "@automationThoughtLow": {
+    "description": "Thought level: low"
+  },
+  "automationThoughtHigh": "High",
+  "@automationThoughtHigh": {
+    "description": "Thought level: high"
+  },
+  "automationThoughtMax": "Max",
+  "@automationThoughtMax": {
+    "description": "Thought level: max"
   }
 }

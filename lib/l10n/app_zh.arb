@@ -2181,5 +2181,25 @@
   "automationModeBuild": "构建",
   "@automationModeBuild": {
     "description": "Permission mode: build"
+  },
+  "automationModeDefault": "默认",
+  "@automationModeDefault": {
+    "description": "Permission mode: default"
+  },
+  "automationModeGuarded": "守护模式",
+  "@automationModeGuarded": {
+    "description": "Permission mode: guarded"
+  },
+  "automationThoughtLow": "低",
+  "@automationThoughtLow": {
+    "description": "Thought level: low"
+  },
+  "automationThoughtHigh": "高",
+  "@automationThoughtHigh": {
+    "description": "Thought level: high"
+  },
+  "automationThoughtMax": "极高",
+  "@automationThoughtMax": {
+    "description": "Thought level: max"
   }
 }

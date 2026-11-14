@@ -396,7 +396,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('构建').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('自动编辑').last);
+    await tester.tap(find.text('守护模式').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pump();
@@ -406,7 +406,7 @@ void main() {
     expect(request.params, {
       'workspacePath': r'J:\tmp\demo',
       'automationId': 'a-1',
-      'mode': 'autoEdit',
+      'mode': 'guarded',
     });
   });
 
@@ -487,14 +487,14 @@ void main() {
   });
 
   group('载荷构造纯函数（3.14 对齐，非 widget）', () {
-    test('kPermissionModes = host 权威 6 值（顺序保持、默认 build）', () {
+    test('kPermissionModes = host 权威 6 值（bundle 实证，默认 build 在位）', () {
       expect(kPermissionModes, [
-        'yolo',
+        'default',
         'plan',
         'edit',
-        'auto',
-        'autoEdit',
         'build',
+        'guarded',
+        'yolo',
       ]);
     });
 
