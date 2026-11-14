@@ -1519,13 +1519,15 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
         children: [
           Row(
         children: [
-          // 名称列窄屏被挤压（au…/re…）：单元格内横向滑动查看全名。
+          // 名称列窄屏被挤压（au…/re…）：整行高的横向滑动区查看全名
+          //（此前 18px 细条，手指稍偏即落到外层竖向列表手势域，拖不动）。
           Expanded(
             child: SizedBox(
-              height: 18,
+              height: 32,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(vertical: 7),
                 child: Text(
                   m.modelId,
                   maxLines: 1,
