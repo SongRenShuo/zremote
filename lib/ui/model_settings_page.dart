@@ -1519,14 +1519,21 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
         children: [
           Row(
         children: [
+          // 名称列窄屏被挤压（au…/re…）：单元格内横向滑动查看全名。
           Expanded(
-            child: Text(
-              m.modelId,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: zrMono(
-                fontSize: 12,
-                color: dimmed ? zt.textTertiary : zt.textHi,
+            child: SizedBox(
+              height: 18,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const ClampingScrollPhysics(),
+                child: Text(
+                  m.modelId,
+                  maxLines: 1,
+                  style: zrMono(
+                    fontSize: 12,
+                    color: dimmed ? zt.textTertiary : zt.textHi,
+                  ),
+                ),
               ),
             ),
           ),
