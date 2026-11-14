@@ -479,6 +479,10 @@
   "@v2LoginHint": {
     "description": "Paste dialog validation chip for V2 links"
   },
+  "authPopupTitle": "Sign in",
+  "@authPopupTitle": {
+    "description": "Title of the in-app OAuth popup page opened for the remote login flow"
+  },
   "automationCenterTitle": "Automation",
   "@automationCenterTitle": {
     "description": "Automation page appbar title"

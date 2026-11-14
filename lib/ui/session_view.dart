@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../services/auth_popup_policy.dart';
 import '../services/event_observer.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
@@ -43,6 +44,7 @@ import 'status_led.dart';
 import 'toolbox_sheet.dart';
 import 'unread_badge.dart';
 import 'usage_page.dart';
+import 'webview_popup.dart';
 
 class SessionView extends ConsumerStatefulWidget {
   final RemoteDevice device;
@@ -395,6 +397,35 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   URLRequest _freshRequest() =>
       URLRequest(url: WebUri(LinkBuilder.buildUrl(widget.device).toString()));
+
+  /// v4/V2 页面登录用 `window.open` 弹窗完成 OAuth（主页面轮询票据）。
+  /// 接管新窗口：带 windowId 时弹窗 WebView 会消费 transport，使
+  /// opener 拿到真实 window 句柄；真实 URL 弹窗（target=_blank）直接
+  /// 加载该 URL。未接管返回 false，行为退化为丢弃窗口。
+  bool _openAuthPopup(CreateWindowAction action) {
+    final initialRequest = AuthPopupPolicy.initialRequestFor(action);
+    if (action.windowId == null && initialRequest == null) {
+      debugPrint(
+        '[zr-popup] ignore window.open without windowId/url: '
+        '${action.request.url}',
+      );
+      return false;
+    }
+    if (!mounted) return false;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => AuthPopupPage(
+            device: widget.device,
+            windowId: action.windowId,
+            initialRequest: initialRequest,
+          ),
+        ),
+      ),
+    );
+    return true;
+  }
 
   UnmodifiableListView<UserScript> _userScripts(bool dark) =>
       UnmodifiableListView([
@@ -989,8 +1020,12 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         supportZoom: false,
                         transparentBackground: true,
                         useHybridComposition: false,
+                        supportMultipleWindows: true,
+                        javaScriptCanOpenWindowsAutomatically: true,
                         androidWebProfile: webProfileNameFor(widget.device),
                       ),
+                      onCreateWindow: (controller, action) async =>
+                          _openAuthPopup(action),
                       onRenderProcessGone: (_, detail) {
                         debugPrint('[zr-resume] rendererGone detail=$detail');
                         _rendererGone = true;
