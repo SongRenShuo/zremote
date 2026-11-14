@@ -1,10 +1,12 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/device.dart';
 import '../models/notification_prefs.dart';
+import '../state/automation.dart';
 
 class DeviceStore {
   DeviceStore._();
@@ -154,5 +156,32 @@ class DeviceStore {
     await prefs.setBool(_notifApprovalKey, value.approval);
     await prefs.setBool(_notifCompleteKey, value.complete);
     await prefs.setBool(_notifFailKey, value.fail);
+  }
+
+  static const _automationSnapshotPrefix = 'zremote.automation.';
+
+  /// 自动化面板快照（P3-4）：闲时任务/定时计划/运行历史 + 最后同步时间。
+  /// 非敏感数据走 SharedPreferences；读取失败一律返回 null 由调用方降级。
+  Future<AutomationBoard?> automationSnapshot(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('$_automationSnapshotPrefix$deviceId');
+      if (raw == null || raw.isEmpty) return null;
+      return AutomationBoard.fromSnapshotJson(jsonDecode(raw));
+    } catch (e) {
+      debugPrint('[automation] snapshot load failed: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveAutomationSnapshot(
+    String deviceId,
+    AutomationBoard board,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      '$_automationSnapshotPrefix$deviceId',
+      jsonEncode(board.toSnapshotJson()),
+    );
   }
 }

@@ -66,4 +66,7 @@
 - 服务发现退避为固定 1.5s（计划中的 2/5/10s 递进未做，视线上表现再加）
 - `listAutomationRuns` 返回结构按 runId/automationId/status/startedAt 容错解析；
   实机确认形状后可在 `AutomationRun.fromJson` 收紧
-- 历史数据本地缓存目前仅内存级（会话进程内）；跨启动持久化待 P3-4 后续评估
+- 历史快照已落盘（SharedPreferences `zremote.automation.<deviceId>`，P3-4 完成）：
+  非空面板串行落盘、清空/重载复位不落盘、页面打开时恢复且不覆盖在线数据；
+  仅保留每个设备最后一份快照，无多版本历史
+- 别名探测目前仅覆盖 no-services（服务改名/拆分）；no-method 不做别名探测

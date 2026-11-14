@@ -2,8 +2,9 @@
 
 > 版本基准：v1.7.0（commit 1549e1d）
 > 目标：修复功能工具箱内四个入口无法正常使用的问题，并补齐自动化调度历史任务查看能力。
-> 状态：P0–P4 已实现（本机无 Flutter SDK，编译/测试验证走 CI 或本地 flutter test；
-> 真机回归清单见 docs/manual-regression-toolbox.md）
+> 状态：P0–P4 全部实现并通过本地 flutter test（661+ 用例）+ analyze 零问题 + CI 绿；
+> 真机回归清单见 docs/manual-regression-toolbox.md，剩余事项为实机回归与
+> listAutomationRuns 返回结构实测收紧
 
 ---
 

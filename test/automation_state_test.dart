@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zremote/services/device_store.dart';
 import 'package:zremote/state/automation.dart';
 
 void main() {
@@ -328,5 +330,96 @@ void main() {
     expect(bare.failureReason, isNull);
     expect(bare.filesChanged, isNull);
     expect(failed == bare, isFalse);
+  });
+
+  group('P3-4 快照持久化', () {
+    setUp(() {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('非空面板落盘：runs/offPeak/lastSyncedAt 往返回读一致', () async {
+      notifier.replaceRuns('d1', [
+        {
+          'runId': 'r1',
+          'automationId': 'a1',
+          'status': 'completed',
+          'startedAt': 1788570000000,
+        },
+      ]);
+      notifier.replaceOffPeak('d1', [taskJson('t1', status: 'paused')]);
+      notifier.replaceAutomations('d1', [autoJson('a1')]);
+      await notifier.lastSnapshotSave;
+
+      final snapshot = await DeviceStore.instance.automationSnapshot('d1');
+      expect(snapshot, isNotNull);
+      expect(snapshot!.runs.single.runId, 'r1');
+      expect(snapshot.offPeak.single.offPeakTaskId, 't1');
+      expect(snapshot.offPeak.single.status, 'paused');
+      expect(snapshot.automations.single.automationId, 'a1');
+      expect(snapshot.lastSyncedAt, isNotNull);
+    });
+
+    test('清空/重载复位不落盘：reportSubscribed(false) 后磁盘保留最后快照', () async {
+      notifier.replaceRuns('d1', [
+        {'runId': 'r1', 'automationId': 'a1', 'status': 'completed'},
+      ]);
+      await notifier.lastSnapshotSave;
+      notifier.reportSubscribed('d1', false); // 页面重载复位
+      await notifier.lastSnapshotSave;
+
+      final snapshot = await DeviceStore.instance.automationSnapshot('d1');
+      expect(snapshot, isNotNull);
+      expect(snapshot!.runs.single.runId, 'r1');
+      // 内存里的 runs 保留（离线快照），offPeak/automations 已清。
+      final board = container.read(automationProvider)['d1']!;
+      expect(board.runs, hasLength(1));
+      expect(board.offPeak, isEmpty);
+    });
+
+    test('restoreFromStore：空面板恢复快照；在线数据已到则不覆盖', () async {
+      // 预置磁盘快照
+      final seed = AutomationBoard(
+        runs: [
+          AutomationRun(
+            runId: 'r9',
+            automationId: 'a9',
+            status: 'failed',
+            startedAt: DateTime.fromMillisecondsSinceEpoch(1788570000000),
+          ),
+        ],
+        lastSyncedAt: DateTime.fromMillisecondsSinceEpoch(1788570000000),
+      );
+      await DeviceStore.instance.saveAutomationSnapshot('d1', seed);
+
+      notifier.restoreFromStore('d1');
+      await pumpEventQueue();
+      var board = container.read(automationProvider)['d1']!;
+      expect(board.runs.single.runId, 'r9');
+      expect(board.lastSyncedAt, isNotNull);
+
+      // 在线数据到达后不再被快照覆盖。
+      notifier.replaceRuns('d1', [
+        {'runId': 'r-live', 'automationId': 'a1', 'status': 'running'},
+      ]);
+      board = container.read(automationProvider)['d1']!;
+      expect(board.runs.single.runId, 'r-live');
+      notifier.restoreFromStore('d1');
+      await pumpEventQueue();
+      expect(container.read(automationProvider)['d1']!.runs.single.runId,
+          'r-live');
+    });
+
+    test('快照 JSON 坏数据 → null 降级不抛', () async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.automation.d1': 'not-json{',
+      });
+      expect(await DeviceStore.instance.automationSnapshot('d1'), isNull);
+      SharedPreferences.setMockInitialValues({
+        'zremote.automation.d1': '{"offPeak": [42], "runs": null}',
+      });
+      final board = await DeviceStore.instance.automationSnapshot('d1');
+      expect(board, isNull); // 全空且无同步时间 → null
+    });
   });
 }

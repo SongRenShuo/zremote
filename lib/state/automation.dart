@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../services/device_store.dart';
 
 class OffPeakTask {
   const OffPeakTask({
@@ -73,6 +77,22 @@ class OffPeakTask {
 
   static DateTime? _msToDateTime(dynamic v) =>
       v is num ? DateTime.fromMillisecondsSinceEpoch(v.toInt()) : null;
+
+  Map<String, dynamic> toJson() => {
+    'offPeakTaskId': offPeakTaskId,
+    if (title.isNotEmpty) 'title': title,
+    if (prompt.isNotEmpty) 'prompt': prompt,
+    if (status.isNotEmpty) 'status': status,
+    if (queuePosition != null) 'queuePosition': queuePosition,
+    if (workspacePath.isNotEmpty) 'workspacePath': workspacePath,
+    if (permissionMode != 'build') 'permissionMode': permissionMode,
+    if (failureReason != null) 'failureReason': failureReason,
+    if (filesChanged != null) 'filesChanged': filesChanged,
+    if (queuedAt != null) 'queuedAt': queuedAt!.millisecondsSinceEpoch,
+    if (updatedAt != null) 'updatedAt': updatedAt!.millisecondsSinceEpoch,
+    if (historyDeletedAt != null)
+      'historyDeletedAt': historyDeletedAt!.millisecondsSinceEpoch,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -161,6 +181,22 @@ class Automation {
       runCount: j['runCount'] is num ? (j['runCount'] as num).toInt() : 0,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'automationId': automationId,
+    if (title.isNotEmpty) 'title': title,
+    if (prompt.isNotEmpty) 'prompt': prompt,
+    if (cronExpr.isNotEmpty) 'cronExpr': cronExpr,
+    'enabled': enabled,
+    'recurring': recurring,
+    if (workspacePath.isNotEmpty) 'workspacePath': workspacePath,
+    if (mode.isNotEmpty) 'mode': mode,
+    if (model.isNotEmpty) 'model': model,
+    if (thoughtLevel.isNotEmpty) 'thoughtLevel': thoughtLevel,
+    if (nextRunAt != null) 'nextRunAt': nextRunAt!.millisecondsSinceEpoch,
+    if (lastRunAt != null) 'lastRunAt': lastRunAt!.millisecondsSinceEpoch,
+    'runCount': runCount,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -252,6 +288,18 @@ class AutomationRun {
   static DateTime? _msToDateTime(dynamic v) =>
       v is num ? DateTime.fromMillisecondsSinceEpoch(v.toInt()) : null;
 
+  Map<String, dynamic> toJson() => {
+    'runId': runId,
+    'automationId': automationId,
+    if (title.isNotEmpty) 'title': title,
+    if (prompt.isNotEmpty) 'prompt': prompt,
+    if (status.isNotEmpty) 'status': status,
+    if (workspacePath.isNotEmpty) 'workspacePath': workspacePath,
+    if (failureReason != null) 'failureReason': failureReason,
+    if (startedAt != null) 'startedAt': startedAt!.millisecondsSinceEpoch,
+    if (endedAt != null) 'endedAt': endedAt!.millisecondsSinceEpoch,
+  };
+
   @override
   bool operator ==(Object other) =>
       other is AutomationRun &&
@@ -302,10 +350,44 @@ class AutomationBoard {
   int get queuedCount =>
       offPeak.where((t) => t.status == 'queued' && !t.historyDeleted).length;
 
+  /// 有可持久化的数据（空面板不落盘，避免重载清空把快照抹掉）。
+  bool get hasData =>
+      offPeak.isNotEmpty || automations.isNotEmpty || runs.isNotEmpty;
+
   List<AutomationRun> runsOf(String automationId) => [
     for (final run in runs)
       if (run.automationId == automationId) run,
   ];
+
+  Map<String, dynamic> toSnapshotJson() => {
+    'offPeak': [for (final t in offPeak) t.toJson()],
+    'automations': [for (final a in automations) a.toJson()],
+    'runs': [for (final r in runs) r.toJson()],
+    if (lastSyncedAt != null)
+      'lastSyncedAt': lastSyncedAt!.millisecondsSinceEpoch,
+  };
+
+  static AutomationBoard? fromSnapshotJson(dynamic raw) {
+    if (raw is! Map) return null;
+    final board = AutomationBoard(
+      offPeak: [
+        for (final t in (raw['offPeak'] as List? ?? const []))
+          if (t is Map<String, dynamic>) ?OffPeakTask.fromJson(t),
+      ],
+      automations: [
+        for (final a in (raw['automations'] as List? ?? const []))
+          if (a is Map<String, dynamic>) ?Automation.fromJson(a),
+      ],
+      runs: [
+        for (final r in (raw['runs'] as List? ?? const []))
+          if (r is Map<String, dynamic>) ?AutomationRun.fromJson(r),
+      ],
+      lastSyncedAt: raw['lastSyncedAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch(raw['lastSyncedAt'] as int)
+          : null,
+    );
+    return board.hasData || board.lastSyncedAt != null ? board : null;
+  }
 
   AutomationBoard copyWith({
     bool? subscribed,
@@ -351,9 +433,45 @@ class AutomationNotifier extends Notifier<Map<String, AutomationBoard>> {
   AutomationBoard _boardOf(String deviceId) =>
       state[deviceId] ?? const AutomationBoard();
 
+  Future<void>? _lastSave;
+
+  /// 最近一次快照落盘的 future（测试用；生产侧 fire-and-forget）。
+  @visibleForTesting
+  Future<void> get lastSnapshotSave => _lastSave ?? Future<void>.value();
+
   void _put(String deviceId, AutomationBoard board) {
     if (state[deviceId] == board) return;
     state = {...state, deviceId: board};
+    // P3-4：非空面板落盘（清空/重载复位不落盘，保留最后快照）。
+    // 串行链式写入：保证最终落盘内容是最新面板，不受通道完成顺序影响。
+    if (board.hasData) {
+      final previous = _lastSave ?? Future<void>.value();
+      _lastSave = previous
+          .then((_) => DeviceStore.instance.saveAutomationSnapshot(
+                deviceId,
+                board,
+              ))
+          .catchError((Object e) {
+        debugPrint('[automation] snapshot save failed: $e');
+        return;
+      });
+      unawaited(_lastSave);
+    }
+  }
+
+  /// 页面打开时恢复上次快照（离线/断连后历史仍可查看）。
+  /// 在线数据已到达（hasData）时不覆盖。
+  Future<void> restoreFromStore(String deviceId) async {
+    try {
+      if (_boardOf(deviceId).hasData) return;
+      final snapshot =
+          await DeviceStore.instance.automationSnapshot(deviceId);
+      if (snapshot == null) return;
+      if (_boardOf(deviceId).hasData) return;
+      _put(deviceId, snapshot);
+    } catch (e) {
+      debugPrint('[automation] snapshot restore failed: $e');
+    }
   }
 
   void reportSubscribed(String deviceId, bool subscribed) {

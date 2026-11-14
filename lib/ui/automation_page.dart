@@ -47,6 +47,8 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
     super.initState();
     _notifier = ref.read(automationProvider.notifier);
     _refresh();
+    // P3-4：先恢复上次快照（离线也能看历史），在线数据到达后自动覆盖。
+    unawaited(_notifier?.restoreFromStore(widget.device.id));
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refresh());
   }
 
