@@ -348,12 +348,13 @@ class ProviderSettingsView {
     final providers = j['providers'] ?? j['providerList'];
     final looksLikeView =
         providers is List || j['revision'] != null || j['providerTemplates'] != null;
-    if (!looksLikeView || providers is! List) return null;
+    if (!looksLikeView) return null;
+    final providerList = providers is List ? providers : const [];
     final templates = j['providerTemplates'];
     return ProviderSettingsView(
       revision: j['revision'] is num ? (j['revision'] as num).toInt() : 0,
       providers: [
-        for (final p in providers)
+        for (final p in providerList)
           if (p is Map<String, dynamic>) ZrProvider.fromJson(p),
       ].whereType<ZrProvider>().toList(),
       providerTemplates: templates is List

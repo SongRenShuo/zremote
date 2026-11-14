@@ -354,7 +354,12 @@ void main() {
   ) async {
     final bridge = ScriptedBridge(
       script: [],
-      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+      // 别名探测（P1-3）：每次尝试主名+别名各一条 no-services。
+      errors: {
+        0: 'no-services', 1: 'no-services',
+        2: 'no-services', 3: 'no-services',
+        4: 'no-services', 5: 'no-services',
+      },
     );
     await pumpPage(
       tester,
@@ -1297,12 +1302,16 @@ void main() {
   });
 
   testWidgets('26. 校验拦截与重复提交：空名零命令，在途按钮同步禁用', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [viewJson()],
-      [settingsJson()],
-      [{}],
-      [entitlementJson()],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [viewJson()],
+        [settingsJson()],
+        [{}],
+        [entitlementJson()],
+      ],
+      // 写入流测试依赖「脚本耗尽沉默 → 在途」语义，关掉自动回空。
+      respondEmptyOnExhausted: false,
+    );
     await pumpPage(tester, bridge: bridge);
     await tester.tap(find.byKey(const Key('model-add-provider')));
     await tester.pumpAndSettle();
@@ -1330,12 +1339,16 @@ void main() {
   });
 
   testWidgets('27. 写入期间关层：回执仍送达页面（重复建号防线）', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [viewJson()],
-      [settingsJson()],
-      [{}],
-      [entitlementJson()],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [viewJson()],
+        [settingsJson()],
+        [{}],
+        [entitlementJson()],
+      ],
+      // 写入流测试依赖「脚本耗尽沉默 → 在途」语义，关掉自动回空。
+      respondEmptyOnExhausted: false,
+    );
     await pumpPage(tester, bridge: bridge);
     await tester.tap(find.byKey(const Key('model-add-provider')));
     await tester.pumpAndSettle();
@@ -1381,12 +1394,16 @@ void main() {
   });
 
   testWidgets('28. 保存期间关层：编辑层与详情层都关掉，回执仍送达页面', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [viewJson()],
-      [settingsJson()],
-      [{}],
-      [entitlementJson()],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [viewJson()],
+        [settingsJson()],
+        [{}],
+        [entitlementJson()],
+      ],
+      // 写入流测试依赖「脚本耗尽沉默 → 在途」语义，关掉自动回空。
+      respondEmptyOnExhausted: false,
+    );
     await pumpPage(tester, bridge: bridge);
     await openEditor(tester);
     await tester.enterText(find.byKey(const Key('model-edit-name')), 'Renamed');
@@ -1451,12 +1468,16 @@ void main() {
   });
 
   testWidgets('30. 模型删除期间关层：回执仍送达页面', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [viewJson()],
-      [settingsJson()],
-      [{}],
-      [entitlementJson()],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [viewJson()],
+        [settingsJson()],
+        [{}],
+        [entitlementJson()],
+      ],
+      // 写入流测试依赖「脚本耗尽沉默 → 在途」语义，关掉自动回空。
+      respondEmptyOnExhausted: false,
+    );
     await pumpPage(tester, bridge: bridge);
     await tester.tap(find.text('My OpenAI'));
     await tester.pumpAndSettle();

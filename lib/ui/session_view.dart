@@ -403,14 +403,6 @@ class _SessionViewState extends ConsumerState<SessionView> {
   /// opener 拿到真实 window 句柄；真实 URL 弹窗（target=_blank）直接
   /// 加载该 URL。未接管返回 false，行为退化为丢弃窗口。
   bool _openAuthPopup(CreateWindowAction action) {
-    final initialRequest = AuthPopupPolicy.initialRequestFor(action);
-    if (action.windowId == null && initialRequest == null) {
-      debugPrint(
-        '[zr-popup] ignore window.open without windowId/url: '
-        '${action.request.url}',
-      );
-      return false;
-    }
     if (!mounted) return false;
     unawaited(
       Navigator.of(context).push(
@@ -419,7 +411,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
           builder: (_) => AuthPopupPage(
             device: widget.device,
             windowId: action.windowId,
-            initialRequest: initialRequest,
+            initialRequest: AuthPopupPolicy.initialRequestFor(action),
           ),
         ),
       ),

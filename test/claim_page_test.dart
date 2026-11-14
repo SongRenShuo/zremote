@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -218,22 +216,26 @@ void main() {
 
   testWidgets('3d. 刷新重试：no-services 瞬时 → 退避后成功（2026-09-13 复盘回归锁）',
       (tester) async {
-    final bridge = ScriptedBridge(script: []);
+    final bridge = ScriptedBridge(
+      // 脚本按命令序号索引：0-2 为首试的主名+两别名（全部 no-services），
+      // 3 为退避后重试的主名成功响应。
+      script: [
+        [], [], [],
+        [previewsResponse([planJson()])],
+      ],
+      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+    );
     await pumpPage(tester, bridge: bridge);
     expect(find.byType(CircularProgressIndicator), findsWidgets);
+    expect(bridge.commands, hasLength(3));
+    expect(bridge.commands[1]['s'], 'codingPlanService');
+    expect(bridge.commands[2]['s'], 'subscriptionService');
 
-    final id0 = bridge.commands[0]['i']! as int;
-    bridge.deliver(jsonEncode({'i': id0, 'ok': false, 'e': 'no-services'}));
-    await tester.pump();
-
-    bridge.script
-      ..add(const [])
-      ..add([previewsResponse([planJson()])]);
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
 
     expect(find.text('周末体验包'), findsOneWidget);
-    expect(bridge.commands, hasLength(2));
+    expect(bridge.commands, hasLength(4));
   });
 
   testWidgets('3b. 入口显隐（rev 5）：report true → Badge 礼物图标；reset → 消失', (tester) async {    final container = ProviderContainer();

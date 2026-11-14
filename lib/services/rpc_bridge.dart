@@ -80,7 +80,7 @@ class RpcResponse {
     try {
       raw = jsonEncode(values);
     } catch (_) {
-      raw = '${values}';
+      raw = '$values';
     }
     raw = raw.replaceAll('\n', ' ');
     return raw.length <= debugTextMaxChars
@@ -99,7 +99,7 @@ class RpcBridge {
   final void Function(bool ready)? onServiceState;
 
   /// channel → 服务名候选列表（首个为主名，其余为宿主升级后的别名，
-  /// 按 no-services/no-method 时依次探测）。探测成功的结果按会话缓存。
+  /// 主名 no-services 时依次探测）。探测成功的结果按会话缓存。
   static const Map<String, List<String>> _serviceCandidatesByChannel = {
     'off-peak-task': ['offPeakTaskService', 'offPeakQueueService'],
     'zcode-agent': ['zcodeAgentService', 'agentService', 'automationService'],
@@ -116,7 +116,7 @@ class RpcBridge {
     'setting': ['settingService', 'settingsService'],
   };
 
-  static const Map<String, String> _serviceByChannel = {
+  static final Map<String, String> _serviceByChannel = {
     for (final entry in _serviceCandidatesByChannel.entries)
       entry.key: entry.value.first,
   };
@@ -179,10 +179,13 @@ class RpcBridge {
           reportNoServices: last,
         );
       } on RpcRemoteException catch (e) {
-        final transient =
-            e.message.contains('no-services') || e.message.contains('no-method');
+        // 仅服务缺失（宿主改名/拆分）才换别名探测；no-method 时主服务在，
+        // 别名服务大概率同样没有该方法，直接抛出保持行为可预期。
+        final transient = e.message.contains('no-services');
         if (!transient || last) {
-          _resolvedService.remove(channel);
+          if (e.message.contains('no-services')) {
+            _resolvedService.remove(channel);
+          }
           rethrow;
         }
         if (kDebugMode) {

@@ -476,6 +476,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
                         ),
                         const SizedBox(width: 8),
                         ZrActionLink(
+                          key: const Key('automation-retry'),
                           label: l10n.automationRetry,
                           onTap: _refresh,
                         ),

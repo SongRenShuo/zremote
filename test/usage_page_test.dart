@@ -316,8 +316,10 @@ void main() {
 
   testWidgets('3. no-services 退避：4s 后自愈，全量断言照过', (tester) async {
     final bridge = ScriptedBridge(
-      errors: {0: 'no-services'},
+      // 别名探测（P1-3）：第一次尝试主名+别名各一条 no-services。
+      errors: {0: 'no-services', 1: 'no-services'},
       script: [
+        [],
         [],
         [allJson()],
         [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
@@ -333,13 +335,17 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('usage-share')));
     await tester.pumpAndSettle();
     expect(find.text('80.0%'), findsOneWidget);
-    expect(bridge.commands.length, 3);
+    expect(bridge.commands.length, 4);
   });
 
   testWidgets('4. 超时耗尽：3×25s+2×4s → error(notReady) LED-live 分支', (
     tester,
   ) async {
-    final bridge = ScriptedBridge(script: []);
+    final bridge = ScriptedBridge(
+      script: [],
+      // 超时语义依赖沉默，关掉自动回空。
+      respondEmptyOnExhausted: false,
+    );
     await pumpPage(tester, bridge: bridge);
     await tester.pump(const Duration(seconds: 25));
     await tester.pump(const Duration(seconds: 4));
@@ -358,7 +364,12 @@ void main() {
   ) async {
     final bridge = ScriptedBridge(
       script: [],
-      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+      // 别名探测（P1-3）：每次尝试主名+别名各一条 no-services。
+      errors: {
+        0: 'no-services', 1: 'no-services',
+        2: 'no-services', 3: 'no-services',
+        4: 'no-services', 5: 'no-services',
+      },
     );
     await pumpPage(
       tester,
@@ -374,7 +385,7 @@ void main() {
     expect(find.text('请先在网页中选择电脑并进入会话'), findsOneWidget);
     expect(find.text('读取用量失败'), findsNothing);
     expect(find.text('页面服务暂不可用'), findsNothing);
-    expect(bridge.commands.length, 3);
+    expect(bridge.commands.length, 6);
   });
 
   testWidgets('5. 区段降级：ranged 失败只降级趋势区，汇总/热力图不受影响', (tester) async {

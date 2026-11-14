@@ -3,6 +3,15 @@ import 'dart:convert';
 const int kMaxListenBytes = 4194304;
 
 abstract final class EventObserver {
+  /// 注入宿主 WebView 的钩子脚本。
+  ///
+  /// 服务发现策略：优先缓存 → React Fiber 树爬取（弱候选收集取最高分，
+  /// 强注册表 ≥10 个 *Service 键提前命中）→ window 全局扫描兜底；
+  /// 失败后按 1.5s 退避重试。注册表判定放宽为「≥8 个 *Service 键且命中
+  /// 任一核心服务」，避免宿主改名/拆分单一服务拖垮全部入口。
+  ///
+  /// 注意：脚本体内禁止出现 `//` 与 `/*` 序列（hook_script_syntax_test 铁律），
+  /// 一切解释性注释写在 Dart 侧。
   static String hookScriptFor(int dispatchPort, String dispatchToken) =>
       '''
 (function() {
@@ -215,9 +224,6 @@ abstract final class EventObserver {
     'codingPlanSubscriptionService',
     'settingService',
   ];
-  /* 服务注册表判定（放宽版）：≥8 个 *Service 键，且命中至少一个核心服务；
-     不再强制要求同时含 zcodeAgentService + offPeakTaskService，
-     宿主改名/拆分单一服务时不会拖垮全部入口。 */
   var zrIsRegistry = function(o) {
     try {
       if (!o || typeof o !== 'object' || o === window || o === document) return false;
@@ -247,7 +253,6 @@ abstract final class EventObserver {
       return c;
     } catch (e) { return 0; }
   };
-  /* 策略 B：window 直接暴露的服务对象（部分宿主版本挂在全局）。 */
   var zrFindInWindow = function() {
     try {
       var best = null;
@@ -265,7 +270,6 @@ abstract final class EventObserver {
       return best;
     } catch (e) { return null; }
   };
-  /* 策略 A：React Fiber 树爬取。 */
   var zrFindInFiber = function() {
     try {
       var all = document.querySelectorAll('*');
@@ -282,7 +286,6 @@ abstract final class EventObserver {
       var found = null;
       var best = null;
       var bestScore = 0;
-      /* 命中弱候选（8-9 个服务）不提前结束，强注册表（≥10）直接命中并停止爬树。 */
       var check = function(o) {
         try {
           if (!o || typeof o !== 'object' || seen.has(o)) return false;
@@ -331,7 +334,6 @@ abstract final class EventObserver {
     try {
       if (!force && zrSvc && zrIsRegistry(zrSvc)) return zrSvc;
       if (zrSvc) zrSvc = null;
-      /* 发现失败后按退避间隔重试，避免每次 RPC 都全量爬树。 */
       if (!force && !zrSvc &&
           zrSvcFailAt > 0 &&
           Date.now() - zrSvcFailAt < zrSvcFindInterval) {
@@ -453,7 +455,6 @@ abstract final class EventObserver {
       if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return 'queued'; }
       var svc = c ? c[svcKey] : null;
       if (!svc || typeof svc[method] !== 'function') {
-        /* 缓存注册表可能已过期，强制重找一次再判定。 */
         c = zrFindServices(true);
         if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return 'queued'; }
         svc = c[svcKey];

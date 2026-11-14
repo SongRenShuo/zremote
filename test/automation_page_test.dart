@@ -171,6 +171,7 @@ void main() {
       script: [
         [taskJson('t1', queuePosition: 3)],
         [],
+        [],
         [taskJson('t1', status: 'paused')],
       ],
     );
@@ -288,7 +289,7 @@ void main() {
     expect(find.textContaining('运行记录（2）'), findsOneWidget);
   });
 
-  testWidgets('运行历史 tab：空列表与加载失败可区分', (tester) async {
+  testWidgets('运行历史 tab：runs 失败但其余成功 → 部分降级无横幅', (tester) async {
     final bridge = ScriptedBridge(
       script: const [[], []],
       errors: {2: 'no-services'},
@@ -300,17 +301,29 @@ void main() {
     await tester.tap(find.text('运行历史'));
     await tester.pumpAndSettle();
     expect(find.text('暂无运行记录'), findsOneWidget);
+  });
 
+  // 注意：同一 testWidgets 里二次 pumpPage 同类型 widget 会走 didUpdateWidget
+  // 复用 State（initState 不再执行），全部失败的页面必须独立用例。
+  testWidgets('运行历史 tab：全部数据源失败 → 错误横幅 + 重试恢复', (tester) async {
     final allFail = ScriptedBridge(
-      script: const [[], [], []],
-      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+      script: const [[], [], [], [], [], [], [], []],
+      // 别名探测（P1-3）：list 2 候选 + autos/runs 各 3 候选 = 8 条全失败。
+      errors: {
+        0: 'no-services', 1: 'no-services', 2: 'no-services',
+        3: 'no-services', 4: 'no-services', 5: 'no-services',
+        6: 'no-services', 7: 'no-services',
+      },
     );
     await pumpPage(tester, bridge: allFail);
     await tester.pump();
-    expect(find.text('自动化数据加载失败'), findsOneWidget);
+    // IndexedStack 的隐藏 Tab 空态也含同文案 → 至少出现一次即可。
+    expect(find.text('自动化数据加载失败'), findsWidgets);
+    await tester.pumpAndSettle(); // 等 AnimatedSize 展开动画结束再点
     // 重试：错误脚本耗尽后自动回空 → 全部成功，横幅消失（恢复路径）。
-    await tester.tap(find.text('重试').first);
-    await tester.pump();
+    // 用 key 定位横幅上的重试（IndexedStack 隐藏 Tab 里也有同名按钮）。
+    await tester.tap(find.byKey(const Key('automation-retry')));
+    await tester.pumpAndSettle();
     expect(find.text('自动化数据加载失败'), findsNothing);
   });
 }
