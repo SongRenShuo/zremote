@@ -20,6 +20,7 @@
 - **L8 脚本化测试桥默认行为变更必须加开关**。证据：`scripted_bridge` 「耗尽自动回空」上线使依赖沉默超时的用例语义全变（model 26-30、usage 4 连挂）；加 `respondEmptyOnExhausted` 参数后归零。**Seen 1× (11-14)**
 - **L9 analyze 一个 warning 也会红 CI**。证据：run #6 的 `flutter test` 已 656 过 4 挂，修完后 run #7 却卡在 analyze `unused_import`——CI 的 analyze 步骤零容忍。推送前本地 `flutter analyze` 必跑。**Seen 1× (11-14)**
 - **L10 aliyun Maven TLS 握手瞬断，重跑自愈勿急改配置**。证据：run #5 `Remote host terminated the handshake`（swiperefreshlayout-1.0.0.aar）；curl 复测 HTTP 200 正常；直接重跑构建即过。**Seen 1× (11-14)**
+- **L12 行内横向滑动区的触摸区必须整行高，细条手势域会被外层滚动列表抢走**。证据：模型设置页名称列 18px 高的横向 SingleChildScrollView，真机（`b5aa5fd` APK）拖不动——手指稍偏即落进外层竖向 ListView 的手势域；改整行高（32px + 垂直 padding 居中）后可拖（`13b2418`）。同族风险：任何「行内水平滚动」都把触摸面做到与同行控件等高。**Seen 1× (11-15)**
 - **L11 错误消息本体就是诊断入口：裸版本号 = 环境/兼容问题**。证据：`* What went wrong: 25.0.4`（无上下文）——曾误判为 NDK 缺失并装了 2.2GB NDK（NDK 确实缺但不是这报错的因）；真因是 JavaVersion.parse。判据：消息只有版本号 → 查「谁在解析什么版本」；InstallFailedException → SDK 组件损坏。**Seen 1× (11-14)**
 
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
