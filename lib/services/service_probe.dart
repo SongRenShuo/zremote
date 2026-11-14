@@ -99,6 +99,38 @@ abstract final class ServiceProbe {
     'clientConfigService': ['getSnapshot'],
   };
 
+  /// channel 别名机制里所有可能的服务名（含主名）。
+  /// 诊断报告用它对齐"宿主注册表里缺了哪些候选服务"。
+  static const List<String> candidateServices = [
+    'offPeakTaskService',
+    'offPeakQueueService',
+    'zcodeAgentService',
+    'agentService',
+    'automationService',
+    'usageStatsService',
+    'usageService',
+    'codingPlanSubscriptionService',
+    'codingPlanService',
+    'subscriptionService',
+    'providerSettingsService',
+    'modelProviderService',
+    'modelSelectionService',
+    'modelService',
+    'settingService',
+    'settingsService',
+  ];
+
+  /// 功能工具箱四个入口的最小定点检查集：
+  /// 服务存在且任一关键方法存在即认为该入口可用。
+  static const Map<String, List<String>> toolboxChecks = {
+    'usageStatsService': ['getAppUsageSnapshot', 'getEntitlementSnapshot'],
+    'codingPlanSubscriptionService': ['getManualClaimPlanPreviews'],
+    'offPeakTaskService': ['list'],
+    'zcodeAgentService': ['listAllAutomations', 'listAutomationRuns'],
+    'providerSettingsService': ['getView'],
+    'modelSelectionService': ['getView'],
+  };
+
   static const List<({String channel, String service, String method})>
   liveCalls = [
     (
@@ -149,6 +181,48 @@ abstract final class ServiceProbe {
     };
     _log(report);
     return report;
+  }
+
+  /// 定点检查工具箱四个入口依赖的服务/方法是否可用。
+  /// 返回 service → 可用与否；dump 不可用时返回 null（调用方自行兜底）。
+  static Future<Map<String, bool>?> checkToolbox(
+    RpcBridge bridge, {
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
+    final checklist = [
+      for (final entry in toolboxChecks.entries)
+        {'s': entry.key, 'm': entry.value},
+    ];
+    try {
+      final response = await bridge.callArgs(
+        'zr-probe',
+        'dump',
+        args: [checklist],
+        timeout: timeout,
+      );
+      final payload = response.firstObject;
+      final checks = payload?['checks'];
+      if (checks is! Map) return null;
+      return {
+        for (final service in toolboxChecks.keys)
+          service: _serviceOk(checks, service),
+      };
+    } on RpcRemoteException catch (e) {
+      if (e.message.contains('no-services')) return null;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static bool _serviceOk(Map<Object?, Object?> checks, String service) {
+    // 任一关键方法存在即视为可用；服务缺失（no-svc）或方法全移除均为不可用。
+    for (final entry in checks.entries) {
+      final key = entry.key;
+      if (key is! String || !key.startsWith('$service.')) continue;
+      if (entry.value == true) return true;
+    }
+    return false;
   }
 
   static Future<bool?> checkReady(

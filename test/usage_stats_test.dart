@@ -172,4 +172,20 @@ void main() {
     ))!;
     expect(s.summary!.totalTokens, 1);
   });
+
+  test('10. 字段别名容错：appUsageSummary/modelUsage 兜底（P2-2）', () {
+    final s = AppUsageSnapshot.fromJson({
+      'appUsageSummary': {'totalTokens': 7},
+      'modelUsage': [
+        {'modelId': 'GLM', 'totalTokens': 9, 'share': 1.0},
+      ],
+    })!;
+    expect(s.summary!.totalTokens, 7);
+    expect(s.models.single.modelId, 'GLM');
+  });
+
+  test('11. 四类数据全缺 → 仍不可解析（null），页面展示原始报文', () {
+    expect(AppUsageSnapshot.fromJson({'range': 'all'}), isNull);
+    expect(AppUsageSnapshot.fromJson(const {}), isNull);
+  });
 }

@@ -252,28 +252,67 @@ void main() {
     );
   });
 
-  test('historyDeletedAt：官方删除历史行 → 整只丢弃（快照/回执双路）', () {
+  test('historyDeletedAt：官方删除历史行 → 灰态保留不消失（P3-2）', () {
     notifier.reportSubscribed('d1', true);
     notifier.replaceOffPeak('d1', [
       taskJson('t1'),
       {...taskJson('t9', status: 'completed'), 'historyDeletedAt': 123},
     ]);
     var board = container.read(automationProvider)['d1']!;
-    expect(board.offPeak.map((t) => t.offPeakTaskId), ['t1']);
+    expect(board.offPeak.map((t) => t.offPeakTaskId), ['t1', 't9']);
+    // 快照路：带 historyDeletedAt 的行保留并标记。
+    expect(board.offPeak[1].historyDeleted, isTrue);
 
+    // 回执路：同样保留而非丢弃。
     notifier.upsertOffPeak(
       'd1',
       {...taskJson('t2', status: 'failed'), 'historyDeletedAt': 456},
     );
     board = container.read(automationProvider)['d1']!;
-    expect(board.offPeak.map((t) => t.offPeakTaskId), ['t1']);
-
-    notifier.upsertOffPeak(
-      'd1',
-      {...taskJson('t1', status: 'completed'), 'historyDeletedAt': 789},
+    expect(board.offPeak.first.offPeakTaskId, 't2');
+    expect(board.offPeak.first.historyDeleted, isTrue);
+    // queuedCount 只数未删且 queued 的行。
+    expect(
+      board.queuedCount,
+      board.offPeak
+          .where((t) => !t.historyDeleted && t.status == 'queued')
+          .length,
     );
+  });
+
+  test('AutomationRun / runs 状态：replaceRuns 快照 + upsertRun 增量 + reportSynced（P3-1/P3-4）', () {
+    notifier.replaceRuns('d1', [
+      {
+        'runId': 'r1',
+        'automationId': 'a1',
+        'status': 'completed',
+        'startedAt': 1788570000000,
+      },
+      {'runId': 'bad'},
+    ]);
+    var board = container.read(automationProvider)['d1']!;
+    expect(board.runs.map((r) => r.runId), ['r1']);
+    expect(board.lastSyncedAt, isNotNull);
+
+    notifier.upsertRun('d1', {
+      'runId': 'r1',
+      'automationId': 'a1',
+      'status': 'failed',
+      'failureReason': 'boom',
+    });
     board = container.read(automationProvider)['d1']!;
-    expect(board.offPeak, isEmpty);
+    expect(board.runs.single.status, 'failed');
+    expect(board.runs.single.failureReason, 'boom');
+
+    notifier.upsertRun('d1', {
+      'runId': 'r2',
+      'automationId': 'a1',
+      'status': 'running',
+    });
+    board = container.read(automationProvider)['d1']!;
+    expect(board.runs.map((r) => r.runId), ['r2', 'r1']);
+    expect(board.runsOf('a1'), hasLength(2));
+    expect(board.runsOf('nope'), isEmpty);
   });
 
   test('failureReason / filesChanged 落模（官方 v4 新字段宽容解析）', () {

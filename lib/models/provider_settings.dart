@@ -343,8 +343,12 @@ class ProviderSettingsView {
   }
 
   static ProviderSettingsView? fromJson(Map<String, dynamic> j) {
-    final providers = j['providers'];
-    if (providers is! List) return null;
+    // 别名容错：providers 缺失但对象形如视图（revision/providerTemplates 存在）
+    // 时降级为空列表渲染，而不是整体报错。
+    final providers = j['providers'] ?? j['providerList'];
+    final looksLikeView =
+        providers is List || j['revision'] != null || j['providerTemplates'] != null;
+    if (!looksLikeView || providers is! List) return null;
     final templates = j['providerTemplates'];
     return ProviderSettingsView(
       revision: j['revision'] is num ? (j['revision'] as num).toInt() : 0,

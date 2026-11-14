@@ -107,13 +107,22 @@ class _UsagePageState extends ConsumerState<UsagePage> {
     if (mounted) setState(() {});
     try {
       final r = await _callWithRetry('getAppUsageSnapshot', _usageParams('all'));
-      final all = AppUsageSnapshot.fromJson(r.firstObject ?? const {});
+      var all = AppUsageSnapshot.fromJson(r.firstObjectDeep ?? const {});
+      // 参数形状兼容：带 timeZone 解析失败时退回仅 range 再试一次。
+      if (all == null) {
+        debugPrint('[usage] retry without timeZone param');
+        final fallback = await _callWithRetry(
+          'getAppUsageSnapshot',
+          {'range': 'all'},
+        );
+        all = AppUsageSnapshot.fromJson(fallback.firstObjectDeep ?? const {});
+      }
       if (!mounted || epoch != _loadEpoch) return;
       if (all == null) {
         setState(() {
           _phase = _UsagePhase.error;
           _errorKind = _UsageErrorKind.remote;
-          _errorMessage = '';
+          _errorMessage = 'getAppUsageSnapshot: ${r.debugText()}';
         });
         return;
       }
@@ -168,7 +177,7 @@ class _UsagePageState extends ConsumerState<UsagePage> {
         'getAppUsageSnapshot',
         _usageParams(_range),
       );
-      final ranged = AppUsageSnapshot.fromJson(r.firstObject ?? const {});
+      final ranged = AppUsageSnapshot.fromJson(r.firstObjectDeep ?? const {});
       if (!mounted || epoch != _loadEpoch) return;
       setState(() {
         _ranged = ranged;

@@ -362,4 +362,23 @@ void main() {
       isEmpty,
     );
   });
+
+  test('P2-2 降级：providers 缺失但形似视图（有 revision/providerTemplates）→ 空列表而非 null', () {
+    final degraded = ProviderSettingsView.fromJson({'revision': 3});
+    expect(degraded, isNotNull);
+    expect(degraded!.providers, isEmpty);
+
+    final withTemplates = ProviderSettingsView.fromJson({
+      'providerTemplates': [
+        {'templateId': 't1'},
+      ],
+    });
+    expect(withTemplates, isNotNull);
+    expect(withTemplates!.providers, isEmpty);
+  });
+
+  test('P2-2 不形似视图（无 revision 无 providers）→ null 交由页面展示报文', () {
+    expect(ProviderSettingsView.fromJson({'foo': 'bar'}), isNull);
+    expect(ProviderSettingsView.fromJson(const {}), isNull);
+  });
 }

@@ -102,13 +102,13 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
     if (mounted) setState(() {});
     try {
       final r = await _callWithRetry('provider-settings', 'getView');
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       if (!mounted || epoch != _loadEpoch) return;
       if (view == null) {
         setState(() {
           _phase = _ModelPhase.error;
           _errorKind = _ModelErrorKind.remote;
-          _errorMessage = '';
+          _errorMessage = 'providerSettings.getView: ${r.debugText()}';
         });
         return;
       }
@@ -157,7 +157,7 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
   Future<void> _fetchSupporting(int epoch) async {
     try {
       final r = await _callWithRetry('setting', 'get');
-      final j = r.firstObject;
+      final j = r.firstObjectDeep;
       if (!mounted || epoch != _loadEpoch) return;
       setState(() {
         if (j != null) {
@@ -182,7 +182,7 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
     try {
       final r = await _callWithRetry('model-selection', 'getView');
       if (epoch != _loadEpoch) return;
-      final sel = ModelSelectionView.fromJson(r.firstObject ?? const {});
+      final sel = ModelSelectionView.fromJson(r.firstObjectDeep ?? const {});
       debugPrint(
         '[model] selection getView '
         '${sel != null ? 'ok (${sel.providerIds.length} providers)' : 'empty'}',
@@ -218,7 +218,7 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
     };
     try {
       final r = await _callWithRetry('usage-stats', 'getEntitlementSnapshot', params: params);
-      final ent = UsageEntitlement.fromJson(r.firstObject ?? const {});
+      final ent = UsageEntitlement.fromJson(r.firstObjectDeep ?? const {});
       if (!mounted || epoch != _loadEpoch) return;
       setState(() {
         _entitlement = ent;
@@ -1125,7 +1125,7 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
         args: [_provider.providerId, m.modelId],
       );
       debugPrint('[model] modelDelete ${_provider.providerId}/${m.modelId} ok');
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       if (view == null || view.byId(_provider.providerId) == null) {
         debugPrint('[model] modelDelete receipt unusable');
         if (mounted) _toast(l10n.modelModelDeleteFailed);
@@ -1236,7 +1236,7 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
         '[model] modelEnabled ${widget.provider.providerId}/'
         '${m.modelId}=$enabled ok (${r.values.length} values)',
       );
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       final receipt = view?.byId(widget.provider.providerId);
       if (view == null || receipt == null) {
         debugPrint(
@@ -2009,7 +2009,7 @@ class _EditProviderSheetState extends State<_EditProviderSheet> {
         args: meta.isEmpty ? [p.providerId, overlay] : [p.providerId, overlay, meta],
       );
       debugPrint('[model] providerOverlay ${p.providerId} ok');
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       if (view == null || view.byId(p.providerId) == null) {
         debugPrint('[model] providerOverlay receipt unusable');
         if (mounted) {
@@ -2091,7 +2091,7 @@ class _EditProviderSheetState extends State<_EditProviderSheet> {
         args: [widget.provider.providerId],
       );
       debugPrint('[model] providerDelete ${widget.provider.providerId} ok');
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       if (view == null) {
         debugPrint('[model] providerDelete receipt unusable');
         if (mounted) {
@@ -2516,7 +2516,7 @@ class _ModelDraftSheetState extends State<_ModelDraftSheet> {
         '[model] modelDraft ${_isAdd ? 'add' : 'save'} '
         '${widget.provider.providerId}/$modelId ok',
       );
-      final view = ProviderSettingsView.fromJson(r.firstObject ?? const {});
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
       if (view == null) {
         debugPrint('[model] modelDraft receipt unusable');
         if (mounted) {

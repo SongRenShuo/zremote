@@ -35,6 +35,7 @@ import '../theme.dart';
 import '../models/device_label.dart';
 import 'automation_page.dart';
 import 'claim_page.dart';
+import 'diagnostics_page.dart';
 import 'model_settings_page.dart';
 import 'session_panel.dart';
 import 'sheet_shell.dart';
@@ -673,22 +674,55 @@ class _SessionViewState extends ConsumerState<SessionView> {
     );
   }
 
+  Future<void> _openDiagnostics() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DiagnosticsPage(device: widget.device, bridge: bridge),
+      ),
+    );
+  }
+
   Future<void> _probeClaimEntry() async {
     final bridge = _rpcBridge;
     if (bridge == null) {
       debugPrint('claimEntry: probe skip（bridge 未就绪）');
       return;
     }
-    debugPrint('claimEntry: probe start');
+    // P1-4：先用定点服务检查判定领券入口可用性，避免 15×2s 轮询
+    // getManualClaimPlanPreviews；服务存在即可点，无券时由领券页展示空态。
+    debugPrint('claimEntry: probe start (toolbox check)');
+    for (var attempt = 1; attempt <= 5; attempt++) {
+      final result = await ServiceProbe.checkToolbox(bridge);
+      if (!mounted) return;
+      if (result != null) {
+        final visible =
+            result['codingPlanSubscriptionService'] == true;
+        debugPrint(
+          'claimEntry: toolbox check visible=$visible '
+          'result=$result (#$attempt)',
+        );
+        _claimEntryNotifier?.report(widget.device.id, visible);
+        return;
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    // 定点检查不可用（probe dump 本身失败）→ 退回旧探针，缩短轮询。
+    debugPrint('claimEntry: fallback to previews probe');
     bool visible = false;
-    for (var attempt = 1; attempt <= 15; attempt++) {
+    for (var attempt = 1; attempt <= 5; attempt++) {
       try {
         final r = await bridge.call(
           'coding-plan-subscription',
           'getManualClaimPlanPreviews',
           timeout: const Duration(seconds: 5),
         );
-        final plans = r.firstObject?['plans'];
+        final plans = r.firstObjectDeep?['plans'];
         visible = plans is List && plans.isNotEmpty;
         debugPrint(
           'claimEntry: probe done visible=$visible '
@@ -700,9 +734,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
         final s = e.toString();
         final retryable =
             s.contains('no-services') ||
-            s.contains('no-method') ||
             e is RpcTimeoutException;
-        if (!retryable || attempt == 15) break;
+        if (!retryable || attempt == 5) break;
         await Future<void>.delayed(const Duration(seconds: 2));
         if (!mounted) return;
       }
@@ -836,6 +869,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
             onClaimPressed: _openClaim,
             onUsagePressed: _openUsage,
             onModelSettingsPressed: _openModelSettings,
+            onDiagnosticsPressed: _openDiagnostics,
           ),
           IconButton(
             icon: const Icon(Icons.article_outlined),
@@ -1033,6 +1067,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                           false,
                         );
                         _rpcBridge?.resetOffPeakProbe();
+                        _rpcBridge?.resetServiceResolution();
                         _probeArmed = true;
                         _readinessEpoch++;
                         _readinessNotifier?.reset(widget.device.id);
@@ -1100,6 +1135,7 @@ class _ToolboxEntryButton extends ConsumerWidget {
     required this.onClaimPressed,
     required this.onUsagePressed,
     required this.onModelSettingsPressed,
+    this.onDiagnosticsPressed,
   });
 
   final RemoteDevice device;
@@ -1107,6 +1143,7 @@ class _ToolboxEntryButton extends ConsumerWidget {
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
   final VoidCallback onModelSettingsPressed;
+  final VoidCallback? onDiagnosticsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1130,6 +1167,7 @@ class _ToolboxEntryButton extends ConsumerWidget {
         onClaimPressed: onClaimPressed,
         onUsagePressed: onUsagePressed,
         onModelSettingsPressed: onModelSettingsPressed,
+        onDiagnosticsPressed: onDiagnosticsPressed,
       ),
     );
   }

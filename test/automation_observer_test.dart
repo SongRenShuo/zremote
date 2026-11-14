@@ -111,6 +111,27 @@ void main() {
       final root = jsonDecode(offPeakTaskJson);
       expect(AutomationExtractor.parseRoot(root), isNull);
     });
+
+    test('parseRunsRoot：automationId + runId 条目收集（P3-2）', () {
+      final root = {
+        'runs': [
+          {
+            'runId': 'run-1',
+            'automationId': 'automation-x',
+            'status': 'ok',
+          },
+          {'runId': 'run-2', 'automationId': 'automation-y', 'status': 'ok'},
+        ],
+      };
+      final runs = AutomationExtractor.parseRunsRoot(root);
+      expect(runs, isNotNull);
+      expect(runs!.length, 2);
+      expect(runs.first['runId'], 'run-1');
+
+      // 定时计划对象（无 runId）不误命中运行提取器。
+      expect(AutomationExtractor.parseRunsRoot(jsonDecode(automationJson)), isNull);
+      expect(AutomationExtractor.parseRunsRoot({'ok': true}), isNull);
+    });
   });
 
   group('CodingPlanSignalExtractor', () {

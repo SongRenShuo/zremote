@@ -16,6 +16,7 @@ Future<void> showToolboxSheet({
   required VoidCallback onClaimPressed,
   required VoidCallback onUsagePressed,
   required VoidCallback onModelSettingsPressed,
+  VoidCallback? onDiagnosticsPressed,
 }) {
   return showZrSheet<void>(
     context: context,
@@ -25,6 +26,7 @@ Future<void> showToolboxSheet({
       onClaimPressed: onClaimPressed,
       onUsagePressed: onUsagePressed,
       onModelSettingsPressed: onModelSettingsPressed,
+      onDiagnosticsPressed: onDiagnosticsPressed,
     ),
   );
 }
@@ -37,6 +39,7 @@ class ToolboxSheet extends ConsumerWidget {
     required this.onClaimPressed,
     required this.onUsagePressed,
     required this.onModelSettingsPressed,
+    this.onDiagnosticsPressed,
   });
 
   final RemoteDevice device;
@@ -44,6 +47,7 @@ class ToolboxSheet extends ConsumerWidget {
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
   final VoidCallback onModelSettingsPressed;
+  final VoidCallback? onDiagnosticsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -176,6 +180,39 @@ class ToolboxSheet extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+        // 连接诊断入口（P0-1）：排障与修复验收的基础设施。
+        Divider(height: 1, color: zt.hairline),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+          child: Row(
+            children: [
+              Icon(Icons.troubleshoot_outlined, size: 14, color: zt.textLo),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  l10n.toolboxDiagnosticsHint,
+                  style: TextStyle(fontSize: 11, color: zt.textLo),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, 30),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  onDiagnosticsPressed?.call();
+                },
+                child: Text(l10n.toolboxDiagnostics),
               ),
             ],
           ),

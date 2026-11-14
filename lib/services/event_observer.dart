@@ -204,13 +204,70 @@ abstract final class EventObserver {
     window.WebSocket = WSWrapped;
   }
   var zrSvc = null;
-  var zrFindServices = function() {
+  var zrSvcFailAt = 0;
+  var zrSvcFindInterval = 1500;
+  var zrCoreServices = [
+    'zcodeAgentService',
+    'offPeakTaskService',
+    'usageStatsService',
+    'providerSettingsService',
+    'modelSelectionService',
+    'codingPlanSubscriptionService',
+    'settingService',
+  ];
+  /* 服务注册表判定（放宽版）：≥8 个 *Service 键，且命中至少一个核心服务；
+     不再强制要求同时含 zcodeAgentService + offPeakTaskService，
+     宿主改名/拆分单一服务时不会拖垮全部入口。 */
+  var zrIsRegistry = function(o) {
     try {
-      if (zrSvc) {
-        var s = zrSvc.zcodeAgentService;
-        if (s && typeof s.listAllAutomations === 'function') return zrSvc;
-        zrSvc = null;
+      if (!o || typeof o !== 'object' || o === window || o === document) return false;
+      var ks = Object.keys(o);
+      var c = 0;
+      for (var i = 0; i < ks.length; i++) {
+        var k = ks[i];
+        if (k.length > 7 && k.substring(k.length - 7) === 'Service' &&
+            typeof o[k] === 'object') c++;
       }
+      if (c < 8) return false;
+      var core = 0;
+      for (var j = 0; j < zrCoreServices.length; j++) {
+        if (o[zrCoreServices[j]]) core++;
+      }
+      return core >= 1;
+    } catch (e) { return false; }
+  };
+  var zrRegistryScore = function(o) {
+    try {
+      var c = 0;
+      var ks = Object.keys(o);
+      for (var i = 0; i < ks.length; i++) {
+        var k = ks[i];
+        if (k.length > 7 && k.substring(k.length - 7) === 'Service') c++;
+      }
+      return c;
+    } catch (e) { return 0; }
+  };
+  /* 策略 B：window 直接暴露的服务对象（部分宿主版本挂在全局）。 */
+  var zrFindInWindow = function() {
+    try {
+      var best = null;
+      var bestScore = 0;
+      var ks = Object.getOwnPropertyNames(window);
+      for (var i = 0; i < ks.length; i++) {
+        var v = null;
+        try { v = window[ks[i]]; } catch (e1) { continue; }
+        if (!v || typeof v !== 'object') continue;
+        if (zrIsRegistry(v)) {
+          var score = zrRegistryScore(v);
+          if (score > bestScore) { best = v; bestScore = score; }
+        }
+      }
+      return best;
+    } catch (e) { return null; }
+  };
+  /* 策略 A：React Fiber 树爬取。 */
+  var zrFindInFiber = function() {
+    try {
       var all = document.querySelectorAll('*');
       var fiber = null;
       for (var i = 0; i < all.length && !fiber; i++) {
@@ -223,21 +280,17 @@ abstract final class EventObserver {
       while (fiber.return) fiber = fiber.return;
       var seen = new Set();
       var found = null;
+      var best = null;
+      var bestScore = 0;
+      /* 命中弱候选（8-9 个服务）不提前结束，强注册表（≥10）直接命中并停止爬树。 */
       var check = function(o) {
         try {
           if (!o || typeof o !== 'object' || seen.has(o)) return false;
           seen.add(o);
-          var ks2 = Object.keys(o);
-          var c = 0;
-          var hasAg = false;
-          var hasOp = false;
-          for (var q = 0; q < ks2.length; q++) {
-            var k = ks2[q];
-            if (k.length > 7 && k.substring(k.length - 7) === 'Service') c++;
-            if (k === 'zcodeAgentService') hasAg = true;
-            if (k === 'offPeakTaskService') hasOp = true;
-          }
-          if (c >= 10 && hasAg && hasOp) { found = o; zrSvc = o; return true; }
+          if (!zrIsRegistry(o)) return false;
+          var score = zrRegistryScore(o);
+          if (score > bestScore) { best = o; bestScore = score; }
+          if (score >= 10) { found = best; return true; }
           return false;
         } catch (e) { return false; }
       };
@@ -271,14 +324,34 @@ abstract final class EventObserver {
         if (!found) walk(f.sibling, depth + 1);
       };
       walk(fiber, 0);
-      return found;
+      return best;
+    } catch (e) { return null; }
+  };
+  var zrFindServices = function(force) {
+    try {
+      if (!force && zrSvc && zrIsRegistry(zrSvc)) return zrSvc;
+      if (zrSvc) zrSvc = null;
+      /* 发现失败后按退避间隔重试，避免每次 RPC 都全量爬树。 */
+      if (!force && !zrSvc &&
+          zrSvcFailAt > 0 &&
+          Date.now() - zrSvcFailAt < zrSvcFindInterval) {
+        return null;
+      }
+      var found = zrFindInFiber() || zrFindInWindow();
+      if (found) {
+        zrSvc = found;
+        zrSvcFailAt = 0;
+        return zrSvc;
+      }
+      zrSvcFailAt = Date.now();
+      return null;
     } catch (e) { return null; }
   };
   var zrSeen = {};
   function zrProbeRun(id, method, argsB64) {
     try {
       if (method !== 'dump') { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-method' })); return; }
-      var c = zrFindServices();
+      var c = zrFindServices(true);
       if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return; }
       var list = [];
       if (argsB64) {
@@ -378,8 +451,14 @@ abstract final class EventObserver {
       if (svcKey === '__zrCaptcha') { zrCaptchaRun(id, argsB64); return 'queued'; }
       var c = zrFindServices();
       if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return 'queued'; }
-      var svc = c[svcKey];
-      if (!svc || typeof svc[method] !== 'function') { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-method' })); return 'queued'; }
+      var svc = c ? c[svcKey] : null;
+      if (!svc || typeof svc[method] !== 'function') {
+        /* 缓存注册表可能已过期，强制重找一次再判定。 */
+        c = zrFindServices(true);
+        if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return 'queued'; }
+        svc = c[svcKey];
+        if (!svc || typeof svc[method] !== 'function') { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-method' })); return 'queued'; }
+      }
       var args = [];
       if (argsB64) {
         try {
@@ -1149,6 +1228,14 @@ abstract final class AutomationExtractor {
     return automations.isEmpty ? null : automations;
   }
 
+  /// 提取自动化运行记录（automationId + runId 同时存在）。
+  /// 旧逻辑直接丢弃带 runId 的条目，导致运行历史无数据来源。
+  static List<Map<String, dynamic>>? parseRunsRoot(dynamic root) {
+    final runs = <Map<String, dynamic>>[];
+    _walkRuns(root, 0, runs);
+    return runs.isEmpty ? null : runs;
+  }
+
   static void _walk(dynamic node, int depth, List<Map<String, dynamic>> out) {
     if (depth > _maxDepth || node == null) return;
     if (node is Map) {
@@ -1163,6 +1250,25 @@ abstract final class AutomationExtractor {
     } else if (node is List) {
       for (final value in node) {
         _walk(value, depth + 1, out);
+      }
+    }
+  }
+
+  static void _walkRuns(dynamic node, int depth, List<Map<String, dynamic>> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['runId'] is String &&
+          (node['runId'] as String).isNotEmpty &&
+          node['automationId'] is String &&
+          (node['automationId'] as String).isNotEmpty) {
+        out.add(Map<String, dynamic>.from(node));
+      }
+      for (final value in node.values) {
+        _walkRuns(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walkRuns(value, depth + 1, out);
       }
     }
   }
@@ -1188,6 +1294,18 @@ abstract final class AutomationFeed {
       if (parsed != null) automations.addAll(parsed);
     }
     return (automations: automations, snapshot: automations.length >= 2);
+  }
+
+  /// 被动 WS 喂流里出现的自动化运行记录。
+  static ({List<Map<String, dynamic>> runs, bool snapshot}) runsOf(
+    List<dynamic> inputs,
+  ) {
+    final runs = <Map<String, dynamic>>[];
+    for (final input in inputs) {
+      final parsed = AutomationExtractor.parseRunsRoot(input);
+      if (parsed != null) runs.addAll(parsed);
+    }
+    return (runs: runs, snapshot: runs.length >= 2);
   }
 }
 

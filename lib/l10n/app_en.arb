@@ -1315,5 +1315,108 @@
   "modelModelDeleteFailed": "Failed to delete model",
   "@modelModelDeleteFailed": {
     "description": "Toast when model delete failed"
+  },
+  "toolboxDiagnosticsHint": "If an entry misbehaves, run connection diagnostics to see which service is missing.",
+  "@toolboxDiagnosticsHint": {
+    "description": "Toolbox footer hint above diagnostics entry"
+  },
+  "toolboxDiagnostics": "Diagnostics",
+  "@toolboxDiagnostics": {
+    "description": "Toolbox footer button opening diagnostics page"
+  },
+  "diagnosticsTitle": "Connection diagnostics",
+  "@diagnosticsTitle": {
+    "description": "Diagnostics page app bar title"
+  },
+  "diagnosticsRun": "Run diagnostics",
+  "@diagnosticsRun": {
+    "description": "Diagnostics run button tooltip"
+  },
+  "diagnosticsCopy": "Copy report",
+  "@diagnosticsCopy": {
+    "description": "Diagnostics copy report button tooltip"
+  },
+  "diagnosticsCopied": "Diagnostics report copied",
+  "@diagnosticsCopied": {
+    "description": "Toast after copying diagnostics report"
+  },
+  "diagnosticsNoRegistry": "No service registry found — the host web app may have updated. Reload the session or report the diagnostics.",
+  "@diagnosticsNoRegistry": {
+    "description": "Diagnostics banner when registry not found"
+  },
+  "diagnosticsRegistryCount": "Service registry found ({count} services)",
+  "@diagnosticsRegistryCount": {
+    "description": "Diagnostics banner with registry service count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticsKeysTitle": "Service registry",
+  "@diagnosticsKeysTitle": {
+    "description": "Diagnostics section title for registry keys"
+  },
+  "diagnosticsMissingTitle": "Missing candidate services (incl. aliases)",
+  "@diagnosticsMissingTitle": {
+    "description": "Diagnostics section title for missing candidate services"
+  },
+  "diagnosticsChecksTitle": "Method checks",
+  "@diagnosticsChecksTitle": {
+    "description": "Diagnostics section title for method checks"
+  },
+  "diagnosticsLiveCallsTitle": "Live call results",
+  "@diagnosticsLiveCallsTitle": {
+    "description": "Diagnostics section title for live calls"
+  },
+  "automationTabHistory": "Run history",
+  "@automationTabHistory": {
+    "description": "Automation runs history tab"
+  },
+  "automationLoadFailed": "Failed to load automation data",
+  "@automationLoadFailed": {
+    "description": "Automation page load failure banner title"
+  },
+  "automationRetry": "Retry",
+  "@automationRetry": {
+    "description": "Automation page retry action"
+  },
+  "automationHistoryEmptyTitle": "No runs yet",
+  "@automationHistoryEmptyTitle": {
+    "description": "Runs history empty state title"
+  },
+  "automationHistoryEmptyBody": "Runs appear here once a scheduled or off-peak task fires.",
+  "@automationHistoryEmptyBody": {
+    "description": "Runs history empty state body"
+  },
+  "automationLastSynced": "Last synced: {time}",
+  "@automationLastSynced": {
+    "description": "Runs history last synced time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationHistoryCount": "Runs ({count})",
+  "@automationHistoryCount": {
+    "description": "Runs history section head",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationHistoryRemoved": "Removed from history",
+  "@automationHistoryRemoved": {
+    "description": "Tag on off-peak task removed from host history"
+  },
+  "automationRecentRuns": "Recent runs",
+  "@automationRecentRuns": {
+    "description": "Expand recent runs action on scheduled card"
+  },
+  "automationCollapseRuns": "Hide runs",
+  "@automationCollapseRuns": {
+    "description": "Collapse recent runs action on scheduled card"
   }
 }

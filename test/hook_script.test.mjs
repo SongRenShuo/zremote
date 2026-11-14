@@ -216,6 +216,71 @@ sandbox.window.__zrSvcCall(6, 'zcodeAgentService', 'listAllAutomations', '');
 await tick();
 assert.equal(lastSvcResult().e, 'no-services');
 domBroken = false;
+// P1-2 退避：发现失败后 1.5s 内的非强制调用快速失败。
+sandbox.window.__zrSvcCall(66, 'zcodeAgentService', 'listAllAutomations', '');
+await tick();
+assert.equal(lastSvcResult().i, 66);
+assert.equal(lastSvcResult().ok, false);
+assert.equal(lastSvcResult().e, 'no-services');
+
+// P1-1 放宽判定：注册表不含 zcodeAgentService 但含其他核心服务时，
+// 调用 usageStatsService 应能成功（旧逻辑直接 no-services）。
+const relaxed = {
+  fileService: {},
+  gitService: {},
+  systemService: {},
+  terminalService: {},
+  settingService: {},
+  credentialService: {},
+  broadcastService: {},
+  modelSelectionService: {},
+  usageStatsService: {
+    getAppUsageSnapshot: () => Promise.resolve([{ range: 'all' }]),
+  },
+  offPeakTaskService: {},
+};
+providerFiber.memoizedProps = { ctx: { value: relaxed } };
+await new Promise((r) => setTimeout(r, 1600)); // 越过 1.5s 退避窗口
+sandbox.window.__zrSvcCall(70, 'usageStatsService', 'getAppUsageSnapshot', '');
+await tick();
+res = lastSvcResult();
+assert.equal(res.i, 70);
+assert.equal(res.ok, true, `res=${res.r ?? res.e}`);
+assert.deepEqual(JSON.parse(res.r), [{ range: 'all' }]);
+
+// P1-2 缓存韧性：DOM 断了但缓存注册表仍有效 → 调用照常工作。
+domBroken = true;
+sandbox.window.__zrSvcCall(71, 'usageStatsService', 'getAppUsageSnapshot', '');
+await tick();
+res = lastSvcResult();
+assert.equal(res.i, 71);
+assert.equal(res.ok, true, `res=${res.r ?? res.e}`);
+
+// P1-1 策略 B：fiber 全断时，注册表挂在 window 上也能找到。
+relaxed.usageStatsService = {};
+const windowRegistry = {
+  fileService: {},
+  gitService: {},
+  systemService: {},
+  terminalService: {},
+  settingService: {},
+  credentialService: {},
+  broadcastService: {},
+  modelSelectionService: {},
+  usageStatsService: {
+    getAppUsageSnapshot: () => Promise.resolve([{ range: 'all', via: 'window' }]),
+  },
+  providerSettingsService: {},
+};
+fakeWindow.__zrServices = windowRegistry;
+sandbox.window.__zrSvcCall(72, 'usageStatsService', 'getAppUsageSnapshot', '');
+await tick();
+res = lastSvcResult();
+assert.equal(res.i, 72);
+assert.equal(res.ok, true, `res=${res.r ?? res.e}`);
+assert.deepEqual(JSON.parse(res.r), [{ range: 'all', via: 'window' }]);
+domBroken = false;
+delete fakeWindow.__zrServices;
 
 const fresh = {
   ...container,
@@ -376,4 +441,4 @@ assert.equal(
 );
 assert.equal(JSON.parse(callsNamed('zrSvcResult').at(-1).body).i, 55);
 
-console.log('hookScript 语义测试全部通过（17 场景）');
+console.log('hookScript 语义测试全部通过（21 场景）');

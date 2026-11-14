@@ -60,8 +60,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         'getManualClaimPlanPreviews',
         tag: 'refresh',
       );
-      final obj = r.firstObject;
-      final rawPlans = obj?['plans'];
+      final obj = r.firstObjectDeep;
+      // plans 为主名，previews 为宿主升级后的可能别名。
+      final rawPlans = obj?['plans'] ?? obj?['previews'];
       final previews = <ClaimPreview>[
         if (rawPlans is List)
           for (final p in rawPlans)

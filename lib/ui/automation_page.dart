@@ -32,6 +32,13 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
 
   bool _refreshing = false;
 
+  /// 最近一次刷新的失败原因；空表示加载成功。
+  /// 空列表与加载失败在 UI 上必须可区分（P0-3）。
+  String _loadError = '';
+
+  /// 定时计划卡片展开的运行记录（automationId 集合）。
+  final Set<String> _expandedAutomations = {};
+
   final Set<String> _busy = {};
   AutomationNotifier? _notifier;
 
@@ -52,18 +59,63 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
   Future<void> _refresh() async {
     if (_refreshing) return;
     _refreshing = true;
+    var anyOk = false;
+    var failures = <String>[];
     try {
       try {
         final r = await widget.bridge.call('off-peak-task', 'list');
         _notifier?.replaceOffPeak(widget.device.id, _objectsOf(r));
-      } catch (_) {}
+        anyOk = true;
+      } catch (e) {
+        failures.add('offPeakTask.list: ${_briefOf(e)}');
+      }
       try {
         final r = await widget.bridge.call('zcode-agent', 'listAllAutomations');
         _notifier?.replaceAutomations(widget.device.id, _objectsOf(r));
-      } catch (_) {}
+        anyOk = true;
+      } catch (e) {
+        failures.add('listAllAutomations: ${_briefOf(e)}');
+      }
+      try {
+        final r = await widget.bridge.call('zcode-agent', 'listAutomationRuns');
+        _notifier?.replaceRuns(widget.device.id, _runsOf(r));
+        anyOk = true;
+      } catch (e) {
+        failures.add('listAutomationRuns: ${_briefOf(e)}');
+      }
+      if (anyOk) _notifier?.reportSynced(widget.device.id);
+      if (mounted) {
+        setState(() => _loadError = anyOk ? '' : failures.join('\n'));
+      }
     } finally {
       _refreshing = false;
     }
+  }
+
+  static String _briefOf(Object e) {
+    var msg = e is RpcRemoteException
+        ? e.message
+        : e.toString();
+    if (msg.length > 120) msg = msg.substring(0, 120);
+    return msg;
+  }
+
+  /// listAutomationRuns 返回形状兼容：裸数组或 {runs:[...]} 包装都接住。
+  static List<Map<String, dynamic>> _runsOf(RpcResponse r) {
+    final direct = [
+      for (final v in r.values)
+        if (v is Map<String, dynamic> && v['runId'] is String) v,
+    ];
+    if (direct.isNotEmpty) return direct;
+    final obj = r.firstObjectDeep;
+    final list = obj?['runs'] ?? obj?['items'];
+    if (list is List) {
+      return [
+        for (final v in list)
+          if (v is Map<String, dynamic>) v,
+      ];
+    }
+    return const [];
   }
 
   static List<Map<String, dynamic>> _objectsOf(RpcResponse r) => [
@@ -322,6 +374,12 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
               onPressed: () => setState(() => _tabIndex = 1),
               icon: const Icon(Icons.schedule_outlined),
             )
+          else if (_tabIndex == 2)
+            IconButton(
+              tooltip: l10n.usageRefresh,
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh),
+            )
           else
             IconButton(
               tooltip: l10n.automationNew,
@@ -366,16 +424,86 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
                 ],
               ),
             ),
+          // 加载失败提示条：非致命，数据可用时仍正常展示（P0-3）。
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: _loadError.isNotEmpty
+                ? Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: zt.warn.withValues(alpha: 0.10),
+                      border: Border(
+                        left: BorderSide(color: zt.warn, width: 3),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 9,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sync_problem_outlined,
+                          size: 18,
+                          color: zt.warn,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.automationLoadFailed,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: zt.textLo,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _loadError,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: zt.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ZrActionLink(
+                          label: l10n.automationRetry,
+                          onTap: _refresh,
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
             child: ZrSegmented(
               segments: [
                 ('off', l10n.automationTabOffPeak),
                 ('sched', l10n.automationTabScheduled),
+                ('runs', l10n.automationTabHistory),
               ],
-              active: _tabIndex == 0 ? 'off' : 'sched',
-              onChanged: (value) =>
-                  setState(() => _tabIndex = value == 'off' ? 0 : 1),
+              active: switch (_tabIndex) {
+                0 => 'off',
+                1 => 'sched',
+                _ => 'runs',
+              },
+              onChanged: (value) => setState(
+                () => _tabIndex = switch (value) {
+                  'off' => 0,
+                  'sched' => 1,
+                  _ => 2,
+                },
+              ),
             ),
           ),
           Expanded(
@@ -384,17 +512,151 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
               children: [
                 _offPeakTab(l10n, board, offline),
                 _scheduledTab(l10n, board, offline),
+                _historyTab(l10n, board),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: ZrDockButton(
-        icon: Icons.add,
-        label: _tabIndex == 0
-            ? l10n.automationDockOffPeak(widget.device.displayName(l10n))
-            : l10n.automationDockScheduled(widget.device.displayName(l10n)),
-        onPressed: offline ? null : _create,
+      bottomNavigationBar: _tabIndex == 2
+          ? null
+          : ZrDockButton(
+              icon: Icons.add,
+              label: _tabIndex == 0
+                  ? l10n.automationDockOffPeak(widget.device.displayName(l10n))
+                  : l10n.automationDockScheduled(
+                      widget.device.displayName(l10n),
+                    ),
+              onPressed: offline ? null : _create,
+            ),
+    );
+  }
+
+  /// 运行历史 Tab：离线/断连时展示最后一次同步的快照（P3-4）。
+  Widget _historyTab(AppLocalizations l10n, AutomationBoard board) {
+    final runs = [...board.runs]..sort((a, b) {
+      final aAt = a.startedAt?.millisecondsSinceEpoch ?? 0;
+      final bAt = b.startedAt?.millisecondsSinceEpoch ?? 0;
+      return bAt.compareTo(aAt);
+    });
+    final synced = board.lastSyncedAt;
+    if (runs.isEmpty) {
+      return _EmptyState(
+        icon: Icons.history,
+        title: _loadError.isEmpty
+            ? l10n.automationHistoryEmptyTitle
+            : l10n.automationLoadFailed,
+        body: _loadError.isEmpty
+            ? l10n.automationHistoryEmptyBody
+            : _loadError,
+        actionLabel: _loadError.isEmpty
+            ? l10n.usageRefresh
+            : l10n.automationRetry,
+        onAction: _refresh,
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        if (synced != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(Icons.schedule, size: 12, color: context.zt.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  l10n.automationLastSynced(_formatLocal(synced)),
+                  style: zrMono(
+                    fontSize: 11,
+                    color: context.zt.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ZrSectionHead(
+          title: l10n.automationHistoryCount(runs.length),
+        ),
+        const SizedBox(height: 8),
+        for (final run in runs) _runCard(l10n, run),
+      ],
+    );
+  }
+
+  Widget _runCard(AppLocalizations l10n, AutomationRun run) {
+    final title = run.title.isNotEmpty
+        ? run.title
+        : (run.prompt.isNotEmpty ? run.prompt : run.automationId);
+    final zt = context.zt;
+    return BevelCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(status: run.status),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 12, color: zt.textLo),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  run.startedAt != null
+                      ? _formatLocal(run.startedAt!)
+                      : '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: zrMono(fontSize: 11, color: zt.textLo),
+                ),
+              ),
+              if (run.workspacePath.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.desktop_windows_outlined,
+                  size: 12,
+                  color: zt.textLo,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    _basename(run.workspacePath),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: zt.textLo),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (run.status == 'failed' &&
+              run.failureReason != null &&
+              run.failureReason!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              l10n.automationFailureReason(run.failureReason!),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: zt.danger),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -405,14 +667,23 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
     bool offline,
   ) {
     if (board.offPeak.isEmpty) {
+      // 空列表与加载失败必须可区分（P0-3）。
       return _EmptyState(
         icon: Icons.nightlight,
-        title: l10n.automationEmptyOffPeakTitle,
-        body: l10n.automationEmptyOffPeakBody,
-        actionLabel: l10n.automationNew,
-        onAction: offline
-            ? null
-            : () => _openForm(kind: AutomationFormKind.offPeak),
+        title: _loadError.isEmpty
+            ? l10n.automationEmptyOffPeakTitle
+            : l10n.automationLoadFailed,
+        body: _loadError.isEmpty
+            ? l10n.automationEmptyOffPeakBody
+            : _loadError,
+        actionLabel: _loadError.isEmpty
+            ? l10n.automationNew
+            : l10n.automationRetry,
+        onAction: _loadError.isEmpty
+            ? (offline
+                  ? null
+                  : () => _openForm(kind: AutomationFormKind.offPeak))
+            : _refresh,
       );
     }
     final pending = board.offPeak.any(
@@ -480,12 +751,20 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
     if (board.automations.isEmpty) {
       return _EmptyState(
         icon: Icons.event_repeat,
-        title: l10n.automationEmptyScheduledTitle,
-        body: l10n.automationEmptyScheduledBody,
-        actionLabel: l10n.automationNew,
-        onAction: offline
-            ? null
-            : () => _openForm(kind: AutomationFormKind.scheduled),
+        title: _loadError.isEmpty
+            ? l10n.automationEmptyScheduledTitle
+            : l10n.automationLoadFailed,
+        body: _loadError.isEmpty
+            ? l10n.automationEmptyScheduledBody
+            : _loadError,
+        actionLabel: _loadError.isEmpty
+            ? l10n.automationNew
+            : l10n.automationRetry,
+        onAction: _loadError.isEmpty
+            ? (offline
+                  ? null
+                  : () => _openForm(kind: AutomationFormKind.scheduled))
+            : _refresh,
       );
     }
     final zt = context.zt;
@@ -517,7 +796,8 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
           title: l10n.automationPlansTitle(board.automations.length),
         ),
         const SizedBox(height: 8),
-        for (final auto in board.automations) _scheduledCard(l10n, auto, offline),
+        for (final auto in board.automations)
+          _scheduledCard(l10n, auto, board, offline),
       ],
     );
   }
@@ -529,14 +809,19 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
     bool offline,
   ) {
     final busy = _busy.contains(task.offPeakTaskId);
-    final enabled = !offline && !busy;
+    // 宿主已从历史移除的任务：灰态展示，仅保留本地删除（P3-2）。
+    final deleted = task.historyDeleted;
+    final enabled = !offline && !busy && !deleted;
     final title = task.title.isEmpty ? task.prompt : task.title;
     final terminal = const [
       'completed',
       'cancelled',
       'failed',
-    ].contains(task.status);
-    return BevelCard(
+    ].contains(task.status) || deleted;
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: deleted ? 0.55 : 1.0,
+      child: BevelCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -566,6 +851,14 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
                   ),
                 ),
               ),
+              if (deleted) ...[
+                const SizedBox(width: 6),
+                Text(
+                  l10n.automationHistoryRemoved,
+                  style: TextStyle(fontSize: 10.5, color: context.zt.textTertiary),
+                ),
+                const SizedBox(width: 6),
+              ],
               const SizedBox(width: 8),
               _StatusBadge(status: task.status),
             ],
@@ -710,6 +1003,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -746,11 +1040,18 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
     );
   }
 
-  Widget _scheduledCard(AppLocalizations l10n, Automation auto, bool offline) {
+  Widget _scheduledCard(
+    AppLocalizations l10n,
+    Automation auto,
+    AutomationBoard board,
+    bool offline,
+  ) {
     final busy = _busy.contains(auto.automationId);
     final enabled = !offline && !busy;
     final title = auto.title.isEmpty ? auto.prompt : auto.title;
     final zt = context.zt;
+    final expanded = _expandedAutomations.contains(auto.automationId);
+    final runs = board.runsOf(auto.automationId);
     return BevelCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -867,6 +1168,19 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
                   ),
                 ),
                 ZrActionLink(
+                  label: expanded
+                      ? l10n.automationCollapseRuns
+                      : l10n.automationRecentRuns,
+                  icon: Icons.history,
+                  onTap: () => setState(() {
+                    if (expanded) {
+                      _expandedAutomations.remove(auto.automationId);
+                    } else {
+                      _expandedAutomations.add(auto.automationId);
+                    }
+                  }),
+                ),
+                ZrActionLink(
                   label: l10n.automationRunNow,
                   icon: Icons.play_arrow,
                   color: zt.accent,
@@ -892,6 +1206,54 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
               ],
             ),
           ),
+          // 展开最近运行记录（P3-3）。
+          if (expanded) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: zt.hairline)),
+              ),
+              child: runs.isEmpty
+                  ? Text(
+                      l10n.automationHistoryEmptyTitle,
+                      style: TextStyle(fontSize: 11.5, color: zt.textTertiary),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.automationRecentRuns,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: zt.textLo,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        for (final run in runs.take(5))
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              children: [
+                                Text(
+                                  run.startedAt != null
+                                      ? _formatLocal(run.startedAt!)
+                                      : '—',
+                                  style: zrMono(
+                                    fontSize: 11,
+                                    color: zt.textLo,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _StatusBadge(status: run.status),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
         ],
       ),
     );

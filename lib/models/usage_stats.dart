@@ -222,10 +222,12 @@ class AppUsageSnapshot {
   }
 
   static AppUsageSnapshot? fromJson(Map<String, dynamic> j) {
-    final summary = j['summary'];
-    final heatmap = j['heatmap'];
-    final models = j['models'];
-    final daily = j['dailyModelUsage'];
+    // 字段别名容错：宿主升级后顶层 key 可能改名/换包装，
+    // 旧名优先，别名兜底；四类数据全缺时才视为不可解析。
+    final summary = j['summary'] ?? j['appUsageSummary'];
+    final heatmap = j['heatmap'] ?? j['usageHeatmap'];
+    final models = j['models'] ?? j['modelUsage'];
+    final daily = j['dailyModelUsage'] ?? j['daily'];
     final empty =
         summary == null && heatmap == null &&
         models == null && daily == null;

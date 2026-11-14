@@ -128,6 +128,7 @@ void main() {
       script: [
         [dumpPayload()],
       ],
+      respondEmptyOnExhausted: false,
     );
     final report = await ServiceProbe.run(
       bridge.bridge,
@@ -255,7 +256,10 @@ void main() {
     });
 
     test('超时/其它错误 → null（不能结论）', () async {
-      final bridge = ScriptedBridge(script: const []);
+      final bridge = ScriptedBridge(
+        script: const [],
+        respondEmptyOnExhausted: false,
+      );
       expect(
         await ServiceProbe.checkReady(
           bridge.bridge,
@@ -263,6 +267,47 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  group('checkToolbox 定点检查（P1-4）', () {
+    test('dump 可用 → 按方法检查结果逐服务判定', () async {
+      final bridge = ScriptedBridge(
+        script: [
+          [
+            dumpPayload(
+              checks: {
+                'usageStatsService.getAppUsageSnapshot': true,
+                'usageStatsService.getEntitlementSnapshot': false,
+                'codingPlanSubscriptionService.getManualClaimPlanPreviews':
+                    'no-svc',
+                'offPeakTaskService.list': true,
+                'zcodeAgentService.listAllAutomations': false,
+                'zcodeAgentService.listAutomationRuns': true,
+                'providerSettingsService.getView': true,
+                'modelSelectionService.getView': false,
+              },
+            ),
+          ],
+        ],
+      );
+      final result = await ServiceProbe.checkToolbox(bridge.bridge);
+      expect(result, {
+        'usageStatsService': isTrue,
+        'codingPlanSubscriptionService': isFalse,
+        'offPeakTaskService': isTrue,
+        'zcodeAgentService': isTrue,
+        'providerSettingsService': isTrue,
+        'modelSelectionService': isFalse,
+      });
+    });
+
+    test('dump 不可用（no-services）→ null 由调用方兜底', () async {
+      final bridge = ScriptedBridge(
+        script: const [],
+        errors: {0: 'no-services'},
+      );
+      expect(await ServiceProbe.checkToolbox(bridge.bridge), isNull);
     });
   });
 }

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
-    'hookScript JS 语义（Node vm 驱动）：17 场景全过',
+    'hookScript JS 语义（Node vm 驱动）：21 场景全过',
     () async {
       try {
         await Process.run('node', ['--version']);

@@ -45,6 +45,48 @@ class RpcResponse {
     }
     return null;
   }
+
+  /// firstObject 的外壳剥离版：宿主升级后返回值可能被单键包装
+  /// （如 `{snapshot: {...}}`、`{view: {...}}`），这里逐层取唯一 Map 值。
+  static const int _maxUnwrapDepth = 4;
+
+  Map<String, dynamic>? get firstObjectDeep {
+    for (final value in values) {
+      final unwrapped = _unwrapObject(value, 0);
+      if (unwrapped != null) return unwrapped;
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _unwrapObject(dynamic value, int depth) {
+    if (value is! Map<String, dynamic>) return null;
+    if (value.isEmpty) return value;
+    if (depth >= _maxUnwrapDepth) return value;
+    // 单键 Map 且该键的值仍是 Map 时视为包装外壳，继续向内剥。
+    if (value.length == 1) {
+      final inner = value.values.first;
+      if (inner is Map<String, dynamic>) {
+        return _unwrapObject(inner, depth + 1);
+      }
+    }
+    return value;
+  }
+
+  /// 原始报文片段（截断），用于解析失败时在错误态展示可读原因。
+  static const int debugTextMaxChars = 300;
+
+  String debugText() {
+    String raw;
+    try {
+      raw = jsonEncode(values);
+    } catch (_) {
+      raw = '${values}';
+    }
+    raw = raw.replaceAll('\n', ' ');
+    return raw.length <= debugTextMaxChars
+        ? raw
+        : raw.substring(0, debugTextMaxChars);
+  }
 }
 
 class RpcBridge {
@@ -56,16 +98,27 @@ class RpcBridge {
 
   final void Function(bool ready)? onServiceState;
 
+  /// channel → 服务名候选列表（首个为主名，其余为宿主升级后的别名，
+  /// 按 no-services/no-method 时依次探测）。探测成功的结果按会话缓存。
+  static const Map<String, List<String>> _serviceCandidatesByChannel = {
+    'off-peak-task': ['offPeakTaskService', 'offPeakQueueService'],
+    'zcode-agent': ['zcodeAgentService', 'agentService', 'automationService'],
+    'usage-stats': ['usageStatsService', 'usageService'],
+    'zr-probe': ['__zrProbe'],
+    'coding-plan-subscription': [
+      'codingPlanSubscriptionService',
+      'codingPlanService',
+      'subscriptionService',
+    ],
+    'zr-captcha': ['__zrCaptcha'],
+    'provider-settings': ['providerSettingsService', 'modelProviderService'],
+    'model-selection': ['modelSelectionService', 'modelService'],
+    'setting': ['settingService', 'settingsService'],
+  };
+
   static const Map<String, String> _serviceByChannel = {
-    'off-peak-task': 'offPeakTaskService',
-    'zcode-agent': 'zcodeAgentService',
-    'usage-stats': 'usageStatsService',
-    'zr-probe': '__zrProbe',
-    'coding-plan-subscription': 'codingPlanSubscriptionService',
-    'zr-captcha': '__zrCaptcha',
-    'provider-settings': 'providerSettingsService',
-    'model-selection': 'modelSelectionService',
-    'setting': 'settingService',
+    for (final entry in _serviceCandidatesByChannel.entries)
+      entry.key: entry.value.first,
   };
 
   final String deviceId;
@@ -76,6 +129,14 @@ class RpcBridge {
   int _nextId = 1;
 
   bool? _offPeakUpdateTwoArgs;
+
+  final Map<String, String> _resolvedService = {};
+
+  /// 诊断用：该 channel 当前实际使用的服务名（未解析过时返回主名）。
+  String resolvedServiceOf(String channel) =>
+      _resolvedService[channel] ?? _serviceByChannel[channel] ?? channel;
+
+  void resetServiceResolution() => _resolvedService.clear();
 
   Future<RpcResponse> call(
     String channel,
@@ -95,11 +156,56 @@ class RpcBridge {
     required List<Object?> args,
     Duration timeout = const Duration(seconds: 25),
   }) async {
-    final service = _serviceByChannel[channel];
-    if (service == null) {
+    final candidates = _serviceCandidatesByChannel[channel];
+    if (candidates == null) {
       throw RpcNotReadyException('unknown channel: $channel');
     }
-    final reportsReadiness = channel != 'zr-probe' && channel != 'zr-captcha';
+    // 已解析成功的别名优先，其余候选按声明顺序兜底。
+    final resolved = _resolvedService[channel];
+    final order = [
+      if (resolved != null && candidates.contains(resolved)) resolved,
+      for (final candidate in candidates)
+        if (candidate != resolved) candidate,
+    ];
+    for (var i = 0; i < order.length; i++) {
+      final last = i == order.length - 1;
+      try {
+        return await _callService(
+          channel,
+          order[i],
+          method,
+          args,
+          timeout,
+          reportNoServices: last,
+        );
+      } on RpcRemoteException catch (e) {
+        final transient =
+            e.message.contains('no-services') || e.message.contains('no-method');
+        if (!transient || last) {
+          _resolvedService.remove(channel);
+          rethrow;
+        }
+        if (kDebugMode) {
+          debugPrint('[zr-diag] $channel.$method alias ${order[i]} -> ${e.message}');
+        }
+      } on TimeoutException {
+        // 超时不换别名重试，直接按超时语义抛出。
+        throw RpcTimeoutException('$channel.$method');
+      }
+    }
+    throw RpcNotReadyException('no service candidate for $channel');
+  }
+
+  Future<RpcResponse> _callService(
+    String channel,
+    String service,
+    String method,
+    List<Object?> args,
+    Duration timeout, {
+    required bool reportNoServices,
+  }) async {
+    final tracksReadiness =
+        channel != 'zr-probe' && channel != 'zr-captcha';
     final id = _nextId++;
     final argsJson = jsonEncode(args);
     final argsB64 = base64Encode(utf8.encode(argsJson));
@@ -111,7 +217,8 @@ class RpcBridge {
     }
     try {
       final response = await completer.future.timeout(timeout);
-      if (reportsReadiness) onServiceState?.call(true);
+      _resolvedService[channel] = service;
+      if (tracksReadiness) onServiceState?.call(true);
       if (kDebugMode) {
         debugPrint(
           '[zr-diag] <- $channel.$method id=$id values=${response.values.length}',
@@ -119,7 +226,9 @@ class RpcBridge {
       }
       return response;
     } on RpcRemoteException catch (e) {
-      if (reportsReadiness && e.message.contains('no-services')) {
+      if (tracksReadiness &&
+          reportNoServices &&
+          e.message.contains('no-services')) {
         onServiceState?.call(false);
       }
       rethrow;

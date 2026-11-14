@@ -14,6 +14,7 @@ class OffPeakTask {
     this.filesChanged,
     this.queuedAt,
     this.updatedAt,
+    this.historyDeletedAt,
   });
 
   final String offPeakTaskId;
@@ -32,10 +33,15 @@ class OffPeakTask {
   final DateTime? queuedAt;
   final DateTime? updatedAt;
 
+  /// 非空表示宿主已把该任务从历史中移除；
+  /// UI 以灰态展示而不是让记录凭空消失。
+  final DateTime? historyDeletedAt;
+
+  bool get historyDeleted => historyDeletedAt != null;
+
   static OffPeakTask? fromJson(Map<String, dynamic> j) {
     final id = j['offPeakTaskId'];
     if (id is! String || id.isEmpty) return null;
-    if (j['historyDeletedAt'] != null) return null;
     return OffPeakTask(
       offPeakTaskId: id,
       title: j['title'] is String ? j['title'] as String : '',
@@ -58,6 +64,10 @@ class OffPeakTask {
           : null,
       queuedAt: _msToDateTime(j['queuedAt']),
       updatedAt: _msToDateTime(j['updatedAt']),
+      historyDeletedAt: _msToDateTime(j['historyDeletedAt']) ??
+          (j['historyDeletedAt'] is String
+              ? DateTime.tryParse(j['historyDeletedAt'] as String)
+              : null),
     );
   }
 
@@ -77,7 +87,8 @@ class OffPeakTask {
       other.failureReason == failureReason &&
       other.filesChanged == filesChanged &&
       other.queuedAt == queuedAt &&
-      other.updatedAt == updatedAt;
+      other.updatedAt == updatedAt &&
+      other.historyDeletedAt == historyDeletedAt;
 
   @override
   int get hashCode => Object.hashAll([
@@ -92,6 +103,7 @@ class OffPeakTask {
         filesChanged,
         queuedAt,
         updatedAt,
+        historyDeletedAt,
       ]);
 }
 
@@ -185,33 +197,130 @@ class Automation {
       ]);
 }
 
+/// 自动化运行记录（来自 listAutomationRuns / 被动喂流）。
+/// 字段按宿主实际返回做容错解析，未知形状只丢字段不丢条目。
+class AutomationRun {
+  const AutomationRun({
+    required this.runId,
+    required this.automationId,
+    this.title = '',
+    this.prompt = '',
+    this.status = '',
+    this.workspacePath = '',
+    this.failureReason,
+    this.startedAt,
+    this.endedAt,
+  });
+
+  final String runId;
+  final String automationId;
+  final String title;
+  final String prompt;
+  final String status;
+  final String workspacePath;
+
+  final String? failureReason;
+
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+
+  static AutomationRun? fromJson(Map<String, dynamic> j) {
+    final runId = j['runId'];
+    final automationId = j['automationId'];
+    if (runId is! String || runId.isEmpty) return null;
+    if (automationId is! String || automationId.isEmpty) return null;
+    return AutomationRun(
+      runId: runId,
+      automationId: automationId,
+      title: j['title'] is String ? j['title'] as String : '',
+      prompt: j['prompt'] is String ? j['prompt'] as String : '',
+      status: j['status'] is String
+          ? j['status'] as String
+          : (j['displayStatus'] is String ? j['displayStatus'] as String : ''),
+      workspacePath: j['workspacePath'] is String
+          ? j['workspacePath'] as String
+          : '',
+      failureReason:
+          j['failureReason'] is String ? j['failureReason'] as String : null,
+      startedAt: _msToDateTime(
+        j['startedAt'] ?? j['queuedAt'] ?? j['createdAt'],
+      ),
+      endedAt: _msToDateTime(j['endedAt'] ?? j['updatedAt'] ?? j['finishedAt']),
+    );
+  }
+
+  static DateTime? _msToDateTime(dynamic v) =>
+      v is num ? DateTime.fromMillisecondsSinceEpoch(v.toInt()) : null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AutomationRun &&
+      other.runId == runId &&
+      other.automationId == automationId &&
+      other.title == title &&
+      other.prompt == prompt &&
+      other.status == status &&
+      other.workspacePath == workspacePath &&
+      other.failureReason == failureReason &&
+      other.startedAt == startedAt &&
+      other.endedAt == endedAt;
+
+  @override
+  int get hashCode => Object.hashAll([
+        runId,
+        automationId,
+        title,
+        prompt,
+        status,
+        workspacePath,
+        failureReason,
+        startedAt,
+        endedAt,
+      ]);
+}
+
 class AutomationBoard {
   const AutomationBoard({
     this.subscribed = false,
     this.offPeak = const [],
     this.automations = const [],
+    this.runs = const [],
     this.recentProjects = const [],
+    this.lastSyncedAt,
   });
 
   final bool subscribed;
 
   final List<OffPeakTask> offPeak;
   final List<Automation> automations;
+  final List<AutomationRun> runs;
   final List<String> recentProjects;
 
+  /// 最近一次成功拉取自动化数据的时间（离线时历史 Tab 展示最后快照）。
+  final DateTime? lastSyncedAt;
+
   int get queuedCount =>
-      offPeak.where((t) => t.status == 'queued').length;
+      offPeak.where((t) => t.status == 'queued' && !t.historyDeleted).length;
+
+  List<AutomationRun> runsOf(String automationId) => [
+    for (final run in runs)
+      if (run.automationId == automationId) run,
+  ];
 
   AutomationBoard copyWith({
     bool? subscribed,
     List<OffPeakTask>? offPeak,
     List<Automation>? automations,
+    List<AutomationRun>? runs,
     List<String>? recentProjects,
+    DateTime? lastSyncedAt,
   }) => AutomationBoard(
     subscribed: subscribed ?? this.subscribed,
     offPeak: offPeak ?? this.offPeak,
     automations: automations ?? this.automations,
+    runs: runs ?? this.runs,
     recentProjects: recentProjects ?? this.recentProjects,
+    lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
   );
 
   @override
@@ -220,14 +329,18 @@ class AutomationBoard {
       other.subscribed == subscribed &&
       listEquals(other.offPeak, offPeak) &&
       listEquals(other.automations, automations) &&
-      listEquals(other.recentProjects, recentProjects);
+      listEquals(other.runs, runs) &&
+      listEquals(other.recentProjects, recentProjects) &&
+      other.lastSyncedAt == lastSyncedAt;
 
   @override
   int get hashCode => Object.hash(
         subscribed,
         Object.hashAll(offPeak),
         Object.hashAll(automations),
+        Object.hashAll(runs),
         Object.hashAll(recentProjects),
+        lastSyncedAt,
       );
 }
 
@@ -270,11 +383,6 @@ class AutomationNotifier extends Notifier<Map<String, AutomationBoard>> {
   }
 
   void upsertOffPeak(String deviceId, Map<String, dynamic> raw) {
-    final deletedId = raw['historyDeletedAt'] != null ? raw['offPeakTaskId'] : null;
-    if (deletedId is String && deletedId.isNotEmpty) {
-      removeOffPeak(deviceId, deletedId);
-      return;
-    }
     final task = OffPeakTask.fromJson(raw);
     if (task == null) return;
     final board = _boardOf(deviceId);
@@ -328,6 +436,38 @@ class AutomationNotifier extends Notifier<Map<String, AutomationBoard>> {
             .toList(),
       ),
     );
+  }
+
+  /// 整体替换运行历史（拉取/喂流快照）。
+  void replaceRuns(String deviceId, List<Map<String, dynamic>> raw) {
+    final runs = <AutomationRun>[
+      for (final item in raw) ?AutomationRun.fromJson(item),
+    ];
+    _put(
+      deviceId,
+      _boardOf(deviceId)
+          .copyWith(runs: runs, lastSyncedAt: DateTime.now()),
+    );
+  }
+
+  /// 单条运行记录更新（喂流增量）。
+  void upsertRun(String deviceId, Map<String, dynamic> raw) {
+    final run = AutomationRun.fromJson(raw);
+    if (run == null) return;
+    final board = _boardOf(deviceId);
+    final runs = [...board.runs];
+    final index = runs.indexWhere((r) => r.runId == run.runId);
+    if (index >= 0) {
+      runs[index] = run;
+    } else {
+      runs.insert(0, run);
+    }
+    _put(deviceId, board.copyWith(runs: runs, lastSyncedAt: DateTime.now()));
+  }
+
+  /// 拉取成功（哪怕部分数据源失败）时刷新最后同步时间。
+  void reportSynced(String deviceId) {
+    _put(deviceId, _boardOf(deviceId).copyWith(lastSyncedAt: DateTime.now()));
   }
 
   void reportProjects(String deviceId, List<String> projects) {

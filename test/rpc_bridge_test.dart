@@ -255,16 +255,21 @@ void main() {
       expect(await probing, isTrue);
     });
 
-    test('no-method → 旧代（false）且缓存', () async {
+    test('no-method → 旧代（false）且缓存（别名一并探测）', () async {
       final dispatch = _FakeDispatch();
       final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
       final probing = bridge.offPeakUpdateTwoArgs();
       await pumpEventQueue();
-      final c = callOf(dispatch.commands.single);
-      bridge.onSvcResult(jsonEncode({'i': c.id, 'ok': false, 'e': 'no-method'}));
+      // 主名 no-method → 换别名再探一次（P1-3），别名也 no-method 才判定。
+      expect(dispatch.commands, hasLength(2));
+      for (final command in dispatch.commands) {
+        bridge.onSvcResult(
+          jsonEncode({'i': callOf(command).id, 'ok': false, 'e': 'no-method'}),
+        );
+      }
       expect(await probing, isFalse);
       expect(await bridge.offPeakUpdateTwoArgs(), isFalse);
-      expect(dispatch.commands, hasLength(1));
+      expect(dispatch.commands, hasLength(2));
     });
 
     test('no-services（页面未就绪）→ 默认旧代且不缓存，下次再探', () async {
@@ -272,13 +277,18 @@ void main() {
       final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
       final probing = bridge.offPeakUpdateTwoArgs();
       await pumpEventQueue();
-      final c1 = callOf(dispatch.commands.single);
-      bridge.onSvcResult(jsonEncode({'i': c1.id, 'ok': false, 'e': 'no-services'}));
+      // off-peak-task 频道有 2 个候选（P1-3），全部 no-services。
+      expect(dispatch.commands, hasLength(2));
+      for (final command in dispatch.commands) {
+        bridge.onSvcResult(
+          jsonEncode({'i': callOf(command).id, 'ok': false, 'e': 'no-services'}),
+        );
+      }
       expect(await probing, isFalse);
       final probing2 = bridge.offPeakUpdateTwoArgs();
       await pumpEventQueue();
-      expect(dispatch.commands, hasLength(2));
-      final c2 = callOf(dispatch.commands[1]);
+      expect(dispatch.commands, hasLength(4));
+      final c2 = callOf(dispatch.commands[2]);
       bridge.onSvcResult(jsonEncode({'i': c2.id, 'ok': true, 'r': 'null'}));
       expect(await probing2, isTrue);
     });
@@ -318,10 +328,142 @@ void main() {
       bridge.resetOffPeakProbe();
       final probing2 = bridge.offPeakUpdateTwoArgs();
       await pumpEventQueue();
-      expect(dispatch.commands, hasLength(2));
-      final c2 = callOf(dispatch.commands[1]);
-      bridge.onSvcResult(jsonEncode({'i': c2.id, 'ok': false, 'e': 'no-method'}));
+      // 重探：主名 no-method 后换别名再试（P1-3），共 2 条。
+      expect(dispatch.commands, hasLength(3));
+      for (var i = 1; i < dispatch.commands.length; i++) {
+        bridge.onSvcResult(
+          jsonEncode({
+            'i': callOf(dispatch.commands[i]).id,
+            'ok': false,
+            'e': 'no-method',
+          }),
+        );
+      }
       expect(await probing2, isFalse);
+    });
+  });
+
+  group('firstObjectDeep 外壳剥离（P2-1）', () {
+    test('单键 Map 包装逐层剥离', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      final pending = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      bridge.onSvcResult(
+        jsonEncode({
+          'i': c.id,
+          'ok': true,
+          'r': jsonEncode([
+            {
+              'snapshot': {
+                'wrapper': {
+                  'summary': {'totalTokens': 5},
+                },
+              },
+            },
+          ]),
+        }),
+      );
+      final response = await pending;
+      expect(response.firstObject, isNull);
+      expect(response.firstObjectDeep, {
+        'summary': {'totalTokens': 5},
+      });
+    });
+
+    test('非包装对象原样返回', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      final pending = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      bridge.onSvcResult(
+        jsonEncode({
+          'i': c.id,
+          'ok': true,
+          'r': jsonEncode([
+            {
+              'summary': {'totalTokens': 1},
+              'models': [],
+            },
+          ]),
+        }),
+      );
+      final response = await pending;
+      expect(response.firstObjectDeep, response.firstObject);
+    });
+
+    test('debugText 截断原始报文', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      final pending = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      final longValue = 'x' * 500;
+      bridge.onSvcResult(
+        jsonEncode({'i': c.id, 'ok': true, 'r': jsonEncode([longValue])}),
+      );
+      final response = await pending;
+      expect(response.debugText().length, 300);
+    });
+  });
+
+  group('服务别名解析（P1-3）', () {
+    test('主名 no-services 后别名成功 → 结果缓存，下次直达别名', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      final p1 = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      expect(callOf(dispatch.commands[0]).svc, 'usageStatsService');
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[0]).id, 'ok': false,
+          'e': 'no-services'}),
+      );
+      await pumpEventQueue();
+      expect(callOf(dispatch.commands[1]).svc, 'usageService');
+      bridge.onSvcResult(
+        jsonEncode({
+          'i': callOf(dispatch.commands[1]).id,
+          'ok': true,
+          'r': jsonEncode([
+            {'range': 'all'},
+          ]),
+        }),
+      );
+      final r1 = await p1;
+      expect(r1.firstObject, {'range': 'all'});
+
+      final p2 = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      expect(dispatch.commands, hasLength(3));
+      expect(callOf(dispatch.commands[2]).svc, 'usageService');
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[2]).id, 'ok': true, 'r': '[]'}),
+      );
+      await p2;
+      expect(bridge.resolvedServiceOf('usage-stats'), 'usageService');
+    });
+
+    test('resetServiceResolution 清除别名缓存', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      bridge.resetServiceResolution();
+      expect(bridge.resolvedServiceOf('usage-stats'), 'usageStatsService');
+    });
+
+    test('业务错误（非 no-services/no-method）不触发别名探测', () async {
+      final dispatch = _FakeDispatch();
+      final bridge = RpcBridge(deviceId: 'd1', dispatch: dispatch);
+      final pending = bridge.call('usage-stats', 'getAppUsageSnapshot');
+      await pumpEventQueue();
+      expect(dispatch.commands, hasLength(1));
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[0]).id, 'ok': false,
+          'e': 'sqlite busy'}),
+      );
+      await expectLater(pending, throwsA(isA<RpcRemoteException>()));
+      expect(dispatch.commands, hasLength(1));
     });
   });
 
@@ -428,10 +570,13 @@ void main() {
       );
       final pending = bridge.call('zcode-agent', 'listAllAutomations');
       await pumpEventQueue();
-      final c = callOf(dispatch.commands.single);
-      bridge.onSvcResult(
-        jsonEncode({'i': c.id, 'ok': false, 'e': 'no-services'}),
-      );
+      // 别名候选（P1-3）：所有候选都 no-services 才抛错。
+      expect(dispatch.commands, hasLength(3));
+      for (final command in dispatch.commands) {
+        bridge.onSvcResult(
+          jsonEncode({'i': callOf(command).id, 'ok': false, 'e': 'no-services'}),
+        );
+      }
       await expectLater(pending, throwsA(isA<RpcRemoteException>()));
       expect(states, [false]);
     });
@@ -464,19 +609,30 @@ void main() {
       );
       final p1 = bridge.call('zcode-agent', 'listAllAutomations');
       await pumpEventQueue();
-      bridge.onSvcResult(
-        jsonEncode({'i': callOf(dispatch.commands[0]).id, 'ok': false,
-          'e': 'no-services'}),
-      );
+      for (final command in dispatch.commands) {
+        bridge.onSvcResult(
+          jsonEncode({'i': callOf(command).id, 'ok': false, 'e': 'no-services'}),
+        );
+      }
       await expectLater(p1, throwsA(isA<RpcRemoteException>()));
+      expect(states, [false]);
 
       final p2 = bridge.call('zcode-agent', 'listAllAutomations');
       await pumpEventQueue();
+      // p1 已占 3 条命令；p2 先主名（no-services），再别名成功。
+      expect(dispatch.commands, hasLength(5));
       bridge.onSvcResult(
-        jsonEncode({'i': callOf(dispatch.commands[1]).id, 'ok': true,
-          'r': '[]'}),
+        jsonEncode({
+          'i': callOf(dispatch.commands[3]).id,
+          'ok': false,
+          'e': 'no-services',
+        }),
+      );
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[4]).id, 'ok': true, 'r': '[]'}),
       );
       await p2;
+      // 别名成功同样上报就绪。
       expect(states, [false, true]);
     });
 

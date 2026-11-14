@@ -79,9 +79,10 @@ void main() {
     expect(find.text('排队第 3 位'), findsOneWidget);
     expect(find.text('回复 done'), findsOneWidget);
     expect(find.text('demo'), findsOneWidget);
-    expect(bridge.commands, hasLength(2));
+    expect(bridge.commands, hasLength(3));
     expect(requestOf(bridge.commands[0]).method, 'list');
     expect(requestOf(bridge.commands[1]).method, 'listAllAutomations');
+    expect(requestOf(bridge.commands[2]).method, 'listAutomationRuns');
   });
 
   testWidgets('定时 tab：cron 人话 + 下次时间 + 开关', (tester) async {
@@ -150,7 +151,7 @@ void main() {
     expect(dock.onPressed, isNull);
     await tester.tap(find.text('删除'));
     await tester.pump();
-    expect(bridge.commands, hasLength(2));
+    expect(bridge.commands, hasLength(3));
   });
 
   testWidgets('空态：两 tab 各自文案 + 主按钮', (tester) async {
@@ -199,7 +200,7 @@ void main() {
     await tester.tap(find.text('删除'));
     await tester.pumpAndSettle();
     expect(find.text('删除后不可恢复。'), findsOneWidget);
-    expect(bridge.commands, hasLength(2));
+    expect(bridge.commands, hasLength(3));
     await tester.tap(find.widgetWithText(TextButton, '删除').last);
     await tester.pumpAndSettle();
     final request = requestOf(bridge.commands.last);
@@ -251,5 +252,65 @@ void main() {
     expect(find.text('变更 3 个文件'), findsOneWidget);
     expect(find.textContaining('变更'), findsOneWidget);
     expect(find.textContaining('失败原因'), findsOneWidget);
+  });
+
+  testWidgets('运行历史 tab：listAutomationRuns 渲染 + 最后同步时间', (tester) async {
+    final bridge = ScriptedBridge(
+      script: [
+        [],
+        [],
+        [
+          {
+            'runId': 'r1',
+            'automationId': 'a1',
+            'title': '定时-a1',
+            'status': 'completed',
+            'startedAt': DateTime(2026, 9, 5, 9, 0).millisecondsSinceEpoch,
+          },
+          {
+            'runId': 'r2',
+            'automationId': 'a1',
+            'status': 'failed',
+            'failureReason': 'ticket expired',
+            'startedAt': DateTime(2026, 9, 5, 10, 0).millisecondsSinceEpoch,
+          },
+        ],
+      ],
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.pump();
+    await tester.tap(find.text('运行历史'));
+    await tester.pumpAndSettle();
+    expect(find.text('定时-a1'), findsOneWidget);
+    expect(find.text('失败'), findsOneWidget);
+    expect(find.textContaining('失败原因'), findsOneWidget);
+    expect(find.textContaining('最后同步'), findsOneWidget);
+    expect(find.textContaining('运行记录（2）'), findsOneWidget);
+  });
+
+  testWidgets('运行历史 tab：空列表与加载失败可区分', (tester) async {
+    final bridge = ScriptedBridge(
+      script: const [[], []],
+      errors: {2: 'no-services'},
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.pump();
+    // listAutomationRuns 失败但其余成功 → 无错误横幅，历史空态为普通文案。
+    expect(find.text('自动化数据加载失败'), findsNothing);
+    await tester.tap(find.text('运行历史'));
+    await tester.pumpAndSettle();
+    expect(find.text('暂无运行记录'), findsOneWidget);
+
+    final allFail = ScriptedBridge(
+      script: const [[], [], []],
+      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+    );
+    await pumpPage(tester, bridge: allFail);
+    await tester.pump();
+    expect(find.text('自动化数据加载失败'), findsOneWidget);
+    // 重试：错误脚本耗尽后自动回空 → 全部成功，横幅消失（恢复路径）。
+    await tester.tap(find.text('重试').first);
+    await tester.pump();
+    expect(find.text('自动化数据加载失败'), findsNothing);
   });
 }
