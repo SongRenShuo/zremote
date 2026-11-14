@@ -512,4 +512,16 @@ void main() {
       expect(ticketHPad, 16.0);
     });
   });
+  testWidgets('业务错 manual_claim_preview_missing_data → 空态而非错误页（宿主实测）',
+      (tester) async {
+    final bridge = ScriptedBridge(
+      script: const [[]],
+      errors: {0: 'manual_claim_preview_missing_data'},
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.pump();
+
+    expect(find.text('暂无可领活动'), findsOneWidget);
+    expect(find.text('加载失败'), findsNothing);
+  });
 }

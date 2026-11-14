@@ -84,6 +84,14 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     } on RpcRemoteException catch (e) {
       debugPrint('[claim] refresh remote error: ${e.message}');
       if (!mounted) return;
+      // 宿主实测（2026-11-14）：账号未配置套餐时 getManualClaimPlanPreviews
+      // 抛业务错 manual_claim_preview_missing_data —— 这是"无券可领"的真实
+      // 业务态，展示空态而非错误页。
+      if (e.message.contains('manual_claim_preview_missing_data')) {
+        setState(() => _phase = _ClaimPhase.ready);
+        ref.read(claimEntryProvider.notifier).report(widget.device.id, false);
+        return;
+      }
       setState(() {
         _phase = _ClaimPhase.error;
         _errorKind = _ClaimErrorKind.remote;

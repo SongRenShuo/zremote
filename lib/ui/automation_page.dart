@@ -71,19 +71,39 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
       } catch (e) {
         failures.add('offPeakTask.list: ${_briefOf(e)}');
       }
+      var autosOk = false;
       try {
         final r = await widget.bridge.call('zcode-agent', 'listAllAutomations');
         _notifier?.replaceAutomations(widget.device.id, _objectsOf(r));
         anyOk = true;
+        autosOk = true;
       } catch (e) {
         failures.add('listAllAutomations: ${_briefOf(e)}');
       }
-      try {
-        final r = await widget.bridge.call('zcode-agent', 'listAutomationRuns');
-        _notifier?.replaceRuns(widget.device.id, _runsOf(r));
-        anyOk = true;
-      } catch (e) {
-        failures.add('listAutomationRuns: ${_briefOf(e)}');
+      if (autosOk) {
+        // 宿主实测（2026-11-14 CDP）：listAutomationRuns 必须带 automationId，
+        // 无参调用宿主侧抛 SQLite 绑定错。逐计划拉取后合并；
+        // 仅在计划列表拉取成功时才刷新 runs，避免失败路径清掉快照。
+        final ids = (ref.read(automationProvider)[widget.device.id]
+                    ?.automations ??
+                const <Automation>[])
+            .map((a) => a.automationId)
+            .toList();
+        final runs = <Map<String, dynamic>>[];
+        var runsOk = false;
+        for (final id in ids.take(20)) {
+          try {
+            final r = await widget.bridge.call(
+              'zcode-agent',
+              'listAutomationRuns',
+              params: {'automationId': id},
+            );
+            runs.addAll(_runsOf(r));
+            runsOk = true;
+          } catch (_) {}
+        }
+        _notifier?.replaceRuns(widget.device.id, runs);
+        if (runsOk) anyOk = true;
       }
       if (anyOk) _notifier?.reportSynced(widget.device.id);
       if (mounted) {

@@ -79,10 +79,10 @@ void main() {
     expect(find.text('排队第 3 位'), findsOneWidget);
     expect(find.text('回复 done'), findsOneWidget);
     expect(find.text('demo'), findsOneWidget);
-    expect(bridge.commands, hasLength(3));
+    // automations 为空时跳过逐计划 runs 拉取（宿主要求带 automationId）。
+    expect(bridge.commands, hasLength(2));
     expect(requestOf(bridge.commands[0]).method, 'list');
     expect(requestOf(bridge.commands[1]).method, 'listAllAutomations');
-    expect(requestOf(bridge.commands[2]).method, 'listAutomationRuns');
   });
 
   testWidgets('定时 tab：cron 人话 + 下次时间 + 开关', (tester) async {
@@ -151,7 +151,7 @@ void main() {
     expect(dock.onPressed, isNull);
     await tester.tap(find.text('删除'));
     await tester.pump();
-    expect(bridge.commands, hasLength(3));
+    expect(bridge.commands, hasLength(2));
   });
 
   testWidgets('空态：两 tab 各自文案 + 主按钮', (tester) async {
@@ -170,7 +170,6 @@ void main() {
     final bridge = ScriptedBridge(
       script: [
         [taskJson('t1', queuePosition: 3)],
-        [],
         [],
         [taskJson('t1', status: 'paused')],
       ],
@@ -201,7 +200,7 @@ void main() {
     await tester.tap(find.text('删除'));
     await tester.pumpAndSettle();
     expect(find.text('删除后不可恢复。'), findsOneWidget);
-    expect(bridge.commands, hasLength(3));
+    expect(bridge.commands, hasLength(2));
     await tester.tap(find.widgetWithText(TextButton, '删除').last);
     await tester.pumpAndSettle();
     final request = requestOf(bridge.commands.last);
@@ -259,21 +258,20 @@ void main() {
     final bridge = ScriptedBridge(
       script: [
         [],
-        [],
+        [autoJson('a1')],
         [
+          // 宿主真实形状（2026-11-14 CDP 实测）：outcome/scheduledAt 字段。
           {
             'runId': 'r1',
             'automationId': 'a1',
-            'title': '定时-a1',
-            'status': 'completed',
-            'startedAt': DateTime(2026, 9, 5, 9, 0).millisecondsSinceEpoch,
+            'outcome': 'succeeded',
+            'scheduledAt': DateTime(2026, 9, 5, 9, 0).millisecondsSinceEpoch,
           },
           {
             'runId': 'r2',
             'automationId': 'a1',
-            'status': 'failed',
-            'failureReason': 'ticket expired',
-            'startedAt': DateTime(2026, 9, 5, 10, 0).millisecondsSinceEpoch,
+            'outcome': 'failed',
+            'scheduledAt': DateTime(2026, 9, 5, 10, 0).millisecondsSinceEpoch,
           },
         ],
       ],
@@ -282,9 +280,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('运行历史'));
     await tester.pumpAndSettle();
-    expect(find.text('定时-a1'), findsOneWidget);
+    // 宿主真实 run 无 title 字段 → 标题回落为 automationId。
+    expect(find.text('a1'), findsWidgets);
     expect(find.text('失败'), findsOneWidget);
-    expect(find.textContaining('失败原因'), findsOneWidget);
+    expect(find.text('已完成'), findsOneWidget);
     expect(find.textContaining('最后同步'), findsOneWidget);
     expect(find.textContaining('运行记录（2）'), findsOneWidget);
   });
@@ -307,12 +306,12 @@ void main() {
   // 复用 State（initState 不再执行），全部失败的页面必须独立用例。
   testWidgets('运行历史 tab：全部数据源失败 → 错误横幅 + 重试恢复', (tester) async {
     final allFail = ScriptedBridge(
-      script: const [[], [], [], [], [], [], [], []],
-      // 别名探测（P1-3）：list 2 候选 + autos/runs 各 3 候选 = 8 条全失败。
+      script: const [[], [], [], [], []],
+      // 别名探测（P1-3）：list 2 候选 + autos 3 候选 = 5 条全失败
+      //（automations 失败时不再逐计划拉 runs，命令链止于此）。
       errors: {
         0: 'no-services', 1: 'no-services', 2: 'no-services',
-        3: 'no-services', 4: 'no-services', 5: 'no-services',
-        6: 'no-services', 7: 'no-services',
+        3: 'no-services', 4: 'no-services',
       },
     );
     await pumpPage(tester, bridge: allFail);

@@ -270,16 +270,17 @@ class AutomationRun {
       automationId: automationId,
       title: j['title'] is String ? j['title'] as String : '',
       prompt: j['prompt'] is String ? j['prompt'] as String : '',
-      status: j['status'] is String
-          ? j['status'] as String
-          : (j['displayStatus'] is String ? j['displayStatus'] as String : ''),
+      // 宿主实测（2026-11-14 CDP）：状态字段是 outcome（succeeded/failed）
+      // + dispatchStatus（queued/dispatched），无 status/displayStatus。
+      status: _statusOf(j),
       workspacePath: j['workspacePath'] is String
           ? j['workspacePath'] as String
-          : '',
+          : (j['workspaceKey'] is String ? j['workspaceKey'] as String : ''),
       failureReason:
           j['failureReason'] is String ? j['failureReason'] as String : null,
+      // 宿主实测：时间是 scheduledAt（排程触发），非 startedAt。
       startedAt: _msToDateTime(
-        j['startedAt'] ?? j['queuedAt'] ?? j['createdAt'],
+        j['startedAt'] ?? j['scheduledAt'] ?? j['queuedAt'] ?? j['createdAt'],
       ),
       endedAt: _msToDateTime(j['endedAt'] ?? j['updatedAt'] ?? j['finishedAt']),
     );
@@ -287,6 +288,23 @@ class AutomationRun {
 
   static DateTime? _msToDateTime(dynamic v) =>
       v is num ? DateTime.fromMillisecondsSinceEpoch(v.toInt()) : null;
+
+  /// 宿主字段映射：outcome(succeeded/failed) 为主，兼容旧 status/displayStatus；
+  /// succeeded 归一为 completed 以复用状态徽章词汇。
+  static String _statusOf(Map<String, dynamic> j) {
+    final raw = (j['outcome'] ?? j['status'] ?? j['displayStatus']) is String
+        ? (j['outcome'] ?? j['status'] ?? j['displayStatus']) as String
+        : '';
+    switch (raw) {
+      case 'succeeded':
+        return 'completed';
+      case '':
+        final dispatch = j['dispatchStatus'];
+        return dispatch is String ? dispatch : '';
+      default:
+        return raw;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
     'runId': runId,
