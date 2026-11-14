@@ -365,12 +365,12 @@ void main() {
     );
     await tester.tap(find.text('高级设置'));
     await tester.pumpAndSettle();
-    expect(find.text('YOLO（跳过审批）'), findsOneWidget);
+    expect(find.text('完全访问'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('YOLO（跳过审批）').first);
+    await tester.tap(find.text('完全访问').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('构建').last);
+    await tester.tap(find.text('变更前确认').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pump();
@@ -389,14 +389,19 @@ void main() {
       [autoJson('a-1')],
     ]);
     final editing = Automation.fromJson(autoJson('a-1'))!;
+    // 加高视口：双行菜单项下，下拉菜单贴近屏底会向上翻转且懒加载列表
+    // 不构建目标项（Bad state: No element）。
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await pumpForm(tester, bridge: bridge, editing: editing);
     await tester.tap(find.text('高级设置'));
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('构建').first);
+    await tester.tap(find.text('变更前确认').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('守护模式').last);
+    await tester.tap(find.text('自主模式').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pump();
@@ -487,13 +492,13 @@ void main() {
   });
 
   group('载荷构造纯函数（3.14 对齐，非 widget）', () {
-    test('kPermissionModes = host 权威 6 值（bundle 实证，默认 build 在位）', () {
+    test('kPermissionModes = 自动化菜单权威 4 值（开源版 ZCODE_AGENT_MODE_OPTIONS）', () {
+      // 开源版 packages/shared/src/zcode-agent-model-state.ts：自动化菜单只出
+      // build/guarded/plan/yolo；default/edit 不进菜单（edit 为历史值仍可恢复）。
       expect(kPermissionModes, [
-        'default',
-        'plan',
-        'edit',
         'build',
         'guarded',
+        'plan',
         'yolo',
       ]);
     });

@@ -19,14 +19,14 @@ enum AutomationFormKind { offPeak, scheduled }
 
 enum CronPreset { daily, weekdays, weekend, custom }
 
-/// 宿主原生权限模式（2026-11-15 bundle 实证：mode.description.glm.{default,
-/// build, edit, plan, yolo, guarded}）。
+/// 自动化表单权限模式——对齐开源版 ZCode（packages/shared/src/
+/// zcode-agent-model-state.ts 的 ZCODE_AGENT_MODE_OPTIONS）：自动化菜单只出
+/// build/guarded/plan/yolo 四值；default/edit 不进菜单，但 edit 作为历史值
+/// 仍被会话恢复保留（菜单隐藏不等于删除历史值）。
 const List<String> kPermissionModes = [
-  'default',
-  'plan',
-  'edit',
   'build',
   'guarded',
+  'plan',
   'yolo',
 ];
 
@@ -355,16 +355,27 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
 
   /// 权限模式中文标签（未知值回落原文，兼容宿主新增枚举）。
   String _permissionLabel(AppLocalizations l10n, String mode) => switch (mode) {
-    'default' => l10n.automationModeDefault,
-    'plan' => l10n.automationModePlan,
-    'edit' => l10n.automationModeEdit,
     'build' => l10n.automationModeBuild,
     'guarded' => l10n.automationModeGuarded,
+    'plan' => l10n.automationModePlan,
     'yolo' => l10n.automationModeYolo,
+    'default' => l10n.automationModeDefault,
+    'edit' => l10n.automationModeEdit,
     _ => mode,
   };
 
-  /// 思考级别中文显示（提交仍是宿主原值 low/high/max）。
+  /// 官方描述（zh-CN locale mode.description.glm.*）。
+  String _permissionDesc(AppLocalizations l10n, String mode) => switch (mode) {
+    'build' => l10n.automationModeDescBuild,
+    'guarded' => l10n.automationModeDescGuarded,
+    'plan' => l10n.automationModeDescPlan,
+    'yolo' => l10n.automationModeDescYolo,
+    'default' => l10n.automationModeDescDefault,
+    'edit' => l10n.automationModeDescEdit,
+    _ => '',
+  };
+
+  /// 思考级别中文显示（官方 offPeak.thought.*：低/高/最高）。
   String _thoughtLabel(AppLocalizations l10n, String level) => switch (level) {
     'low' => l10n.automationThoughtLow,
     'high' => l10n.automationThoughtHigh,
@@ -859,11 +870,37 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                       value: _permissionMode,
                       underline: const SizedBox.shrink(),
                       isDense: true,
+                      // 收起态只显示标签（避免双行把行高撑爆），菜单里才带官方描述。
+                      selectedItemBuilder: (context) => [
+                        for (final mode in _permissionModeItems())
+                          Builder(
+                            builder: (context) => Text(
+                              _permissionLabel(l10n, mode),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: context.zt.textHi,
+                              ),
+                            ),
+                          ),
+                      ],
                       items: [
                         for (final mode in _permissionModeItems())
                           DropdownMenuItem(
                             value: mode,
-                            child: Text(_permissionLabel(l10n, mode)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_permissionLabel(l10n, mode)),
+                                Text(
+                                  _permissionDesc(l10n, mode),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    color: context.zt.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                       onChanged: (v) =>

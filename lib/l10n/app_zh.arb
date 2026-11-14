@@ -2158,7 +2158,7 @@
   "@automationCollapseRuns": {
     "description": "Collapse recent runs action on scheduled card"
   },
-  "automationModeYolo": "YOLO（跳过审批）",
+  "automationModeYolo": "完全访问",
   "@automationModeYolo": {
     "description": "Permission mode: yolo"
   },
@@ -2178,7 +2178,7 @@
   "@automationModeAutoEdit": {
     "description": "Permission mode: autoEdit"
   },
-  "automationModeBuild": "构建",
+  "automationModeBuild": "变更前确认",
   "@automationModeBuild": {
     "description": "Permission mode: build"
   },
@@ -2186,7 +2186,7 @@
   "@automationModeDefault": {
     "description": "Permission mode: default"
   },
-  "automationModeGuarded": "守护模式",
+  "automationModeGuarded": "自主模式",
   "@automationModeGuarded": {
     "description": "Permission mode: guarded"
   },
@@ -2198,8 +2198,32 @@
   "@automationThoughtHigh": {
     "description": "Thought level: high"
   },
-  "automationThoughtMax": "极高",
+  "automationThoughtMax": "最高",
   "@automationThoughtMax": {
     "description": "Thought level: max"
+  },
+  "automationModeDescBuild": "改文件前先问我。",
+  "@automationModeDescBuild": {
+    "description": "Official mode description: build"
+  },
+  "automationModeDescGuarded": "在有风险时询问",
+  "@automationModeDescGuarded": {
+    "description": "Official mode description: guarded"
+  },
+  "automationModeDescPlan": "编辑前先出计划。",
+  "@automationModeDescPlan": {
+    "description": "Official mode description: plan"
+  },
+  "automationModeDescYolo": "减少确认次数。",
+  "@automationModeDescYolo": {
+    "description": "Official mode description: yolo"
+  },
+  "automationModeDescDefault": "使用默认确认策略。",
+  "@automationModeDescDefault": {
+    "description": "Official mode description: default"
+  },
+  "automationModeDescEdit": "自动编辑文件。",
+  "@automationModeDescEdit": {
+    "description": "Official mode description: edit"
   }
 }

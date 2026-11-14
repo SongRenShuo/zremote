@@ -1423,7 +1423,7 @@
   "@automationCollapseRuns": {
     "description": "Collapse recent runs action on scheduled card"
   },
-  "automationModeYolo": "YOLO (skip approvals)",
+  "automationModeYolo": "Full access",
   "@automationModeYolo": {
     "description": "Permission mode: yolo"
   },
@@ -1443,7 +1443,7 @@
   "@automationModeAutoEdit": {
     "description": "Permission mode: autoEdit"
   },
-  "automationModeBuild": "Build",
+  "automationModeBuild": "Ask before changes",
   "@automationModeBuild": {
     "description": "Permission mode: build"
   },
@@ -1451,7 +1451,7 @@
   "@automationModeDefault": {
     "description": "Permission mode: default"
   },
-  "automationModeGuarded": "Guarded",
+  "automationModeGuarded": "Autonomous mode",
   "@automationModeGuarded": {
     "description": "Permission mode: guarded"
   },
@@ -1466,5 +1466,29 @@
   "automationThoughtMax": "Max",
   "@automationThoughtMax": {
     "description": "Thought level: max"
+  },
+  "automationModeDescBuild": "Ask before each file changes.",
+  "@automationModeDescBuild": {
+    "description": "Official mode description: build"
+  },
+  "automationModeDescGuarded": "Ask when there is risk",
+  "@automationModeDescGuarded": {
+    "description": "Official mode description: guarded"
+  },
+  "automationModeDescPlan": "Inspect the code and present a plan before editing.",
+  "@automationModeDescPlan": {
+    "description": "Official mode description: plan"
+  },
+  "automationModeDescYolo": "Edit and run commands with fewer confirmations.",
+  "@automationModeDescYolo": {
+    "description": "Official mode description: yolo"
+  },
+  "automationModeDescDefault": "Use the default confirmation policy.",
+  "@automationModeDescDefault": {
+    "description": "Official mode description: default"
+  },
+  "automationModeDescEdit": "Edit files automatically.",
+  "@automationModeDescEdit": {
+    "description": "Official mode description: edit"
   }
 }
