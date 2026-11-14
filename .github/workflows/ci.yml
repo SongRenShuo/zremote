@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # 支持在任意分支上手动触发（Actions 页选分支 → Run workflow）
+  workflow_dispatch:
 
 jobs:
   check:
