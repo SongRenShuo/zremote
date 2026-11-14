@@ -1191,6 +1191,10 @@
   "@v2LoginHint": {
     "description": "Paste dialog validation chip for V2 links"
   },
+  "authPopupTitle": "账号登录",
+  "@authPopupTitle": {
+    "description": "Title of the in-app OAuth popup page opened for the remote login flow"
+  },
   "automationCenterTitle": "自动化中心",
   "@automationCenterTitle": {
     "description": "Automation page appbar title"
