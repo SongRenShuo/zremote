@@ -2225,5 +2225,22 @@
   "automationModeDescEdit": "自动编辑文件。",
   "@automationModeDescEdit": {
     "description": "Official mode description: edit"
+  },
+  "automationModelSearchHint": "搜索供应商或模型",
+  "@automationModelSearchHint": {
+    "description": "Model picker search placeholder"
+  },
+  "automationModelCount": "{count} 个模型",
+  "@automationModelCount": {
+    "description": "Model picker filtered count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationModelSearchEmpty": "没有匹配的模型",
+  "@automationModelSearchEmpty": {
+    "description": "Model picker empty search result"
   }
 }

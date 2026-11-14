@@ -1490,5 +1490,22 @@
   "automationModeDescEdit": "Edit files automatically.",
   "@automationModeDescEdit": {
     "description": "Official mode description: edit"
+  },
+  "automationModelSearchHint": "Search providers or models",
+  "@automationModelSearchHint": {
+    "description": "Model picker search placeholder"
+  },
+  "automationModelCount": "{count} models",
+  "@automationModelCount": {
+    "description": "Model picker filtered count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationModelSearchEmpty": "No matching models",
+  "@automationModelSearchEmpty": {
+    "description": "Model picker empty search result"
   }
 }

@@ -13,6 +13,7 @@ import '../state/session_status.dart';
 import '../theme.dart';
 import 'automation_page.dart';
 import 'hw_chip.dart';
+import 'sheet_shell.dart';
 import 'showcase_bits.dart';
 
 enum AutomationFormKind { offPeak, scheduled }
@@ -351,6 +352,170 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
       'modelId': _modelId,
       'options': {'reasoningLevel': _thoughtLevel},
     };
+  }
+
+  Future<void> _showModelPickerSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showZrSheet<void>(
+      context: context,
+      maxHeightFactor: 0.72,
+      builder: (sheetContext) {
+        var query = '';
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final q = query.trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? _modelOptions
+                : _modelOptions
+                      .where(
+                        (o) =>
+                            o.modelId.toLowerCase().contains(q) ||
+                            o.providerName.toLowerCase().contains(q),
+                      )
+                      .toList();
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.automationFieldModel,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                          color: context.zt.textHi,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        l10n.automationModelCount(filtered.length),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: context.zt.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: TextField(
+                    autofocus: true,
+                    style: TextStyle(fontSize: 13, color: context.zt.textHi),
+                    decoration: zrInputDecoration(context).copyWith(
+                      prefixIcon: Icon(
+                        Icons.search,
+                        size: 18,
+                        color: context.zt.textLo,
+                      ),
+                      isDense: true,
+                      hintText: l10n.automationModelSearchHint,
+                    ),
+                    onChanged: (v) => setSheetState(() => query = v),
+                  ),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    children: [
+                      for (final o in filtered)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            setState(() {
+                              _selectedModelKey = o.key;
+                              _modelId = o.modelId;
+                              if (!o.reasoningLevels.contains(_thoughtLevel)) {
+                                _thoughtLevel = o.reasoningLevels.isNotEmpty
+                                    ? o.reasoningLevels.last
+                                    : _thoughtLevel;
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            margin: const EdgeInsets.only(bottom: 6),
+                            decoration: BoxDecoration(
+                              color: o.key == _selectedModelKey
+                                  ? context.zt.accentSubtle
+                                  : context.zt.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: o.key == _selectedModelKey
+                                    ? context.zt.accentBorder
+                                    : context.zt.hairline,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // 全名展示：modelId 允许换行不截断。
+                                      Text(
+                                        o.modelId,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: context.zt.textHi,
+                                        ),
+                                      ),
+                                      if (o.providerName.isNotEmpty &&
+                                          o.providerName != o.modelId)
+                                        Text(
+                                          o.providerName,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: context.zt.textTertiary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (o.key == _selectedModelKey)
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 18,
+                                    color: context.zt.accent,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              l10n.automationModelSearchEmpty,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: context.zt.textTertiary,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   /// 权限模式中文标签（未知值回落原文，兼容宿主新增枚举）。
@@ -912,19 +1077,26 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                     subtitle: l10n.advModelDesc,
                     trailing: _modelOptions.isEmpty
                         ? HwChip(text: _modelId)
-                        : DropdownButton<String>(
-                            value: _selectedModelKey,
-                            underline: const SizedBox.shrink(),
-                            isDense: true,
-                            selectedItemBuilder: (context) => [
-                              for (final o in _modelOptions)
-                                Builder(
-                                  builder: (context) => ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 150,
-                                    ),
+                        : InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _showModelPickerSheet(),
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 170),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.zt.surfaceHi,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: context.zt.hairline),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
                                     child: Text(
-                                      o.modelId,
+                                      _pickedModel?.modelId ?? _modelId,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -933,42 +1105,15 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
-                            items: [
-                              for (final o in _modelOptions)
-                                DropdownMenuItem(
-                                  value: o.key,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 220,
-                                    ),
-                                    child: Text(
-                                      o.label,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.expand_more,
+                                    size: 15,
+                                    color: context.zt.textLo,
                                   ),
-                                ),
-                            ],
-                            onChanged: (v) {
-                              if (v == null) return;
-                              final picked = _modelOptions.firstWhere(
-                                (o) => o.key == v,
-                              );
-                              setState(() {
-                                _selectedModelKey = v;
-                                _modelId = picked.modelId;
-                                if (!picked.reasoningLevels.contains(
-                                  _thoughtLevel,
-                                )) {
-                                  _thoughtLevel =
-                                      picked.reasoningLevels.isNotEmpty
-                                      ? picked.reasoningLevels.last
-                                      : _thoughtLevel;
-                                }
-                              });
-                            },
+                                ],
+                              ),
+                            ),
                           ),
                   ),
                   _advancedRow(
