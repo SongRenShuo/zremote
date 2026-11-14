@@ -1263,11 +1263,11 @@
   "@advPermissionDesc": {
     "description": "Advanced row: permission mode description"
   },
-  "advModelDesc": "跟随主机端当前订阅",
+  "advModelDesc": "从宿主可选模型中选择",
   "@advModelDesc": {
     "description": "Advanced row: model description"
   },
-  "advThoughtDesc": "跟随主机端默认配置",
+  "advThoughtDesc": "按模型可用档位选择",
   "@advThoughtDesc": {
     "description": "Advanced row: thought level description"
   },
@@ -2157,5 +2157,29 @@
   "automationCollapseRuns": "收起运行",
   "@automationCollapseRuns": {
     "description": "Collapse recent runs action on scheduled card"
+  },
+  "automationModeYolo": "YOLO（跳过审批）",
+  "@automationModeYolo": {
+    "description": "Permission mode: yolo"
+  },
+  "automationModePlan": "计划",
+  "@automationModePlan": {
+    "description": "Permission mode: plan"
+  },
+  "automationModeEdit": "编辑",
+  "@automationModeEdit": {
+    "description": "Permission mode: edit"
+  },
+  "automationModeAuto": "自动",
+  "@automationModeAuto": {
+    "description": "Permission mode: auto"
+  },
+  "automationModeAutoEdit": "自动编辑",
+  "@automationModeAutoEdit": {
+    "description": "Permission mode: autoEdit"
+  },
+  "automationModeBuild": "构建",
+  "@automationModeBuild": {
+    "description": "Permission mode: build"
   }
 }

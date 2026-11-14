@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +33,27 @@ const Map<String, Object> kModelSelection = {
   'modelId': 'GLM-5.3',
   'options': {'reasoningLevel': 'max'},
 };
+
+/// modelSelection.getView() 解析出的可选模型（2026-11-14 CDP 实测形状：
+/// providers[].models[].{modelId, config.optionSpecs.reasoningLevel.values}）。
+class AutomationModelOption {
+  const AutomationModelOption({
+    required this.providerId,
+    required this.providerName,
+    required this.modelId,
+    required this.reasoningLevels,
+  });
+
+  final String providerId;
+  final String providerName;
+  final String modelId;
+  final List<String> reasoningLevels;
+
+  String get key => '$providerId|$modelId';
+  String get label => providerName.isEmpty
+      ? modelId
+      : '$providerName · $modelId';
+}
 
 class AutomationCreateRejectedException implements Exception {
   const AutomationCreateRejectedException(this.errorCategory);
@@ -68,22 +91,28 @@ class AutomationFormPage extends ConsumerStatefulWidget {
     required String prompt,
     required String workspacePath,
     required String permissionMode,
+    String modelId = 'GLM-5.3',
+    String thoughtLevel = 'max',
+    Map<String, Object>? modelSelection,
   }) => {
     'title': title,
     'prompt': prompt,
     'workspacePath': workspacePath,
     'permissionMode': permissionMode,
-    'model': 'GLM-5.3',
-    'thoughtLevel': 'max',
-    'modelSelection': kModelSelection,
+    'model': modelId,
+    'thoughtLevel': thoughtLevel,
+    'modelSelection': modelSelection ?? kModelSelection,
   };
 
-  static Map<String, Object> buildCreateAutomationPayload({
+  static Map<String, dynamic> buildCreateAutomationPayload({
     required String workspacePath,
     required String title,
     required String cronExpr,
     required String prompt,
     required String mode,
+    String modelId = 'GLM-5.3',
+    String thoughtLevel = 'max',
+    Map<String, Object>? modelSelection,
   }) => {
     'workspacePath': workspacePath,
     'title': title,
@@ -91,9 +120,9 @@ class AutomationFormPage extends ConsumerStatefulWidget {
     'prompt': prompt,
     'recurring': true,
     'mode': mode,
-    'thoughtLevel': 'max',
+    'thoughtLevel': thoughtLevel,
     'model': RpcCodec.kScheduledModel,
-    'modelSelection': kModelSelection,
+    'modelSelection': modelSelection ?? kModelSelection,
   };
 
   static Map<String, dynamic> buildUpdateTaskDiff({
@@ -175,6 +204,12 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
 
   AutomationNotifier? _notifier;
 
+  // 模型/思考级别（宿主 modelSelection.getView 动态加载；失败降级硬编码兜底）。
+  List<AutomationModelOption> _modelOptions = const [];
+  String? _selectedModelKey;
+  String _modelId = 'GLM-5.3';
+  String _thoughtLevel = 'max';
+
   @override
   void initState() {
     super.initState();
@@ -203,7 +238,129 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
       _permissionMode = task.permissionMode;
       _originalPermissionMode = task.permissionMode;
     }
+    // 编辑回填：宿主 automations 的模型数据在 modelSelection.modelId /
+    // options.reasoningLevel（Automation.fromJson 已归一进 model/thoughtLevel）。
+    if (editing != null && editing.model.isNotEmpty) {
+      _modelId = editing.model;
+      if (editing.thoughtLevel.isNotEmpty) {
+        _thoughtLevel = editing.thoughtLevel;
+      }
+    }
+    unawaited(_loadSelection());
   }
+
+  /// 从宿主 modelSelection.getView 加载可选模型与各模型的思考级别档位。
+  /// 失败静默降级：UI 回落硬编码兜底 chip（保持旧形态可用）。
+  Future<void> _loadSelection() async {
+    try {
+      final r = await widget.bridge.call(
+        'model-selection',
+        'getView',
+        timeout: const Duration(seconds: 20),
+      );
+      final view = r.firstObjectDeep ?? const {};
+      final providers = view['providers'] as List? ?? const [];
+      final options = <AutomationModelOption>[];
+      for (final p in providers) {
+        if (p is! Map<String, dynamic>) continue;
+        final pid = p['providerId'] is String
+            ? p['providerId'] as String
+            : '';
+        final pname = p['providerName'] is String
+            ? p['providerName'] as String
+            : pid;
+        for (final m in (p['models'] as List? ?? const [])) {
+          if (m is! Map<String, dynamic>) continue;
+          final mid = m['modelId'] is String ? m['modelId'] as String : '';
+          if (mid.isEmpty) continue;
+          final levels = ((((m['config'] as Map?)?['optionSpecs'] as Map?)?['reasoningLevel'] as Map?)?['values']);
+          options.add(
+            AutomationModelOption(
+              providerId: pid,
+              providerName: pname,
+              modelId: mid,
+              reasoningLevels: [
+                if (levels is List) for (final l in levels) if (l is String) l,
+              ],
+            ),
+          );
+        }
+      }
+      if (options.isEmpty) return;
+      // 默认选中 preferredSelection；编辑态优先匹配回填的 modelId。
+      String? pickKey;
+      String? pickLevel;
+      final pref = view['preferredSelection'];
+      if (pref is Map<String, dynamic>) {
+        final pid = pref['providerId'] is String ? pref['providerId'] as String : '';
+        final mid = pref['modelId'] is String ? pref['modelId'] as String : '';
+        if (mid.isNotEmpty) pickKey = '$pid|$mid';
+        final lv = ((pref['options'] as Map?)?['reasoningLevel']);
+        pickLevel = lv is String ? lv : null;
+      }
+      if (widget.editing != null) {
+        final match = options.where((o) => o.modelId == _modelId).toList();
+        if (match.isNotEmpty) {
+          pickKey = match.first.key;
+          if (match.first.reasoningLevels.contains(_thoughtLevel)) {
+            pickLevel = _thoughtLevel;
+          } else {
+            pickLevel = null;
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _modelOptions = options;
+        _selectedModelKey =
+            pickKey != null && options.any((o) => o.key == pickKey)
+            ? pickKey
+            : options.first.key;
+        final picked = options.firstWhere(
+          (o) => o.key == _selectedModelKey,
+          orElse: () => options.first,
+        );
+        _modelId = picked.modelId;
+        _thoughtLevel =
+            pickLevel != null && picked.reasoningLevels.contains(pickLevel)
+            ? pickLevel
+            : (picked.reasoningLevels.isNotEmpty
+                  ? picked.reasoningLevels.last
+                  : 'max');
+      });
+    } catch (e) {
+      debugPrint('[automation-form] modelSelection load failed: $e');
+    }
+  }
+
+  AutomationModelOption? get _pickedModel {
+    for (final o in _modelOptions) {
+      if (o.key == _selectedModelKey) return o;
+    }
+    return null;
+  }
+
+  /// 当前选择的 modelSelection 载荷；未加载成功时返回 null（payload 走兜底）。
+  Map<String, Object>? get _modelSelectionPayload {
+    final picked = _pickedModel;
+    if (picked == null) return null;
+    return {
+      'providerId': picked.providerId,
+      'modelId': _modelId,
+      'options': {'reasoningLevel': _thoughtLevel},
+    };
+  }
+
+  /// 权限模式中文标签（未知值回落原文，兼容宿主新增枚举）。
+  String _permissionLabel(AppLocalizations l10n, String mode) => switch (mode) {
+    'yolo' => l10n.automationModeYolo,
+    'plan' => l10n.automationModePlan,
+    'edit' => l10n.automationModeEdit,
+    'auto' => l10n.automationModeAuto,
+    'autoEdit' => l10n.automationModeAutoEdit,
+    'build' => l10n.automationModeBuild,
+    _ => mode,
+  };
 
   @override
   void dispose() {
@@ -308,6 +465,9 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
               prompt: prompt,
               workspacePath: workspace,
               permissionMode: _permissionMode,
+              modelId: _modelId,
+              thoughtLevel: _thoughtLevel,
+              modelSelection: _modelSelectionPayload,
             ),
           );
           final obj = r.firstObject;
@@ -358,6 +518,9 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
               cronExpr: _cronExpr,
               prompt: prompt,
               mode: _permissionMode,
+              modelId: _modelId,
+              thoughtLevel: _thoughtLevel,
+              modelSelection: _modelSelectionPayload,
             ),
           );
           final obj = r.firstObject;
@@ -688,7 +851,10 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                       isDense: true,
                       items: [
                         for (final mode in _permissionModeItems())
-                          DropdownMenuItem(value: mode, child: Text(mode)),
+                          DropdownMenuItem(
+                            value: mode,
+                            child: Text(_permissionLabel(l10n, mode)),
+                          ),
                       ],
                       onChanged: (v) =>
                           setState(() => _permissionMode = v ?? 'build'),
@@ -697,12 +863,67 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                   _advancedRow(
                     title: l10n.automationFieldModel,
                     subtitle: l10n.advModelDesc,
-                    trailing: const HwChip(text: 'GLM-5.3'),
+                    trailing: _modelOptions.isEmpty
+                        ? HwChip(text: _modelId)
+                        : DropdownButton<String>(
+                            value: _selectedModelKey,
+                            underline: const SizedBox.shrink(),
+                            isDense: true,
+                            items: [
+                              for (final o in _modelOptions)
+                                DropdownMenuItem(
+                                  value: o.key,
+                                  child: Text(
+                                    o.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (v) {
+                              if (v == null) return;
+                              final picked = _modelOptions.firstWhere(
+                                (o) => o.key == v,
+                              );
+                              setState(() {
+                                _selectedModelKey = v;
+                                _modelId = picked.modelId;
+                                if (!picked.reasoningLevels.contains(
+                                  _thoughtLevel,
+                                )) {
+                                  _thoughtLevel =
+                                      picked.reasoningLevels.isNotEmpty
+                                      ? picked.reasoningLevels.last
+                                      : _thoughtLevel;
+                                }
+                              });
+                            },
+                          ),
                   ),
                   _advancedRow(
                     title: l10n.automationFieldThoughtLevel,
                     subtitle: l10n.advThoughtDesc,
-                    trailing: const HwChip(text: 'max'),
+                    trailing: (_modelOptions.isEmpty ||
+                            (_pickedModel?.reasoningLevels.isEmpty ?? true))
+                        ? HwChip(text: _thoughtLevel)
+                        : DropdownButton<String>(
+                            value: _pickedModel!.reasoningLevels.contains(
+                                      _thoughtLevel,
+                                    )
+                                    ? _thoughtLevel
+                                    : _pickedModel!.reasoningLevels.last,
+                            underline: const SizedBox.shrink(),
+                            isDense: true,
+                            items: [
+                              for (final lv in _pickedModel!.reasoningLevels)
+                                DropdownMenuItem(
+                                  value: lv,
+                                  child: Text(lv.toUpperCase()),
+                                ),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => _thoughtLevel = v ?? 'max'),
+                          ),
                   ),
                 ],
               ),

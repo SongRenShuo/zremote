@@ -93,11 +93,12 @@ void main() {
     expect(find.text('请输入标题'), findsOneWidget);
     expect(find.text('请输入指令内容'), findsOneWidget);
     expect(find.text('请选择工作区'), findsOneWidget);
-    expect(bridge.commands, isEmpty);
+    expect(bridge.commands, hasLength(1)); // initState getView；业务命令仍为零
   });
 
   testWidgets('创建定时任务：默认每天 09:00 预设 → createAutomation 参数', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [autoJson('new-1')],
     ]);
     await pumpForm(tester, bridge: bridge);
@@ -105,7 +106,7 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(bridge.commands, hasLength(1));
+    expect(bridge.commands, hasLength(2));
     final request = requestOf(bridge.commands.last);
     expect(request.channel, 'zcode-agent');
     expect(request.method, 'createAutomation');
@@ -134,6 +135,7 @@ void main() {
 
   testWidgets('创建定时任务：错误形状响应（无 automationId）→ 失败 SnackBar 且不 pop', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [
         {'ok': false, 'error': 'invalid params'},
       ],
@@ -143,7 +145,7 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(bridge.commands, hasLength(1));
+    expect(bridge.commands, hasLength(2));
     expect(requestOf(bridge.commands.last).method, 'createAutomation');
     expect(find.text('操作失败，请重试'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
@@ -152,6 +154,7 @@ void main() {
 
   testWidgets('工作日预设 → cronExpr dow=1-5', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [autoJson('new-1')],
     ]);
     await pumpForm(tester, bridge: bridge);
@@ -171,6 +174,7 @@ void main() {
 
   testWidgets('周末预设 → cronExpr dow=6,0', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [autoJson('new-1')],
     ]);
     await pumpForm(tester, bridge: bridge);
@@ -197,7 +201,7 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     expect(find.text('cron 表达式非法（需 5 个字段：分 时 日 月 周）'), findsOneWidget);
-    expect(bridge.commands, isEmpty);
+    expect(bridge.commands, hasLength(1)); // initState getView；业务命令仍为零
     await tester.enterText(cronField, '0 9 * * *');
     await tester.pump();
     expect(find.textContaining('每日 09:00'), findsOneWidget);
@@ -205,6 +209,7 @@ void main() {
 
   testWidgets('创建闲时任务：createTask 参数（无计划字段）', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [
         {
           'ok': true,
@@ -247,6 +252,7 @@ void main() {
 
   testWidgets('创建闲时任务：错误形状响应（无 task.offPeakTaskId）→ 失败 SnackBar 且不 pop', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [
         {'ok': false, 'error': 'quota exceeded'},
       ],
@@ -256,7 +262,7 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(bridge.commands, hasLength(1));
+    expect(bridge.commands, hasLength(2));
     expect(requestOf(bridge.commands.last).method, 'createTask');
     expect(find.text('操作失败，请重试'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
@@ -278,9 +284,10 @@ void main() {
     final bridge = ScriptedBridge(
       script: [
         [],
+        [],
         [taskJson('t-1', status: 'paused')],
       ],
-      errors: {0: 'no-method'},
+      errors: {1: 'no-method'},
     );
     final editing = OffPeakTask.fromJson(taskJson('t-1', status: 'paused'))!;
     await pumpForm(
@@ -297,8 +304,8 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(bridge.commands, hasLength(2));
-    expect(requestOf(bridge.commands.first).method, 'getCodingPlanSupport');
+    expect(bridge.commands, hasLength(3));
+    expect(requestOf(bridge.commands[1]).method, 'getCodingPlanSupport');
     final request = requestOf(bridge.commands.last);
     expect(request.method, 'updateTask');
     expect(request.params, {
@@ -309,6 +316,7 @@ void main() {
 
   testWidgets('编辑闲时任务（新代）：探测成功 → 两参 updateTask [taskId, params]', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [
         {'supported': false},
       ],
@@ -326,8 +334,8 @@ void main() {
     await tester.tap(find.text('保存'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(bridge.commands, hasLength(2));
-    expect(requestOf(bridge.commands.first).method, 'getCodingPlanSupport');
+    expect(bridge.commands, hasLength(3));
+    expect(requestOf(bridge.commands[1]).method, 'getCodingPlanSupport');
     final request = requestOf(bridge.commands.last);
     expect(request.method, 'updateTask');
     expect(argsOf(bridge.commands.last), [
@@ -340,9 +348,10 @@ void main() {
     final bridge = ScriptedBridge(
       script: [
         [],
+        [],
         [taskJson('t-1', status: 'paused')],
       ],
-      errors: {0: 'no-method'},
+      errors: {1: 'no-method'},
     );
     final editing = OffPeakTask.fromJson({
       ...taskJson('t-1', status: 'paused'),
@@ -356,12 +365,12 @@ void main() {
     );
     await tester.tap(find.text('高级设置'));
     await tester.pumpAndSettle();
-    expect(find.text('yolo'), findsOneWidget);
+    expect(find.text('YOLO（跳过审批）'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('yolo').first);
+    await tester.tap(find.text('YOLO（跳过审批）').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('build').last);
+    await tester.tap(find.text('构建').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pump();
@@ -376,6 +385,7 @@ void main() {
 
   testWidgets('编辑定时任务：改权限模式 → mode 作为变化字段发送（评审 r1）', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [autoJson('a-1')],
     ]);
     final editing = Automation.fromJson(autoJson('a-1'))!;
@@ -384,9 +394,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -250));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('build').first);
+    await tester.tap(find.text('构建').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('autoEdit').last);
+    await tester.tap(find.text('自动编辑').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pump();
@@ -402,6 +412,7 @@ void main() {
 
   testWidgets('存量每小时 cron：回落自定义态，原值提交不损', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [autoJson('a-legacy')],
     ]);
     final legacy = Map<String, dynamic>.from(autoJson('a-legacy'))
@@ -436,7 +447,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
-    expect(bridge.commands, isEmpty);
+    expect(bridge.commands, hasLength(1)); // initState getView；业务命令仍为零
     expect(find.text('编辑任务'), findsOneWidget);
   });
 
@@ -444,9 +455,10 @@ void main() {
     final bridge = ScriptedBridge(
       script: [
         [],
+        [],
         [taskJson('t-1', status: 'paused')],
       ],
-      errors: {0: 'no-method'},
+      errors: {1: 'no-method'},
     );
     final editing = OffPeakTask.fromJson({
       ...taskJson('t-1', status: 'paused'),
@@ -567,6 +579,7 @@ void main() {
 
   testWidgets('创建闲时任务：createTask 判别联合失败臂 → 分类 SnackBar', (tester) async {
     final bridge = ScriptedBridge(script: [
+        [],
       [
         {
           'ok': false,
@@ -587,8 +600,9 @@ void main() {
 
   testWidgets('创建定时任务：AUTOMATION_CREATE_LIMIT_REACHED → 上限 SnackBar', (tester) async {
     final bridge = ScriptedBridge(
-      script: [[]],
-      errors: {0: 'AUTOMATION_CREATE_LIMIT_REACHED: limit 20'},
+      script: [
+        [],[]],
+      errors: {1: 'AUTOMATION_CREATE_LIMIT_REACHED: limit 20'},
     );
     await pumpForm(tester, bridge: bridge);
     await fillBasics(tester);

@@ -161,6 +161,20 @@ class Automation {
   static Automation? fromJson(Map<String, dynamic> j) {
     final id = j['automationId'];
     if (id is! String || id.isEmpty) return null;
+    // 宿主实测（2026-11-14 CDP）：模型数据在 modelSelection.{modelId,
+    // options.reasoningLevel}，顶层 model/thoughtLevel 不存在。
+    final modelSelection = j['modelSelection'];
+    String model = '';
+    String thoughtLevel = '';
+    if (modelSelection is Map) {
+      if (modelSelection['modelId'] is String) {
+        model = modelSelection['modelId'] as String;
+      }
+      final opts = modelSelection['options'];
+      if (opts is Map && opts['reasoningLevel'] is String) {
+        thoughtLevel = opts['reasoningLevel'] as String;
+      }
+    }
     return Automation(
       automationId: id,
       title: j['title'] is String ? j['title'] as String : '',
@@ -172,10 +186,10 @@ class Automation {
           ? j['workspacePath'] as String
           : '',
       mode: j['mode'] is String ? j['mode'] as String : '',
-      model: j['model'] is String ? j['model'] as String : '',
-      thoughtLevel: j['thoughtLevel'] is String
-          ? j['thoughtLevel'] as String
-          : '',
+      model: model.isNotEmpty ? model : (j['model'] is String ? j['model'] as String : ''),
+      thoughtLevel: thoughtLevel.isNotEmpty
+          ? thoughtLevel
+          : (j['thoughtLevel'] is String ? j['thoughtLevel'] as String : ''),
       nextRunAt: OffPeakTask._msToDateTime(j['nextRunAt']),
       lastRunAt: OffPeakTask._msToDateTime(j['lastRunAt']),
       runCount: j['runCount'] is num ? (j['runCount'] as num).toInt() : 0,

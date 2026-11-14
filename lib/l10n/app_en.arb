@@ -551,11 +551,11 @@
   "@advPermissionDesc": {
     "description": "Advanced row: permission mode description"
   },
-  "advModelDesc": "Follows host subscription",
+  "advModelDesc": "Choose from host-available models",
   "@advModelDesc": {
     "description": "Advanced row: model description"
   },
-  "advThoughtDesc": "Follows host default",
+  "advThoughtDesc": "Choose from model levels",
   "@advThoughtDesc": {
     "description": "Advanced row: thought level description"
   },
@@ -1422,5 +1422,29 @@
   "automationCollapseRuns": "Hide runs",
   "@automationCollapseRuns": {
     "description": "Collapse recent runs action on scheduled card"
+  },
+  "automationModeYolo": "YOLO (skip approvals)",
+  "@automationModeYolo": {
+    "description": "Permission mode: yolo"
+  },
+  "automationModePlan": "Plan",
+  "@automationModePlan": {
+    "description": "Permission mode: plan"
+  },
+  "automationModeEdit": "Edit",
+  "@automationModeEdit": {
+    "description": "Permission mode: edit"
+  },
+  "automationModeAuto": "Auto",
+  "@automationModeAuto": {
+    "description": "Permission mode: auto"
+  },
+  "automationModeAutoEdit": "Auto edit",
+  "@automationModeAutoEdit": {
+    "description": "Permission mode: autoEdit"
+  },
+  "automationModeBuild": "Build",
+  "@automationModeBuild": {
+    "description": "Permission mode: build"
   }
 }
