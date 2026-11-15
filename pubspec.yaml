@@ -26,6 +26,14 @@ dependencies:
   url_launcher: ^6.3.2
   intl: ^0.20.2
 
+  # V2.0 新增（开发计划 20261115-0901 P5-5 统一落位）
+  dio: ^5.7.0
+  cryptography: ^2.7.0
+  share_plus: ">=10.0.0 <14.0.0"
+  path_provider: ^2.1.5
+  file_picker: ^13.3.3
+  device_info_plus: ">=11.0.0 <14.0.0"
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
