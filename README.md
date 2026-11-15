@@ -5,10 +5,17 @@
 ZCode 桌面端远程控制的手机伴侣 App。电脑端出示二维码，手机扫码一次导入，即可长期使用；多台设备并行管理，一个界面随时切换，还能在手机上管理自动化任务、领取活动权益、查看应用用量。
 
 <p align="center">
-  <img src="docs/screenshot.jpg" width="270" alt="ZRemote App 界面" />
-  <img src="docs/screenshot-2.jpg" width="270" alt="ZRemote App 界面" />
-  <img src="docs/session-panel-zh.png" width="270" alt="会话总览面板" />
+  <img src="docs/screenshots/01-devices.png" width="200" alt="设备与会话" />
+  <img src="docs/screenshots/02-session-panel.png" width="200" alt="会话总览面板" />
+  <img src="docs/screenshots/03-toolbox.png" width="200" alt="功能工具箱" />
 </p>
+<p align="center">
+  <img src="docs/screenshots/04-quota.png" width="200" alt="额度中心" />
+  <img src="docs/screenshots/06-git-detail.png" width="200" alt="Git 详情" />
+  <img src="docs/screenshots/07-git-diff.png" width="200" alt="全屏代码对比" />
+</p>
+
+> 截图为 v2.0.2 真机界面（OLED 纯黑 · 中文），已对设备名 / 工作区名 / 任务标题等敏感信息打码。更多界面：[docs/screenshots/](docs/screenshots)。
 
 ## 功能
 

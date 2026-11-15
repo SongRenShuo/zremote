@@ -5,10 +5,17 @@
 A mobile companion app for ZCode desktop remote control. The desktop shows a QR code; scan it once with your phone to import the device and it stays usable long-term. Manage multiple machines in parallel and switch between them in a single UI — plus automation tasks, activity benefits and usage stats right on your phone.
 
 <p align="center">
-  <img src="docs/screenshot.jpg" width="270" alt="ZRemote App interface" />
-  <img src="docs/screenshot-2.jpg" width="270" alt="ZRemote App interface" />
-  <img src="docs/session-panel-en.png" width="270" alt="Session overview panel" />
+  <img src="docs/screenshots/01-devices.png" width="200" alt="Devices and sessions" />
+  <img src="docs/screenshots/02-session-panel.png" width="200" alt="Session overview panel" />
+  <img src="docs/screenshots/03-toolbox.png" width="200" alt="Toolbox" />
 </p>
+<p align="center">
+  <img src="docs/screenshots/04-quota.png" width="200" alt="Quota center" />
+  <img src="docs/screenshots/06-git-detail.png" width="200" alt="Git detail" />
+  <img src="docs/screenshots/07-git-diff.png" width="200" alt="Full-screen diff" />
+</p>
+
+> Screenshots of v2.0.2 on a real device (OLED pure black, Chinese). Device names, workspace names and session titles are masked. More: [docs/screenshots/](docs/screenshots).
 
 ## Features
 
