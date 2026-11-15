@@ -704,61 +704,77 @@ class _SessionViewState extends ConsumerState<SessionView> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final d in devices) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 2,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: d.id == widget.device.id
-                        ? zt.accentSubtle
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: d.id == widget.device.id
-                        ? Border.all(color: zt.accentBorder)
-                        : null,
-                  ),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    leading: _Led(
-                      status: ref.read(sessionStatusProvider)[d.id],
-                    ),
-                    title: Text(
-                      d.displayName(l10n),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: d.id == widget.device.id
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                        color: d.id == widget.device.id ? zt.accent : zt.textHi,
+            // 设备多时列表必须有界可滚动：无界 Column 会把行推出屏幕且不可滚动
+            // （同型问题见问题十八 / expand 车道报告）。
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final d in devices) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: d.id == widget.device.id
+                              ? zt.accentSubtle
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: d.id == widget.device.id
+                              ? Border.all(color: zt.accentBorder)
+                              : null,
+                        ),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          leading: _Led(
+                            status: ref.read(sessionStatusProvider)[d.id],
+                          ),
+                          title: Text(
+                            d.displayName(l10n),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: d.id == widget.device.id
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: d.id == widget.device.id
+                                  ? zt.accent
+                                  : zt.textHi,
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              UnreadBadge(
+                                feed: ref.read(eventFeedProvider)[d.id],
+                              ),
+                              if (d.id == widget.device.id) ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check, color: zt.accent, size: 20),
+                              ],
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            ZrHaptics.tap();
+                            final index = ref
+                                .read(deviceListProvider)
+                                .indexOf(d);
+                            ref.read(activeTabProvider.notifier).set(index);
+                          },
+                        ),
                       ),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        UnreadBadge(feed: ref.read(eventFeedProvider)[d.id]),
-                        if (d.id == widget.device.id) ...[
-                          const SizedBox(width: 8),
-                          Icon(Icons.check, color: zt.accent, size: 20),
-                        ],
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      ZrHaptics.tap();
-                      final index = ref.read(deviceListProvider).indexOf(d);
-                      ref.read(activeTabProvider.notifier).set(index);
-                    },
-                  ),
-                ),
+                  ],
+                ],
               ),
-            ],
+            ),
             const SizedBox(height: 6),
             Divider(indent: 16, endIndent: 16, color: zt.hairline),
             ListTile(
