@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../services/endpoint_probe.dart';
 import '../services/rpc_bridge.dart';
 import '../services/service_probe.dart';
 import '../theme.dart';
@@ -12,15 +13,21 @@ import 'section_label.dart';
 /// 连接诊断页（P0-1）：一键执行 ServiceProbe，把宿主注册表
 /// keys / 缺失候选服务 / 方法检查 / 实调用结果完整呈现，支持复制报告。
 /// 这是工具箱四入口排障与修复验收的基础设施。
+/// P6-1 扩容：新增「端点健康」段（client/configs 直连探测 +
+/// billing/balance 可选带 token 探测），结果并入复制报告。
 class DiagnosticsPage extends StatefulWidget {
   const DiagnosticsPage({
     super.key,
     required this.device,
     required this.bridge,
+    this.endpointProbe,
   });
 
   final RemoteDevice device;
   final RpcBridge bridge;
+
+  /// 测试注入用；null 时按默认 EndpointProbe 构造（无 token，降级跳过）。
+  final EndpointProbe? endpointProbe;
 
   @override
   State<DiagnosticsPage> createState() => _DiagnosticsPageState();
@@ -30,6 +37,9 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
   bool _running = false;
   Map<String, Object?>? _report;
   String? _runError;
+
+  List<EndpointProbeResult>? _endpoints;
+  bool _endpointsRunning = false;
 
   @override
   void initState() {
@@ -52,6 +62,28 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
       setState(() => _runError = e.toString());
     } finally {
       if (mounted) setState(() => _running = false);
+    }
+  }
+
+  Future<void> _runEndpoints() async {
+    if (_endpointsRunning) return;
+    setState(() => _endpointsRunning = true);
+    try {
+      final probe = widget.endpointProbe ?? EndpointProbe();
+      final results = await probe.run();
+      if (!mounted) return;
+      setState(() => _endpoints = results);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _endpoints = [
+        EndpointProbeResult(
+          label: 'client/configs',
+          url: kEndpointClientConfigsUrl,
+          error: e.toString(),
+        ),
+      ]);
+    } finally {
+      if (mounted) setState(() => _endpointsRunning = false);
     }
   }
 
@@ -106,6 +138,13 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
           );
         }
       }
+    }
+    // P6-1：端点探测结果并入复制报告（探测过才落段）。
+    final endpoints = _endpoints;
+    if (endpoints != null && endpoints.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..write(endpointProbeReportLines(endpoints));
     }
     return buffer.toString();
   }
@@ -353,6 +392,65 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
               ),
             ],
           ],
+          // P6-1：端点健康段（不依赖宿主桥，独立可跑）。
+          SectionLabel(l10n.diagnosticsEndpointsTitle),
+          BevelCard(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('diagnostics-endpoints-run'),
+                    onPressed: _endpointsRunning ? null : _runEndpoints,
+                    icon: _endpointsRunning
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.travel_explore_outlined, size: 18),
+                    label: Text(
+                      _endpointsRunning
+                          ? l10n.diagnosticsEndpointsRunning
+                          : l10n.diagnosticsEndpointsRun,
+                    ),
+                  ),
+                ),
+                for (final r in _endpoints ?? const <EndpointProbeResult>[])
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          r.skipped
+                              ? Icons.remove_circle_outline
+                              : (r.ok
+                                  ? Icons.check_circle_outline
+                                  : Icons.error_outline),
+                          size: 14,
+                          color: r.skipped
+                              ? zt.textTertiary
+                              : (r.ok ? zt.live : zt.danger),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            r.skipped
+                                ? '${r.label} · ${l10n.diagnosticsEndpointSkipNoToken}'
+                                : '${r.label} · ${r.statusCode ?? 'ERR'} · ${r.elapsedMs} ms'
+                                    '${r.error != null && r.error!.isNotEmpty ? '\n${r.error}' : ''}',
+                            style: zrMono(fontSize: 11.5, color: zt.textLo),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

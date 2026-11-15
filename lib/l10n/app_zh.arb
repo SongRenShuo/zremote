@@ -2968,5 +2968,21 @@
   "platformLimitsNotifyBody": "基础提醒（审批/完成/失败/领取结果）可用；审批通知的「批准/拒绝」动作按钮为 Android 专属，iOS 上请点进会话页操作；后台投递时机受系统调度。",
   "@platformLimitsNotifyBody": {
     "description": "P5-2 notification capability limit row body"
+  },
+  "diagnosticsEndpointsTitle": "端点健康",
+  "@diagnosticsEndpointsTitle": {
+    "description": "P6-1 endpoint health section title in diagnostics page"
+  },
+  "diagnosticsEndpointsRun": "端点探测",
+  "@diagnosticsEndpointsRun": {
+    "description": "P6-1 endpoint probe run button label"
+  },
+  "diagnosticsEndpointsRunning": "探测中…",
+  "@diagnosticsEndpointsRunning": {
+    "description": "P6-1 endpoint probe running button label"
+  },
+  "diagnosticsEndpointSkipNoToken": "跳过：无 zcode JWT（账号库未接入）",
+  "@diagnosticsEndpointSkipNoToken": {
+    "description": "P6-1 skip reason shown for billing/balance when no token"
   }
 }
