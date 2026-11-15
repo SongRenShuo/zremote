@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/device.dart';
 import '../models/notification_prefs.dart';
 import '../services/biometric.dart';
 import '../services/device_store.dart';
@@ -981,21 +982,42 @@ class _DiagnosticsTile extends ConsumerWidget {
     return _TileRow(
       title: l10n.settingsDiagnosticsEntry,
       subtitle: hasDevice
-          ? l10n.settingsDiagnosticsSub
+          ? l10n.settingsDiagnosticsHint
           : l10n.settingsDiagnosticsNoDevice,
       icon: Icons.troubleshoot_outlined,
-      onTap: hasDevice
-          ? () {
-              final active = ref.read(activeTabProvider);
-              final device =
-                  active < devices.length ? devices[active] : devices.first;
-              ref
-                  .read(diagnosticsOpenRequestProvider.notifier)
-                  .request(device.id);
-              Navigator.of(context).pop();
-            }
-          : null,
+      onTap: hasDevice ? () => _open(context, ref, devices, l10n) : null,
     );
+  }
+
+  /// 先 pop 再发请求。Riverpod 的 `ref.listen` 同步派发：若先 request，
+  /// SessionView 会立刻 `Navigator.push(DiagnosticsPage)`，紧随的 `pop()`
+  /// 弹掉的正是刚压栈的诊断页 → 设置页留在原地、无诊断页、无提示
+  /// （即「点击没反应」）。pop 后本 widget 随设置页卸载，所以 notifier /
+  /// messenger / l10n 必须先取到局部变量。
+  void _open(
+    BuildContext context,
+    WidgetRef ref,
+    List<RemoteDevice> devices,
+    AppLocalizations l10n,
+  ) {
+    final active = ref.read(activeTabProvider);
+    final device = active < devices.length ? devices[active] : devices.first;
+    final navigator = Navigator.of(context);
+    final notifier = ref.read(diagnosticsOpenRequestProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+    navigator.pop();
+    final seq = notifier.request(device.id);
+    // 无消费者（如宽屏停在管理页、对应 SessionView 未挂载）→ 明确提示，
+    // 而不是静默无反应。消费者命中后会 push 诊断页（导航栈出现新路由）；
+    // 是否被消费以 `isPending` 为准（SessionView 侧 consume 由主控接线）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.canPop()) return;
+      if (notifier.isPending(seq)) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.diagOpenNoConsumer)),
+        );
+      }
+    });
   }
 }
 
