@@ -2813,9 +2813,17 @@
   "@settingsDiagnosticsSub": {
     "description": "Diagnostics entry subtitle"
   },
+  "settingsDiagnosticsHint": "Opens the device session and enters connection diagnostics",
+  "@settingsDiagnosticsHint": {
+    "description": "Diagnostics entry subtitle (opens the device session first)"
+  },
   "settingsDiagnosticsNoDevice": "No paired device yet",
   "@settingsDiagnosticsNoDevice": {
     "description": "Diagnostics entry: no device"
+  },
+  "diagOpenNoConsumer": "No device session available for diagnostics. Open the device session first.",
+  "@diagOpenNoConsumer": {
+    "description": "Diagnostics request has no consumer session"
   },
   "settingsUpdateCheck": "Check for update",
   "@settingsUpdateCheck": {

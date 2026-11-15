@@ -3561,9 +3561,17 @@
   "@settingsDiagnosticsSub": {
     "description": "Diagnostics entry subtitle"
   },
+  "settingsDiagnosticsHint": "将打开设备会话并进入连接诊断",
+  "@settingsDiagnosticsHint": {
+    "description": "Diagnostics entry subtitle (opens the device session first)"
+  },
   "settingsDiagnosticsNoDevice": "暂无已绑定设备",
   "@settingsDiagnosticsNoDevice": {
     "description": "Diagnostics entry: no device"
+  },
+  "diagOpenNoConsumer": "暂无可打开诊断的设备会话，请先进入设备会话",
+  "@diagOpenNoConsumer": {
+    "description": "Diagnostics request has no consumer session"
   },
   "settingsUpdateCheck": "检查更新",
   "@settingsUpdateCheck": {
