@@ -11,8 +11,40 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
 
+    private var deeplinkChannel: MethodChannel? = null
+
+    // 深链（P4-1）：Dart 侧未就绪时到达的 onNewIntent 链接先缓存，
+    // 待 Dart 调 initial 时一并带出；消费后清空避免重复导入。
+    private var pendingLink: String? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val data = intent.dataString ?: return
+        if (deeplinkChannel != null) {
+            deeplinkChannel?.invokeMethod("onLink", data)
+        } else {
+            pendingLink = data
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        deeplinkChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zremote/deeplink",
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "initial" -> {
+                        val data = pendingLink ?: intent?.dataString
+                        pendingLink = null
+                        result.success(data)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "zremote/keepalive",

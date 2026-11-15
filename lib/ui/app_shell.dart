@@ -1,6 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/device_label.dart';
+import '../services/deep_link.dart';
+import '../services/device_import.dart';
+import '../services/link_builder.dart';
 import '../services/notifier.dart';
 import '../state/event_feed.dart';
 import '../state/keepalive.dart';
@@ -23,12 +30,66 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.initState();
     NotificationTap.bind((deviceId) => _jumpTo(deviceId));
     NotifierService.instance.setLockScreenRedact(ref.read(biometricProvider));
+    // P4-1 深链导入：热启动推送 + 冷启动 initial（Dart 侧就绪后拉取）。
+    DeepLinkService.listen(_handleDeepLink);
+    unawaited(() async {
+      final initial = await DeepLinkService.initialLink();
+      if (initial != null) _handleDeepLink(initial);
+    }());
   }
 
   @override
   void dispose() {
     NotificationTap.bind(null);
     super.dispose();
+  }
+
+  /// 深链落地：白名单提取 → 解析 → 重复则跳转，否则确认后导入。
+  Future<void> _handleDeepLink(String raw) async {
+    final link = extractRemoteLink(raw);
+    if (link == null || !mounted) return;
+    final device = LinkBuilder.parse(link);
+    if (device == null) {
+      _shellSnack((l10n) => l10n.deepLinkInvalid);
+      return;
+    }
+    final dup = findDuplicateBySid(ref.read(deviceListProvider), device);
+    if (dup != null) {
+      _jumpTo(dup.id);
+      _shellSnack((l10n) => l10n.importDuplicate(dup.displayName(l10n)));
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deepLinkImportTitle),
+        content: Text(l10n.deepLinkImportBody(device.displayName(l10n))),
+        actions: [
+          TextButton(
+            key: const Key('deeplink-import-cancel'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const Key('deeplink-import-confirm'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.deepLinkImportTitle),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final devices = ref.read(deviceListProvider);
+    await ref.read(deviceListProvider.notifier).add(device);
+    ref.read(activeTabProvider.notifier).set(devices.length);
+  }
+
+  void _shellSnack(String Function(AppLocalizations l10n) message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message(AppLocalizations.of(context)!))));
   }
 
   void _jumpTo(String deviceId) {

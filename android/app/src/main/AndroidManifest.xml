@@ -30,6 +30,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- P4-1 深链导入：App Links（不申请 autoVerify，系统按用户选择打开） -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="zcode.z.ai" android:pathPrefix="/remote"/>
+            </intent-filter>
+            <!-- P4-1 自定义 scheme 兜底：zremote://import?url=<encoded link> -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="zremote" android:host="import"/>
+            </intent-filter>
         </activity>
         <service
             android:name=".KeepAliveService"

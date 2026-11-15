@@ -222,6 +222,22 @@
     "description": "Snackbar when scanned code is not a valid control QR"
   },
   "importDuplicate": "「{name}」已导入过，已切换到该设备",
+  "deepLinkImportTitle": "导入设备",
+  "@deepLinkImportTitle": {
+    "description": "P4-1 深链导入确认弹窗标题/确认按钮"
+  },
+  "deepLinkImportBody": "要通过深链导入「{name}」吗？",
+  "@deepLinkImportBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkInvalid": "深链不合法，已忽略",
+  "@deepLinkInvalid": {
+    "description": "P4-1 白名单外的深链提示"
+  },
   "@importDuplicate": {
     "description": "Snack bar shown when importing an already-known device",
     "placeholders": {
@@ -875,19 +891,43 @@
     "description": "Terminal-state card action: new task from template"
   },
   "automationFailureReason": "失败原因：{reason}",
-  "@automationFailureReason": {"description": "Failed off-peak card line (host failureReason)", "placeholders": {"reason": {"type": "String"}}},
+  "@automationFailureReason": {
+    "description": "Failed off-peak card line (host failureReason)",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "automationFilesChanged": "变更 {n} 个文件",
-  "@automationFilesChanged": {"description": "Completed off-peak card line (host filesChanged)", "placeholders": {"n": {"type": "int"}}},
+  "@automationFilesChanged": {
+    "description": "Completed off-peak card line (host filesChanged)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "automationCreateLimitReached": "定时任务已达上限（20 个），请先删除不需要的",
-  "@automationCreateLimitReached": {"description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"},
+  "@automationCreateLimitReached": {
+    "description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"
+  },
   "automationCreateEligibility": "当前不符合闲时任务参与条件",
-  "@automationCreateEligibility": {"description": "createTask errorCategory eligibility_3101 snackbar"},
+  "@automationCreateEligibility": {
+    "description": "createTask errorCategory eligibility_3101 snackbar"
+  },
   "automationCreateQuota": "取号额度不足，请稍后再试",
-  "@automationCreateQuota": {"description": "createTask errorCategory quota_3103 snackbar"},
+  "@automationCreateQuota": {
+    "description": "createTask errorCategory quota_3103 snackbar"
+  },
   "automationCreateValidation": "参数校验未通过，请检查表单内容",
-  "@automationCreateValidation": {"description": "createTask errorCategory client_validation snackbar"},
+  "@automationCreateValidation": {
+    "description": "createTask errorCategory client_validation snackbar"
+  },
   "automationCreateNetwork": "网络波动，请稍后重试",
-  "@automationCreateNetwork": {"description": "createTask errorCategory network snackbar"},
+  "@automationCreateNetwork": {
+    "description": "createTask errorCategory network snackbar"
+  },
   "presetLabel": "常用预设",
   "@presetLabel": {
     "description": "Label above preset chips in off-peak form"
@@ -1569,7 +1609,7 @@
   "@usageDayModels": {
     "description": "Day detail sheet: per-model breakdown section"
   },
-    "usageDayPrev": "前一天",
+  "usageDayPrev": "前一天",
   "@usageDayPrev": {
     "description": "Day detail sheet: step to previous day"
   },
@@ -1577,7 +1617,7 @@
   "@usageDayNext": {
     "description": "Day detail sheet: step to next day"
   },
-"usageDayNoUsage": "当日无使用记录",
+  "usageDayNoUsage": "当日无使用记录",
   "@usageDayNoUsage": {
     "description": "Day detail sheet: no-usage caption"
   },

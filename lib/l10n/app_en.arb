@@ -46,6 +46,9 @@
   "scannerPermOpenSettings": "Open settings",
   "invalidQr": "Not a valid remote-control QR code (missing sid, or legacy link missing hash)",
   "importDuplicate": "\"{name}\" already imported; switched to it",
+  "deepLinkImportTitle": "Import device",
+  "deepLinkImportBody": "Import \"{name}\" via deep link?",
+  "deepLinkInvalid": "Invalid deep link ignored",
   "refreshTooltip": "Refresh (reload relay page)",
   "statusLive": "Session alive",
   "statusError": "Connection error",
@@ -188,19 +191,43 @@
   "automationFieldThoughtLevel": "Thinking level",
   "automationReuseTemplate": "New from template",
   "automationFailureReason": "Failure reason: {reason}",
-  "@automationFailureReason": {"description": "Failed off-peak card line (host failureReason)", "placeholders": {"reason": {"type": "String"}}},
+  "@automationFailureReason": {
+    "description": "Failed off-peak card line (host failureReason)",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "automationFilesChanged": "{n} files changed",
-  "@automationFilesChanged": {"description": "Completed off-peak card line (host filesChanged)", "placeholders": {"n": {"type": "int"}}},
+  "@automationFilesChanged": {
+    "description": "Completed off-peak card line (host filesChanged)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "automationCreateLimitReached": "Automation limit reached (20). Delete unused ones first.",
-  "@automationCreateLimitReached": {"description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"},
+  "@automationCreateLimitReached": {
+    "description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"
+  },
   "automationCreateEligibility": "Not currently eligible for idle-time tasks",
-  "@automationCreateEligibility": {"description": "createTask errorCategory eligibility_3101 snackbar"},
+  "@automationCreateEligibility": {
+    "description": "createTask errorCategory eligibility_3101 snackbar"
+  },
   "automationCreateQuota": "Ticket quota unavailable, try again later",
-  "@automationCreateQuota": {"description": "createTask errorCategory quota_3103 snackbar"},
+  "@automationCreateQuota": {
+    "description": "createTask errorCategory quota_3103 snackbar"
+  },
   "automationCreateValidation": "Validation failed, please check the form",
-  "@automationCreateValidation": {"description": "createTask errorCategory client_validation snackbar"},
+  "@automationCreateValidation": {
+    "description": "createTask errorCategory client_validation snackbar"
+  },
   "automationCreateNetwork": "Network issue, please retry",
-  "@automationCreateNetwork": {"description": "createTask errorCategory network snackbar"},
+  "@automationCreateNetwork": {
+    "description": "createTask errorCategory network snackbar"
+  },
   "presetLabel": "Presets",
   "presetBuildClean": "Build artifact cleanup",
   "dialNextCountdown": "Next in {duration}",
@@ -834,7 +861,7 @@
   "@usageDayModels": {
     "description": null
   },
-    "usageDayPrev": "Previous day",
+  "usageDayPrev": "Previous day",
   "@usageDayPrev": {
     "description": "Day detail sheet: step to previous day"
   },
@@ -842,7 +869,7 @@
   "@usageDayNext": {
     "description": "Day detail sheet: step to next day"
   },
-"usageDayNoUsage": "No usage this day",
+  "usageDayNoUsage": "No usage this day",
   "@usageDayNoUsage": {
     "description": null
   },
