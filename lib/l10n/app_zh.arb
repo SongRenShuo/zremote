@@ -2659,6 +2659,52 @@
   "@loginAccountMenu": {
     "description": "Session page account menu tooltip"
   },
+  "loginEntryAccount": "登录账号",
+  "@loginEntryAccount": {
+    "description": "Device-less login entry label (manage empty state / settings account section)"
+  },
+  "loginSavedTitle": "已保存到账号库",
+  "@loginSavedTitle": {
+    "description": "No-device login success title"
+  },
+  "loginSavedBody": "账号凭据已保存。可添加设备后使用，或从账号导入已注册设备。",
+  "@loginSavedBody": {
+    "description": "No-device login success body without account name"
+  },
+  "loginSavedBodyName": "账号「{name}」的凭据已保存。可添加设备后使用，或从账号导入已注册设备。",
+  "@loginSavedBodyName": {
+    "description": "No-device login success body with account name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "loginImportDevices": "导入账户设备",
+  "@loginImportDevices": {
+    "description": "No-device login success: import registered devices of the account"
+  },
+  "loginDone": "完成",
+  "@loginDone": {
+    "description": "No-device login success: done action"
+  },
+  "acctSection": "账号",
+  "@acctSection": {
+    "description": "Settings account section label"
+  },
+  "acctLoginSub": "登录 zcode 账号，凭据保存到账号库",
+  "@acctLoginSub": {
+    "description": "Settings account login subtitle when no account saved"
+  },
+  "acctLoginSubCount": "已保存 {count} 个账号",
+  "@acctLoginSubCount": {
+    "description": "Settings account login subtitle with saved account count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "acctVaultTitle": "账号库",
   "@acctVaultTitle": {
     "description": "Account vault page title"
