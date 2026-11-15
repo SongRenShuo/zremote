@@ -76,6 +76,11 @@ void main() {
   testWidgets('自动化卡常驻可点（无订阅信号也不锁）', (tester) async {
     bool autoTriggered = false;
 
+    // P1-9 工具箱加搜索框后整体变高：抬升测试视口避免卡片落在 600px 外。
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       buildHost(onAuto: () => autoTriggered = true, onClaim: () {}),
     );
@@ -90,6 +95,10 @@ void main() {
   testWidgets('权益卡未就绪（无 previews 命中）仍禁用点击', (tester) async {
     bool claimTriggered = false;
 
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       buildHost(onAuto: () {}, onClaim: () => claimTriggered = true),
     );
@@ -102,6 +111,10 @@ void main() {
 
   testWidgets('排队任务点亮「N 条排队」徽标，自动化卡可点', (tester) async {
     bool autoTriggered = false;
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       buildHost(onAuto: () => autoTriggered = true, onClaim: () {}),
     );
@@ -132,6 +145,10 @@ void main() {
 
   testWidgets('权益就绪后点击权益卡片触发 onClaimPressed 回调', (tester) async {
     bool claimTriggered = false;
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       buildHost(onAuto: () {}, onClaim: () => claimTriggered = true),
     );

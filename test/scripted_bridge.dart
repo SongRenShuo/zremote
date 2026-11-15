@@ -89,6 +89,15 @@ class _FakeDispatch implements RpcDispatch {
     'providerSettingsService': 'provider-settings',
     'modelSelectionService': 'model-selection',
     'settingService': 'setting',
+    // V2 L2 后半追加频道（P1-4/P1-7/P1-8），全部单候选。
+    'zcodeTaskService': 'zcode-task',
+    'gitService': 'git',
+    'skillsService': 'skills',
+    'commandsService': 'commands',
+    'subagentsService': 'subagents',
+    'mcpSyncService': 'mcp',
+    'hooksService': 'hooks',
+    'memoryService': 'memory',
   };
   final channel = svcToChannel[command['s']] ?? command['s']! as String;
   final args = argsOf(command);

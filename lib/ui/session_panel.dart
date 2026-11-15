@@ -11,6 +11,7 @@ class SessionPanelSheet extends StatelessWidget {
     required this.sessions,
     this.activeSessionId,
     this.onSessionTap,
+    this.onStopSession,
     this.deviceName,
     this.onClose,
     this.now,
@@ -21,6 +22,9 @@ class SessionPanelSheet extends StatelessWidget {
   final String? activeSessionId;
 
   final ValueChanged<String>? onSessionTap;
+
+  /// P1-4：行内「停止」回调（仅 running 会话渲染按钮）。
+  final ValueChanged<String>? onStopSession;
 
   final String? deviceName;
 
@@ -163,6 +167,7 @@ class SessionPanelSheet extends StatelessWidget {
                       active: activeSessionId == s.sessionId,
                       now: effectiveNow,
                       onTap: onSessionTap,
+                      onStop: onStopSession,
                     ),
                 ],
               ],
@@ -222,12 +227,16 @@ class _SessionRow extends StatelessWidget {
     required this.active,
     required this.now,
     this.onTap,
+    this.onStop,
   });
 
   final SessionState session;
   final bool active;
   final DateTime now;
   final ValueChanged<String>? onTap;
+
+  /// P1-4：停止生成回调；非 null 且会话 running 时渲染行内停止按钮。
+  final ValueChanged<String>? onStop;
 
   @override
   Widget build(BuildContext context) {
@@ -341,6 +350,11 @@ class _SessionRow extends StatelessWidget {
                   const SizedBox(width: 6),
                   _PhasePill(label: pill.$1, color: pill.$2),
                 ],
+                // P1-4：running 会话行内「停止」按钮（stopGeneration）。
+                if (onStop != null && s.phase == 'running') ...[
+                  const SizedBox(width: 6),
+                  _StopButton(onTap: () => onStop!(s.sessionId)),
+                ],
               ],
             ),
           ],
@@ -412,6 +426,39 @@ class _CountPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
           color: base,
+        ),
+      ),
+    );
+  }
+}
+
+class _StopButton extends StatelessWidget {
+  const _StopButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    return Tooltip(
+      message: AppLocalizations.of(context)!.approvalStopTooltip,
+      child: InkWell(
+        key: const Key('session-stop-button'),
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: zt.danger.withValues(alpha: 0.12),
+            border: Border.all(color: zt.danger.withValues(alpha: 0.4)),
+          ),
+          child: Icon(
+            Icons.stop_rounded,
+            size: 14,
+            color: zt.danger,
+          ),
         ),
       ),
     );

@@ -1985,5 +1985,208 @@
   "rewardsExternalFail": "Cannot open external link",
   "@rewardsExternalFail": {
     "description": "Toast when external browser launch fails"
+  },
+"approvalNotifApprove": "Approve",
+  "@approvalNotifApprove": {
+    "description": "P1-4 notification action button: approve permission"
+  },
+  "approvalNotifDeny": "Deny",
+  "@approvalNotifDeny": {
+    "description": "P1-4 notification action button: deny permission"
+  },
+  "approvalStopTooltip": "Stop generation",
+  "@approvalStopTooltip": {
+    "description": "P1-4 session row stop button tooltip"
+  },
+  "approvalStopFailed": "Stop failed, please operate in the session page",
+  "@approvalStopFailed": {
+    "description": "P1-4 stop generation failure hint (fallback to session page)"
+  },
+  "desktopSettingsTitle": "Desktop Settings",
+  "@desktopSettingsTitle": {
+    "description": "P1-6 desktop settings remote page title"
+  },
+  "desktopSettingsHint": "Toggles below apply instantly to {device}",
+  "@desktopSettingsHint": {
+    "description": "P1-6 page hint that toggles affect the desktop host",
+    "placeholders": {
+      "device": {"type": "String"}
+    }
+  },
+  "desktopSettingsShowReasoning": "Show reasoning in message stream",
+  "@desktopSettingsShowReasoning": {
+    "description": "P1-6 toggle messageStreamShowReasoning"
+  },
+  "desktopSettingsShowTodos": "Show TODOs in message stream",
+  "@desktopSettingsShowTodos": {
+    "description": "P1-6 toggle messageStreamShowTodos"
+  },
+  "desktopSettingsAutoArchive": "Auto archive tasks",
+  "@desktopSettingsAutoArchive": {
+    "description": "P1-6 toggle taskAutoArchiveEnabled"
+  },
+  "desktopSettingsKeepAwake": "Keep awake while running",
+  "@desktopSettingsKeepAwake": {
+    "description": "P1-6 toggle keepAwakeWhileRunning"
+  },
+  "desktopSettingsLocale": "Locale (read only)",
+  "@desktopSettingsLocale": {
+    "description": "P1-6 readonly locale row"
+  },
+  "desktopSettingsConfirmTitle": "Change desktop setting",
+  "@desktopSettingsConfirmTitle": {
+    "description": "P1-6 update confirm dialog title"
+  },
+  "desktopSettingsConfirmBody": "Change \"{name}\" to {value}? This affects the desktop host.",
+  "@desktopSettingsConfirmBody": {
+    "description": "P1-6 update confirm dialog body",
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "String"}
+    }
+  },
+  "desktopSettingsValueOn": "ON",
+  "@desktopSettingsValueOn": {
+    "description": "P1-6 confirm dialog value ON"
+  },
+  "desktopSettingsValueOff": "OFF",
+  "@desktopSettingsValueOff": {
+    "description": "P1-6 confirm dialog value OFF"
+  },
+  "desktopSettingsConfirmAction": "Change",
+  "@desktopSettingsConfirmAction": {
+    "description": "P1-6 confirm dialog action"
+  },
+  "desktopSettingsUpdateFailed": "Update failed: {error}",
+  "@desktopSettingsUpdateFailed": {
+    "description": "P1-6 update failure toast",
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "gitCardTitle": "Git Overview",
+  "@gitCardTitle": {
+    "description": "P1-7 git overview card title"
+  },
+  "gitCardDesc": "Branch · working tree",
+  "@gitCardDesc": {
+    "description": "P1-7 git overview card subtitle"
+  },
+  "gitCardNoSession": "Enter a session to see workspace status",
+  "@gitCardNoSession": {
+    "description": "P1-7 hint when no workspace session yet"
+  },
+  "gitCardNoRepo": "Workspace is not a git repository",
+  "@gitCardNoRepo": {
+    "description": "P1-7 hint when workspace is not a git repo"
+  },
+  "gitCardBranch": "branch {branch}",
+  "@gitCardBranch": {
+    "description": "P1-7 branch line",
+    "placeholders": {
+      "branch": {"type": "String"}
+    }
+  },
+  "gitCardAheadBehind": "↑{ahead} ↓{behind}",
+  "@gitCardAheadBehind": {
+    "description": "P1-7 ahead/behind counts",
+    "placeholders": {
+      "ahead": {"type": "int"},
+      "behind": {"type": "int"}
+    }
+  },
+  "gitCardDirty": "{count} changed",
+  "@gitCardDirty": {
+    "description": "P1-7 dirty file count badge; count unknown when omitted",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "gitCardClean": "clean",
+  "@gitCardClean": {
+    "description": "P1-7 clean badge"
+  },
+  "assetsTitle": "Assets",
+  "@assetsTitle": {
+    "description": "P1-8 assets page title"
+  },
+  "assetsTabSkills": "Skills",
+  "@assetsTabSkills": {
+    "description": "P1-8 skills tab"
+  },
+  "assetsTabCommands": "Commands",
+  "@assetsTabCommands": {
+    "description": "P1-8 commands tab"
+  },
+  "assetsTabSubagents": "Subagents",
+  "@assetsTabSubagents": {
+    "description": "P1-8 subagents tab"
+  },
+  "assetsTabMcp": "MCP",
+  "@assetsTabMcp": {
+    "description": "P1-8 MCP tab"
+  },
+  "assetsTabHooks": "Hooks",
+  "@assetsTabHooks": {
+    "description": "P1-8 hooks tab"
+  },
+  "assetsTabMemory": "Memory",
+  "@assetsTabMemory": {
+    "description": "P1-8 memory tab"
+  },
+  "assetsTabUnavailable": "{tab} service unavailable",
+  "@assetsTabUnavailable": {
+    "description": "P1-8 per-tab service unavailable message",
+    "placeholders": {
+      "tab": {"type": "String"}
+    }
+  },
+  "assetsTabEmpty": "Nothing here yet",
+  "@assetsTabEmpty": {
+    "description": "P1-8 empty tab message"
+  },
+  "assetsTabDegraded": "Unrecognized response shape, degraded to empty list",
+  "@assetsTabDegraded": {
+    "description": "P1-8 degraded parse message"
+  },
+  "toolboxGroupSessionOps": "Session",
+  "@toolboxGroupSessionOps": {
+    "description": "P1-9 toolbox group: session operations"
+  },
+  "toolboxGroupAccount": "Account & Plans",
+  "@toolboxGroupAccount": {
+    "description": "P1-9 toolbox group: account and plans"
+  },
+  "toolboxGroupAssets": "Assets",
+  "@toolboxGroupAssets": {
+    "description": "P1-9 toolbox group: assets"
+  },
+  "toolboxSearchHint": "Search tools…",
+  "@toolboxSearchHint": {
+    "description": "P1-9 toolbox local search hint"
+  },
+  "toolboxMore": "More",
+  "@toolboxMore": {
+    "description": "P1-9 expand collapsed entries"
+  },
+  "toolboxPermPending": "Pending approval",
+  "@toolboxPermPending": {
+    "description": "P1-9 pending approval badge in toolbox header"
+  },
+  "toolboxDesktopSettings": "Desktop Settings",
+  "@toolboxDesktopSettings": {
+    "description": "P1-6 desktop settings toolbox entry title"
+  },
+  "toolboxDesktopSettingsDesc": "Remote desktop behavior toggles",
+  "@toolboxDesktopSettingsDesc": {
+    "description": "P1-6 desktop settings toolbox entry subtitle"
+  },
+  "toolboxAssetsDesc": "Skills · Commands · MCP · Hooks",
+  "@toolboxAssetsDesc": {
+    "description": "P1-8 assets toolbox entry subtitle"
+  },
+"gitCardDirtyUnknown": "dirty",
+  "@gitCardDirtyUnknown": {
+    "description": "P1-7 dirty badge when count unknown (isDirty only)"
   }
 }
