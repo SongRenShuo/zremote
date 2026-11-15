@@ -2440,5 +2440,298 @@
   "modelActionCopy": "复制",
   "@modelActionCopy": {
     "description": "Copy action button"
+  },
+  "quotaToolboxTitle": "额度中心",
+  "@quotaToolboxTitle": {
+    "description": "Toolbox entry: quota center title"
+  },
+  "quotaToolboxDesc": "套餐额度 · 重置卡",
+  "@quotaToolboxDesc": {
+    "description": "Toolbox entry: quota center subtitle"
+  },
+  "quotaTitle": "额度中心",
+  "@quotaTitle": {
+    "description": "Quota page title"
+  },
+  "quotaRefresh": "刷新",
+  "@quotaRefresh": {
+    "description": "Quota page refresh action"
+  },
+  "quotaSourceHost": "宿主快照",
+  "@quotaSourceHost": {
+    "description": "Quota data source label: host RPC snapshot"
+  },
+  "quotaSourceDirect": "直连",
+  "@quotaSourceDirect": {
+    "description": "Quota data source label: direct HTTP"
+  },
+  "quotaLastSync": "最后同步 {time}",
+  "@quotaLastSync": {
+    "description": "Quota last sync timestamp row",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaNoPlan": "当前账号暂无生效套餐",
+  "@quotaNoPlan": {
+    "description": "Quota empty state: no active plan"
+  },
+  "quotaLoadFailed": "额度数据加载失败",
+  "@quotaLoadFailed": {
+    "description": "Quota load failure title"
+  },
+  "quotaValidityRange": "有效期 {range}",
+  "@quotaValidityRange": {
+    "description": "Plan validity range (start ~ end)",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaValidityUntil": "有效期至 {date}",
+  "@quotaValidityUntil": {
+    "description": "Plan validity single endpoint",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaRemainingPercent": "剩余 {percent}%",
+  "@quotaRemainingPercent": {
+    "description": "Main metric remaining percentage",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowPromptCount": "提示次数（{period}）",
+  "@quotaWindowPromptCount": {
+    "description": "Window item label: prompt count with period",
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowDuration": "使用时长（{period}）",
+  "@quotaWindowDuration": {
+    "description": "Window item label: usage duration with period",
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowRaw": "{type}（{period}）",
+  "@quotaWindowRaw": {
+    "description": "Window item label: raw type with period",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaPeriodHours": "每 {n} 小时",
+  "@quotaPeriodHours": {
+    "description": "Period label: every N hours (unit=3)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaPeriodDaily": "每天",
+  "@quotaPeriodDaily": {
+    "description": "Period label: daily (unit=4)"
+  },
+  "quotaPeriodMonthly": "每月",
+  "@quotaPeriodMonthly": {
+    "description": "Period label: monthly (unit=5)"
+  },
+  "quotaPeriodWeekly": "每周",
+  "@quotaPeriodWeekly": {
+    "description": "Period label: weekly (unit=6)"
+  },
+  "quotaPeriodCycle": "每周期",
+  "@quotaPeriodCycle": {
+    "description": "Period label: unknown unit fallback"
+  },
+  "quotaUnitCount": "次",
+  "@quotaUnitCount": {
+    "description": "Unit label for prompt count"
+  },
+  "quotaUnitMinutes": "分钟",
+  "@quotaUnitMinutes": {
+    "description": "Unit label for duration minutes"
+  },
+  "quotaResetsAt": "{time} 重置",
+  "@quotaResetsAt": {
+    "description": "Window reset timestamp",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetInHm": "{hours} 小时 {minutes} 分后重置",
+  "@quotaResetInHm": {
+    "description": "Reset countdown with hours and minutes",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaResetInM": "{minutes} 分钟后重置",
+  "@quotaResetInM": {
+    "description": "Reset countdown with minutes only",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaTierOther": "其他额度",
+  "@quotaTierOther": {
+    "description": "Slot name for orphan balances"
+  },
+  "quotaModelBalanceTitle": "模型余额",
+  "@quotaModelBalanceTitle": {
+    "description": "Section label above model balance rows"
+  },
+  "quotaResetCardTitle": "重置卡",
+  "@quotaResetCardTitle": {
+    "description": "Reset card block title"
+  },
+  "quotaResetCardFiveHour": "5 小时重置卡",
+  "@quotaResetCardFiveHour": {
+    "description": "Reset card kind: 5-hour"
+  },
+  "quotaResetCardWeekly": "周重置卡",
+  "@quotaResetCardWeekly": {
+    "description": "Reset card kind: weekly"
+  },
+  "quotaResetCardGeneric": "重置卡",
+  "@quotaResetCardGeneric": {
+    "description": "Reset card kind: unknown type fallback"
+  },
+  "quotaResetCardAvailable": "可用 {count} 张",
+  "@quotaResetCardAvailable": {
+    "description": "Reset card available count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaResetCardNone": "暂无可用",
+  "@quotaResetCardNone": {
+    "description": "Reset card none available"
+  },
+  "quotaResetCardExpires": "{time} 过期",
+  "@quotaResetCardExpires": {
+    "description": "Reset card expiry time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardHistory": "最近使用",
+  "@quotaResetCardHistory": {
+    "description": "Reset card recent usage section label"
+  },
+  "quotaResetCardUnread": "有新记录",
+  "@quotaResetCardUnread": {
+    "description": "Reset card unread history badge"
+  },
+  "quotaResetCardUse": "使用",
+  "@quotaResetCardUse": {
+    "description": "Reset card use action"
+  },
+  "quotaResetCardUseBusy": "使用中…",
+  "@quotaResetCardUseBusy": {
+    "description": "Reset card use in-progress label"
+  },
+  "quotaResetCardConfirmTitle": "使用重置卡",
+  "@quotaResetCardConfirmTitle": {
+    "description": "Reset card confirm dialog title"
+  },
+  "quotaResetCardConfirmBody": "将使用 1 张「{name}」重置对应额度窗口，确认继续？",
+  "@quotaResetCardConfirmBody": {
+    "description": "Reset card confirm dialog body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardConfirmAction": "确认使用",
+  "@quotaResetCardConfirmAction": {
+    "description": "Reset card confirm dialog confirm button"
+  },
+  "quotaResetCardUsed": "重置卡已使用",
+  "@quotaResetCardUsed": {
+    "description": "Reset card used success toast"
+  },
+  "quotaResetCardUseFailed": "重置卡使用失败",
+  "@quotaResetCardUseFailed": {
+    "description": "Reset card use failure toast"
+  },
+  "quotaResetCardRateLimited": "操作过于频繁",
+  "@quotaResetCardRateLimited": {
+    "description": "Reset card rate limit (code 3301) title"
+  },
+  "quotaResetCardRetryAt": "{time} 后可再试",
+  "@quotaResetCardRetryAt": {
+    "description": "Reset card rate limit retry hint",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardStatusFailed": "重置卡状态加载失败",
+  "@quotaResetCardStatusFailed": {
+    "description": "Reset card status load failure hint"
+  },
+  "rewardsToolboxTitle": "福利中心",
+  "@rewardsToolboxTitle": {
+    "description": "Toolbox entry: rewards center title"
+  },
+  "rewardsToolboxDesc": "签到 · 活动",
+  "@rewardsToolboxDesc": {
+    "description": "Toolbox entry: rewards center subtitle"
+  },
+  "rewardsTitle": "福利中心",
+  "@rewardsTitle": {
+    "description": "Rewards page title"
+  },
+  "rewardsOpenExternal": "在浏览器打开",
+  "@rewardsOpenExternal": {
+    "description": "Open current rewards page in external browser"
+  },
+  "rewardsLoadFailed": "福利页加载失败",
+  "@rewardsLoadFailed": {
+    "description": "Rewards page load failure title"
+  },
+  "rewardsRetry": "重试",
+  "@rewardsRetry": {
+    "description": "Rewards page retry action"
+  },
+  "rewardsExternalFail": "无法打开外部链接",
+  "@rewardsExternalFail": {
+    "description": "Toast when external browser launch fails"
   }
 }

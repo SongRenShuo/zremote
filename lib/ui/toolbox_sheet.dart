@@ -18,6 +18,8 @@ Future<void> showToolboxSheet({
   required VoidCallback onUsagePressed,
   required VoidCallback onModelSettingsPressed,
   VoidCallback? onDiagnosticsPressed,
+  VoidCallback? onQuotaPressed,
+  VoidCallback? onRewardsPressed,
 }) {
   return showZrSheet<void>(
     context: context,
@@ -28,6 +30,8 @@ Future<void> showToolboxSheet({
       onUsagePressed: onUsagePressed,
       onModelSettingsPressed: onModelSettingsPressed,
       onDiagnosticsPressed: onDiagnosticsPressed,
+      onQuotaPressed: onQuotaPressed,
+      onRewardsPressed: onRewardsPressed,
     ),
   );
 }
@@ -41,6 +45,8 @@ class ToolboxSheet extends ConsumerWidget {
     required this.onUsagePressed,
     required this.onModelSettingsPressed,
     this.onDiagnosticsPressed,
+    this.onQuotaPressed,
+    this.onRewardsPressed,
   });
 
   final RemoteDevice device;
@@ -49,6 +55,10 @@ class ToolboxSheet extends ConsumerWidget {
   final VoidCallback onUsagePressed;
   final VoidCallback onModelSettingsPressed;
   final VoidCallback? onDiagnosticsPressed;
+
+  /// 额度中心 / 福利中心入口（P1-2 / P1-3）；null 时卡片置灰。
+  final VoidCallback? onQuotaPressed;
+  final VoidCallback? onRewardsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -191,6 +201,38 @@ class ToolboxSheet extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ToolGridCard(
+                      key: const Key('quota-toolbox-entry'),
+                      icon: Icons.data_usage_rounded,
+                      title: l10n.quotaToolboxTitle,
+                      subtitle: l10n.quotaToolboxDesc,
+                      enabled: onQuotaPressed != null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onQuotaPressed?.call();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ToolGridCard(
+                      key: const Key('rewards-toolbox-entry'),
+                      icon: Icons.redeem_outlined,
+                      title: l10n.rewardsToolboxTitle,
+                      subtitle: l10n.rewardsToolboxDesc,
+                      enabled: onRewardsPressed != null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onRewardsPressed?.call();
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -234,6 +276,7 @@ class ToolboxSheet extends ConsumerWidget {
 
 class _ToolGridCard extends StatelessWidget {
   const _ToolGridCard({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,

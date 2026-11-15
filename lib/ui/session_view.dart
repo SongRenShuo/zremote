@@ -40,6 +40,8 @@ import 'automation_page.dart';
 import 'claim_page.dart';
 import 'diagnostics_page.dart';
 import 'model_settings_page.dart';
+import 'quota_page.dart';
+import 'rewards_page.dart';
 import 'session_panel.dart';
 import 'sheet_shell.dart';
 import 'status_led.dart';
@@ -713,6 +715,30 @@ class _SessionViewState extends ConsumerState<SessionView> {
     );
   }
 
+  Future<void> _openQuota() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => QuotaPage(device: widget.device, bridge: bridge),
+      ),
+    );
+  }
+
+  Future<void> _openRewards() async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RewardsPage(device: widget.device),
+      ),
+    );
+  }
+
   Future<void> _probeClaimEntry() async {
     final bridge = _rpcBridge;
     if (bridge == null) {
@@ -921,6 +947,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
             onUsagePressed: _openUsage,
             onModelSettingsPressed: _openModelSettings,
             onDiagnosticsPressed: _openDiagnostics,
+            onQuotaPressed: _openQuota,
+            onRewardsPressed: _openRewards,
           ),
           IconButton(
             icon: const Icon(Icons.article_outlined),
@@ -1197,6 +1225,8 @@ class _ToolboxEntryButton extends ConsumerWidget {
     required this.onUsagePressed,
     required this.onModelSettingsPressed,
     this.onDiagnosticsPressed,
+    this.onQuotaPressed,
+    this.onRewardsPressed,
   });
 
   final RemoteDevice device;
@@ -1205,6 +1235,8 @@ class _ToolboxEntryButton extends ConsumerWidget {
   final VoidCallback onUsagePressed;
   final VoidCallback onModelSettingsPressed;
   final VoidCallback? onDiagnosticsPressed;
+  final VoidCallback? onQuotaPressed;
+  final VoidCallback? onRewardsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1229,6 +1261,8 @@ class _ToolboxEntryButton extends ConsumerWidget {
         onUsagePressed: onUsagePressed,
         onModelSettingsPressed: onModelSettingsPressed,
         onDiagnosticsPressed: onDiagnosticsPressed,
+        onQuotaPressed: onQuotaPressed,
+        onRewardsPressed: onRewardsPressed,
       ),
     );
   }
