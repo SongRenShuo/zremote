@@ -2439,6 +2439,10 @@
   "@assetsTabDegraded": {
     "description": "P1-8 degraded parse message"
   },
+  "assetsTabNeedsWorkspace": "Available after entering a session",
+  "@assetsTabNeedsWorkspace": {
+    "description": "P1-8 placeholder when a workspace-required tab has no session"
+  },
   "toolboxGroupSessionOps": "Session",
   "@toolboxGroupSessionOps": {
     "description": "P1-9 toolbox group: session operations"
@@ -2478,6 +2482,108 @@
   "gitCardDirtyUnknown": "dirty",
   "@gitCardDirtyUnknown": {
     "description": "P1-7 dirty badge when count unknown (isDirty only)"
+  },
+  "gitCardLoadFailed": "Load failed, tap to retry",
+  "@gitCardLoadFailed": {
+    "description": "P1-7 git card subtitle when overview fetch failed"
+  },
+  "gitDetailTitle": "Git Detail",
+  "@gitDetailTitle": {
+    "description": "P1-7 git detail page title"
+  },
+  "gitDetailNoWorkspace": "Available after entering a session",
+  "@gitDetailNoWorkspace": {
+    "description": "P1-7 git detail placeholder when no workspace session"
+  },
+  "gitDetailLoadFailed": "Load failed: {error}",
+  "@gitDetailLoadFailed": {
+    "description": "P1-7 git detail load failure message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gitDetailNotRepo": "Workspace is not a git repository",
+  "@gitDetailNotRepo": {
+    "description": "P1-7 git detail placeholder when not a repo"
+  },
+  "gitDetailClean": "clean",
+  "@gitDetailClean": {
+    "description": "P1-7 git detail clean badge"
+  },
+  "gitDetailDirtyCount": "{count} changed",
+  "@gitDetailDirtyCount": {
+    "description": "P1-7 git detail dirty file count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailBranches": "Local branches",
+  "@gitDetailBranches": {
+    "description": "P1-7 git detail local branches section"
+  },
+  "gitDetailCurrent": "current",
+  "@gitDetailCurrent": {
+    "description": "P1-7 current branch marker"
+  },
+  "gitDetailNoChanges": "No changes",
+  "@gitDetailNoChanges": {
+    "description": "P1-7 git detail empty changes"
+  },
+  "gitDetailSectionStaged": "Staged",
+  "@gitDetailSectionStaged": {
+    "description": "P1-7 staged changes section"
+  },
+  "gitDetailSectionUnstaged": "Unstaged",
+  "@gitDetailSectionUnstaged": {
+    "description": "P1-7 unstaged changes section"
+  },
+  "gitDetailSectionUntracked": "Untracked",
+  "@gitDetailSectionUntracked": {
+    "description": "P1-7 untracked changes section"
+  },
+  "gitDetailSectionConflicted": "Conflicted",
+  "@gitDetailSectionConflicted": {
+    "description": "P1-7 conflicted changes section"
+  },
+  "gitDetailKindModified": "modified",
+  "@gitDetailKindModified": {
+    "description": "P1-7 change kind modified"
+  },
+  "gitDetailKindAdded": "added",
+  "@gitDetailKindAdded": {
+    "description": "P1-7 change kind added"
+  },
+  "gitDetailKindDeleted": "deleted",
+  "@gitDetailKindDeleted": {
+    "description": "P1-7 change kind deleted"
+  },
+  "gitDetailKindRenamed": "renamed",
+  "@gitDetailKindRenamed": {
+    "description": "P1-7 change kind renamed"
+  },
+  "gitDetailLineStats": "+{added} −{removed}",
+  "@gitDetailLineStats": {
+    "description": "P1-7 per-file added/removed line counts",
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailDiffTitle": "File diff",
+  "@gitDetailDiffTitle": {
+    "description": "P1-7 diff bottom sheet title"
+  },
+  "gitDetailDiffUnavailable": "Diff unavailable",
+  "@gitDetailDiffUnavailable": {
+    "description": "P1-7 diff unavailable / binary placeholder"
   },
   "themeOled": "OLED black",
   "@themeOled": {

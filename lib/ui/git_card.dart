@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/git_overview.dart';
 import '../theme.dart';
+import 'git_detail_page.dart';
 
 /// Git 概览卡（P1-7）：分支 / 脏文件数 / ahead-behind，工具箱资产组内嵌。
 /// client 为 null（未接线）或未进会话（workspacePath 为空）时置灰提示；
@@ -32,6 +33,15 @@ class _GitCardState extends State<GitCard> {
     _refresh();
   }
 
+  @override
+  void didUpdateWidget(covariant GitCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 切换会话 / workspace 由空变有 → 重新拉取概览。
+    if ((oldWidget.workspacePath ?? '') != (widget.workspacePath ?? '')) {
+      _refresh();
+    }
+  }
+
   Future<void> _refresh() async {
     final client = widget.client;
     if (client == null) return;
@@ -42,6 +52,19 @@ class _GitCardState extends State<GitCard> {
       _overview = overview;
       _loading = false;
     });
+  }
+
+  Future<void> _openDetail() async {
+    final client = widget.client;
+    if (client == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GitDetailPage(
+          client: client,
+          workspacePath: widget.workspacePath,
+        ),
+      ),
+    );
   }
 
   @override
@@ -57,7 +80,7 @@ class _GitCardState extends State<GitCard> {
       color: Colors.transparent,
       child: InkWell(
         key: const Key('git-overview-card'),
-        onTap: enabled ? _refresh : null,
+        onTap: enabled ? _openDetail : null,
         borderRadius: BorderRadius.circular(10),
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 150),
@@ -154,6 +177,17 @@ class _GitCardState extends State<GitCard> {
   String _subtitle(AppLocalizations l10n, GitOverview? overview) {
     if (widget.client == null) return l10n.gitCardDesc;
     if (overview == null) return l10n.gitCardDesc;
+    // 失败原因可区分：无会话 / 非仓库 / 加载失败 / 正常。
+    switch (overview.status) {
+      case GitOverviewStatus.noWorkspace:
+        return l10n.gitCardNoSession;
+      case GitOverviewStatus.loadFailed:
+        return l10n.gitCardLoadFailed;
+      case GitOverviewStatus.notRepository:
+        return l10n.gitCardNoRepo;
+      case GitOverviewStatus.ready:
+        break;
+    }
     if (!overview.hasRepo) {
       return overview.workspacePath == null || overview.workspacePath!.isEmpty
           ? l10n.gitCardNoSession

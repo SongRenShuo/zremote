@@ -215,6 +215,50 @@ void main() {
       );
       expect(bridge.commands, hasLength(1));
     });
+
+    test('空 workspace：必填四频道不发包，返回 needsWorkspace', () async {
+      final bridge = ScriptedBridge(script: const [
+        [
+          {
+            'userCommands': [
+              {'id': 'deploy'},
+            ],
+          },
+        ],
+      ]);
+      for (final tab in [
+        AssetsTabKind.skills,
+        AssetsTabKind.subagents,
+        AssetsTabKind.mcp,
+        AssetsTabKind.hooks,
+      ]) {
+        final r = await AssetsClient(bridge.bridge).fetchTab(tab);
+        expect(r.needsWorkspace, isTrue, reason: tab.name);
+        expect(r.entries, isEmpty, reason: tab.name);
+      }
+      expect(bridge.commands, isEmpty);
+    });
+
+    test('空 workspace：commands/memory 按各自签名照常调用', () async {
+      final bridge = ScriptedBridge(script: const [
+        [
+          {
+            'userCommands': [
+              {'id': 'deploy'},
+            ],
+          },
+        ],
+      ]);
+      final cmd = await AssetsClient(
+        bridge.bridge,
+      ).fetchTab(AssetsTabKind.commands);
+      expect(cmd.needsWorkspace, isFalse);
+      expect(cmd.entries.single.name, 'deploy');
+      expect(bridge.commands, hasLength(1));
+      expect(bridge.commands.single['s'], 'commandsService');
+      // 参数省略 workspacePath（该频道可选）。
+      expect(requestOf(bridge.commands.single).params, isEmpty);
+    });
   });
 
   group('P1-8 AssetsPage widget（单服务失败隔离）', () {
@@ -303,6 +347,123 @@ void main() {
       await tester.tap(find.text('技能'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('assets-tab-retry-skills')), findsOneWidget);
+    });
+
+    testWidgets('空 workspace：必填 Tab 占位「进入会话后可用」且零命令', (tester) async {
+      final bridge = ScriptedBridge(script: const [
+        [
+          {
+            'userCommands': [
+              {'id': 'deploy'},
+            ],
+          },
+        ],
+      ]);
+      final container = ProviderContainer();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: AssetsPage(device: _device(), bridge: bridge.bridge),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      addTearDown(container.dispose);
+
+      expect(find.text('进入会话后可用'), findsWidgets);
+      expect(find.text('技能 服务不可用'), findsNothing);
+      expect(bridge.commands, isEmpty);
+
+      // commands 不依赖 workspace，切过去照常拉取。
+      await tester.tap(find.text('命令'));
+      await tester.pumpAndSettle();
+      expect(find.text('deploy'), findsOneWidget);
+      expect(bridge.commands, hasLength(1));
+      expect(bridge.commands.single['s'], 'commandsService');
+    });
+
+    testWidgets('workspace 由空变有：必填 Tab 自动重拉', (tester) async {
+      final bridge = ScriptedBridge(script: const [
+        [
+          {
+            'skills': [
+              {'name': 'pdf'},
+            ],
+          },
+        ],
+      ]);
+      final container = ProviderContainer();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: AssetsPage(device: _device(), bridge: bridge.bridge),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      addTearDown(container.dispose);
+      expect(find.text('进入会话后可用'), findsWidgets);
+      expect(bridge.commands, isEmpty);
+
+      // 会话索引到位（workspace 由空变有）→ 页面重建 + Tab 自动重拉。
+      container.read(sessionIndexProvider.notifier).upsertTasks('d1', [
+        SessionState(sessionId: 's1', workspacePath: '/ws/demo'),
+      ]);
+      container.read(activeSessionProvider.notifier).report('d1', 's1');
+      await tester.pumpAndSettle();
+
+      expect(find.text('pdf'), findsOneWidget);
+      expect(bridge.commands, hasLength(1));
+      expect(bridge.commands.single['s'], 'skillsService');
+      expect(
+        requestOf(bridge.commands.single).params,
+        {'workspacePath': '/ws/demo'},
+      );
+    });
+
+    testWidgets('hostWorkspacePath 回退：sessionIndex 无 workspace 也能拉取', (tester) async {
+      final bridge = ScriptedBridge(script: const [
+        [
+          {
+            'skills': [
+              {'name': 'pdf'},
+            ],
+          },
+        ],
+      ]);
+      final container = ProviderContainer();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: AssetsPage(
+              device: _device(),
+              bridge: bridge.bridge,
+              hostWorkspacePath: '/host/ws',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      addTearDown(container.dispose);
+
+      expect(find.text('pdf'), findsOneWidget);
+      expect(find.text('进入会话后可用'), findsNothing);
+      expect(
+        requestOf(bridge.commands.single).params,
+        {'workspacePath': '/host/ws'},
+      );
     });
   });
 }
