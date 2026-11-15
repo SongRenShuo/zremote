@@ -1507,5 +1507,17 @@
   "automationModelSearchEmpty": "No matching models",
   "@automationModelSearchEmpty": {
     "description": "Model picker empty search result"
+  },
+  "modelFullNameTitle": "Model name",
+  "@modelFullNameTitle": {
+    "description": "Model full-name dialog title"
+  },
+  "modelFullNameCopied": "Model name copied",
+  "@modelFullNameCopied": {
+    "description": "Toast after copying model name"
+  },
+  "modelActionCopy": "Copy",
+  "@modelActionCopy": {
+    "description": "Copy action button"
   }
 }

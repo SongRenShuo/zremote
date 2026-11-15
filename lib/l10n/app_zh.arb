@@ -2242,5 +2242,17 @@
   "automationModelSearchEmpty": "没有匹配的模型",
   "@automationModelSearchEmpty": {
     "description": "Model picker empty search result"
+  },
+  "modelFullNameTitle": "模型名称",
+  "@modelFullNameTitle": {
+    "description": "Model full-name dialog title"
+  },
+  "modelFullNameCopied": "模型名已复制",
+  "@modelFullNameCopied": {
+    "description": "Toast after copying model name"
+  },
+  "modelActionCopy": "复制",
+  "@modelActionCopy": {
+    "description": "Copy action button"
   }
 }

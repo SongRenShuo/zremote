@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -1512,137 +1513,173 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
     final dimmed = m.selectable == false || !m.enabled;
     final hint = m.issueMessage ??
         (m.configIncomplete ? l10n.modelModelIncomplete : null);
+    final nameStyle = zrMono(
+      fontSize: 12.5,
+      color: dimmed ? zt.textTertiary : zt.textHi,
+    );
+    // 开发计划 20261115-0250：单行布局里名称列仅剩 ~35dp（固定控件 289dp 挤压），
+    // 行内滑动无可用起滑面。重构为两行卡片：第一行名称占满整行（溢出可横向
+    // 滑动 + 点击浮层兜底），第二行控件独占。
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-        children: [
-          // 名称列窄屏被挤压（au…/re…）：整行高的横向滑动区查看全名
-          //（此前 18px 细条，手指稍偏即落到外层竖向列表手势域，拖不动）。
-          Expanded(
-            child: SizedBox(
-              height: 32,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(vertical: 7),
-                child: Text(
-                  m.modelId,
-                  maxLines: 1,
-                  style: zrMono(
-                    fontSize: 12,
-                    color: dimmed ? zt.textTertiary : zt.textHi,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (m.contextWindow != null) ...[
-            const SizedBox(width: 6),
-            HwChip(
-              text: l10n.modelDraftContextWindowBadge(
-                _compactCount(m.contextWindow!),
-              ),
-              color: zt.textTertiary,
-            ),
-          ],
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 76,
-            height: 32,
-            child: Center(
-              child: switch (outcome) {
-                _TestOutcome.busy => const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                _TestOutcome.ok => HwChip(
-                  text: l10n.modelTestOk,
-                  color: zt.live,
-                ),
-                _TestOutcome.fail => HwChip(
-                  text: l10n.modelTestFail,
-                  color: zt.danger,
-                ),
-                null => SizedBox(
-                  width: 76,
-                  child: TactileButton(
-                    label: l10n.modelTestConnection,
-                    height: 32,
-                    onPressed: wsReady && !dimmed ? () => _test(m) : null,
-                  ),
-                ),
-              },
-            ),
-          ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 52,
-            height: 32,
-            child: Center(
-              child: toggling
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Switch(
-                      value: m.enabled,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onChanged: (v) => _toggleModel(m, v),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tp = TextPainter(
+                text: TextSpan(text: m.modelId, style: nameStyle),
+                maxLines: 1,
+                textDirection: TextDirection.ltr,
+              )..layout(maxWidth: double.infinity);
+              final overflows = tp.width > constraints.maxWidth;
+              tp.dispose();
+              return SizedBox(
+                height: 24,
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showModelNameSheet(m.modelId),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const ClampingScrollPhysics(),
+                        child: Text(m.modelId, maxLines: 1, style: nameStyle),
+                      ),
                     ),
-            ),
-          ),
-          if (_editable)
-            SizedBox(
-              width: 30,
-              height: 32,
-              child: Center(
-                child: InkWell(
-                  key: Key('model-edit-${m.modelId}'),
-                  customBorder: const CircleBorder(),
-                  onTap: () => _editModel(m),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      size: 16,
-                      color: zt.textTertiary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (_editable && m.builtin != true)
-            SizedBox(
-              width: 30,
-              height: 32,
-              child: Center(
-                child: _rowBusy.contains(m.modelId)
-                    ? const SizedBox(
-                        width: 15,
-                        height: 15,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : InkWell(
-                        key: Key('model-del-${m.modelId}'),
-                        customBorder: const CircleBorder(),
-                        onTap: () => _deleteModel(m),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            Icons.delete_outline,
-                            size: 17,
-                            color: zt.textTertiary,
+                    if (overflows)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 20,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  zt.bg.withValues(alpha: 0),
+                                  zt.bg.withValues(alpha: 0.9),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              if (m.contextWindow != null) ...[
+                HwChip(
+                  text: l10n.modelDraftContextWindowBadge(
+                    _compactCount(m.contextWindow!),
+                  ),
+                  color: zt.textTertiary,
+                ),
+                const SizedBox(width: 8),
+              ],
+              const Spacer(),
+              SizedBox(
+                width: 76,
+                height: 32,
+                child: Center(
+                  child: switch (outcome) {
+                    _TestOutcome.busy => const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    _TestOutcome.ok => HwChip(
+                      text: l10n.modelTestOk,
+                      color: zt.live,
+                    ),
+                    _TestOutcome.fail => HwChip(
+                      text: l10n.modelTestFail,
+                      color: zt.danger,
+                    ),
+                    null => SizedBox(
+                      width: 76,
+                      child: TactileButton(
+                        label: l10n.modelTestConnection,
+                        height: 32,
+                        onPressed: wsReady && !dimmed ? () => _test(m) : null,
+                      ),
+                    ),
+                  },
+                ),
               ),
-            ),
-        ],
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 52,
+                height: 32,
+                child: Center(
+                  child: toggling
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Switch(
+                          value: m.enabled,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (v) => _toggleModel(m, v),
+                        ),
+                ),
+              ),
+              if (_editable)
+                SizedBox(
+                  width: 30,
+                  height: 32,
+                  child: Center(
+                    child: InkWell(
+                      key: Key('model-edit-${m.modelId}'),
+                      customBorder: const CircleBorder(),
+                      onTap: () => _editModel(m),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.tune_rounded,
+                          size: 16,
+                          color: zt.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_editable && m.builtin != true)
+                SizedBox(
+                  width: 30,
+                  height: 32,
+                  child: Center(
+                    child: _rowBusy.contains(m.modelId)
+                        ? const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : InkWell(
+                            key: Key('model-del-${m.modelId}'),
+                            customBorder: const CircleBorder(),
+                            onTap: () => _deleteModel(m),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                Icons.delete_outline,
+                                size: 17,
+                                color: zt.textTertiary,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+            ],
           ),
           if (hint != null)
             Padding(
@@ -1654,6 +1691,40 @@ class _ProviderDetailSheetState extends State<_ProviderDetailSheet> {
                 style: TextStyle(fontSize: 10.5, color: zt.danger),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// 名称全名浮层（滑动之外的兜底通路：点名称行弹出全名 + 复制）。
+  void _showModelNameSheet(String name) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          l10n.modelFullNameTitle,
+          style: const TextStyle(fontSize: 15),
+        ),
+        content: SelectableText(
+          name,
+          style: zrMono(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: name));
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                SnackBar(content: Text(l10n.modelFullNameCopied)),
+              );
+              Navigator.pop(dialogContext);
+            },
+            child: Text(l10n.modelActionCopy),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.commonCancel),
+          ),
         ],
       ),
     );

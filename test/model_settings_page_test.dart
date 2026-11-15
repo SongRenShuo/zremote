@@ -410,6 +410,51 @@ void main() {
     expect(find.textContaining('sk-abcdef123456'), findsNothing);
   });
 
+
+  testWidgets('7b. 超长模型名：横向滑动可查看全名 + 点击弹全名浮层（开发计划 20261115-0250）',
+      (tester) async {
+    const longName = 'remote-magpie/auto/deepseek-v4.1-flash-very-long-suffix';
+    final bridge = ScriptedBridge(
+      script: [
+        [
+          viewJson(customModels: const [
+            'gpt-x',
+            'gpt-y',
+            longName,
+          ]),
+        ],
+        [settingsJson()],
+        [{}],
+        [entitlementJson()],
+      ],
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.tap(find.text('My OpenAI'));
+    await tester.pumpAndSettle();
+    expect(find.text(longName), findsOneWidget);
+
+    // 名称行是横向 SingleChildScrollView：找它并断言可滚动（内容 > 视口）。
+    final scrollables = tester
+        .widgetList<SingleChildScrollView>(find.byType(SingleChildScrollView))
+        .where((w) => w.scrollDirection == Axis.horizontal)
+        .toList();
+    expect(scrollables, isNotEmpty);
+
+    // 在名称文本上起滑（真机用户手势位置），横向拖动后偏移应变化。
+    final nameFinder = find.text(longName);
+    final start = tester.getTopLeft(nameFinder) + const Offset(10, 5);
+    await tester.dragFrom(start, const Offset(-160, 0));
+    await tester.pumpAndSettle();
+
+    // 拖动后浮层兜底：点击名称弹全名对话框并可复制。
+    await tester.tap(nameFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('模型名称'), findsOneWidget);
+    expect(find.text('复制'), findsOneWidget);
+    await tester.tap(find.text('复制'));
+    await tester.pumpAndSettle();
+    expect(find.text('模型名已复制'), findsOneWidget);
+  });
   testWidgets('8. 工具箱入箱：模型设置卡常驻可点 + 回调触发', (tester) async {
     var taps = 0;
     await tester.pumpWidget(
