@@ -4,11 +4,13 @@ import '../l10n/app_localizations.dart';
 import '../services/git_overview.dart';
 import '../theme.dart';
 import 'bevel_card.dart';
+import 'git_diff_page.dart';
 
-/// Git 只读详情页（P1-7 修复）：分支 / ahead-behind / 脏文件列表。
+/// Git 只读详情页（P1 修复）：来源分段（未暂存 / 已暂存 / 分支对比）+
+/// 分组脏文件列表（路径 / kind / ±行数）+ 全屏只读 diff。
 /// 数据源 `gitService.getRepositorySummary` + `getChanges`（staged+unstaged）
-/// + `getLocalBranches`；点文件行按需 `getDiff` 展示只读补丁。
-/// 全程只读，无任何写操作（stage/commit/push 一律不暴露）。
+/// + `getBranchComparison` + `getLocalBranches`，一次聚合、按源隔离失败；
+/// 点文件行 push [GitDiffPage]。全程只读，无任何写操作。
 class GitDetailPage extends StatefulWidget {
   const GitDetailPage({
     super.key,
@@ -26,6 +28,7 @@ class GitDetailPage extends StatefulWidget {
 class _GitDetailPageState extends State<GitDetailPage> {
   GitDetail? _detail;
   bool _loading = false;
+  GitChangeSource _source = GitChangeSource.unstaged;
 
   @override
   void initState() {
@@ -43,22 +46,17 @@ class _GitDetailPageState extends State<GitDetailPage> {
     });
   }
 
-  Future<void> _showDiff(GitFileChangeEntry change) async {
-    final l10n = AppLocalizations.of(context)!;
+  Future<void> _openDiff(GitFileChangeEntry change) async {
     final ws = widget.workspacePath?.trim() ?? '';
     if (ws.isEmpty) return;
-    final source = change.isStaged ? 'staged' : 'unstaged';
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => _DiffSheet(
-        client: widget.client,
-        workspacePath: ws,
-        change: change,
-        sourceId: source,
-        title: l10n.gitDetailDiffTitle,
-        unavailable: l10n.gitDetailDiffUnavailable,
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GitDiffPage(
+          client: widget.client,
+          workspacePath: ws,
+          path: change.path,
+          sourceId: change.source.id,
+        ),
       ),
     );
   }
@@ -206,37 +204,67 @@ class _GitDetailPageState extends State<GitDetailPage> {
             ),
           ],
           const SizedBox(height: 14),
-          _SectionLabel(
-            text:
-                detail.changes.isEmpty
-                    ? l10n.gitDetailNoChanges
-                    : l10n.gitDetailDirtyCount(detail.dirtyCount),
+          _SourceSelector(
+            detail: detail,
+            selected: _source,
+            onSelect: (source) => setState(() => _source = source),
           ),
-          const SizedBox(height: 6),
-          if (detail.changes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                l10n.gitDetailNoChanges,
-                style: TextStyle(fontSize: 12.5, color: zt.textLo),
-              ),
-            )
-          else
-            for (final group in _grouped(detail.changes))
-              ..._changeSection(context, l10n, zt, group),
+          const SizedBox(height: 10),
+          ..._sourceSection(context, l10n, zt, detail),
         ],
       ),
     );
   }
 
-  List<({String group, List<GitFileChangeEntry> items})> _grouped(
-    List<GitFileChangeEntry> changes,
+  List<Widget> _sourceSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    ZTPalette zt,
+    GitDetail detail,
   ) {
-    const order = ['conflicted', 'staged', 'untracked', 'unstaged'];
+    final count = detail.countOf(_source);
+    final label = switch (_source) {
+      GitChangeSource.unstaged => l10n.gitDetailSourceUnstaged,
+      GitChangeSource.staged => l10n.gitDetailSourceStaged,
+      GitChangeSource.branch => l10n.gitDetailSourceBranch,
+    };
+    return [
+      _SectionLabel(text: '$label · ${l10n.gitDetailSourceCount(count)}'),
+      const SizedBox(height: 6),
+      if (_source == GitChangeSource.branch) ...[
+        _BranchMeta(detail: detail),
+        const SizedBox(height: 6),
+      ],
+      if (count == 0)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Text(
+            _source == GitChangeSource.branch
+                ? l10n.gitDetailComparisonEmpty
+                : l10n.gitDetailNoChanges,
+            style: TextStyle(fontSize: 12.5, color: zt.textLo),
+          ),
+        )
+      else
+        for (final group in _grouped(detail, _source))
+          ..._changeSection(context, l10n, zt, group),
+    ];
+  }
+
+  List<({String group, List<GitFileChangeEntry> items})> _grouped(
+    GitDetail detail,
+    GitChangeSource source,
+  ) {
+    final order = switch (source) {
+      GitChangeSource.staged => const ['staged'],
+      GitChangeSource.branch => const ['branch'],
+      GitChangeSource.unstaged => const ['conflicted', 'untracked', 'unstaged'],
+    };
+    final items = detail.changesOf(source);
     final out = <({String group, List<GitFileChangeEntry> items})>[];
     for (final key in order) {
-      final items = changes.where((c) => c.group == key).toList();
-      if (items.isNotEmpty) out.add((group: key, items: items));
+      final list = items.where((c) => c.group == key).toList();
+      if (list.isNotEmpty) out.add((group: key, items: list));
     }
     return out;
   }
@@ -266,7 +294,8 @@ class _GitDetailPageState extends State<GitDetailPage> {
             margin: EdgeInsets.zero,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             child: InkWell(
-              onTap: () => _showDiff(change),
+              key: Key('git-change-${change.source.id}-${change.sortPath}'),
+              onTap: () => _openDiff(change),
               child: Row(
                 children: [
                   _Badge(
@@ -276,7 +305,7 @@ class _GitDetailPageState extends State<GitDetailPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      change.path,
+                      change.displayPath,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -307,118 +336,162 @@ class _GitDetailPageState extends State<GitDetailPage> {
     'staged' => l10n.gitDetailSectionStaged,
     'untracked' => l10n.gitDetailSectionUntracked,
     'conflicted' => l10n.gitDetailSectionConflicted,
+    'branch' => l10n.gitDetailSectionBranch,
     _ => l10n.gitDetailSectionUnstaged,
   };
 
-  String _kindLabel(AppLocalizations l10n, String kind) => switch (kind) {
-    'added' => l10n.gitDetailKindAdded,
-    'deleted' => l10n.gitDetailKindDeleted,
-    'renamed' => l10n.gitDetailKindRenamed,
-    _ => l10n.gitDetailKindModified,
+  String _kindLabel(AppLocalizations l10n, GitChangeKind kind) => switch (kind) {
+    GitChangeKind.added => l10n.gitDetailKindAdded,
+    GitChangeKind.deleted => l10n.gitDetailKindDeleted,
+    GitChangeKind.renamed => l10n.gitDetailKindRenamed,
+    GitChangeKind.modified => l10n.gitDetailKindModified,
   };
 }
 
-class _DiffSheet extends StatefulWidget {
-  const _DiffSheet({
-    required this.client,
-    required this.workspacePath,
-    required this.change,
-    required this.sourceId,
-    required this.title,
-    required this.unavailable,
+/// 来源分段选择：未暂存 / 已暂存 / 分支对比，各段带文件数。
+class _SourceSelector extends StatelessWidget {
+  const _SourceSelector({
+    required this.detail,
+    required this.selected,
+    required this.onSelect,
   });
 
-  final GitOverviewClient client;
-  final String workspacePath;
-  final GitFileChangeEntry change;
-  final String sourceId;
-  final String title;
-  final String unavailable;
+  final GitDetail detail;
+  final GitChangeSource selected;
+  final ValueChanged<GitChangeSource> onSelect;
 
   @override
-  State<_DiffSheet> createState() => _DiffSheetState();
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final items = [
+      (
+        source: GitChangeSource.unstaged,
+        label: l10n.gitDetailSourceUnstaged,
+        count: detail.countOf(GitChangeSource.unstaged),
+      ),
+      (
+        source: GitChangeSource.staged,
+        label: l10n.gitDetailSourceStaged,
+        count: detail.countOf(GitChangeSource.staged),
+      ),
+      (
+        source: GitChangeSource.branch,
+        label: l10n.gitDetailSourceBranch,
+        count: detail.countOf(GitChangeSource.branch),
+      ),
+    ];
+    return Row(
+      children: [
+        for (final item in items)
+          Expanded(
+            child: _SourceSegment(
+              key: Key('git-source-${item.source.id}'),
+              label: item.label,
+              count: item.count,
+              selected: item.source == selected,
+              onTap: () => onSelect(item.source),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-class _DiffSheetState extends State<_DiffSheet> {
-  GitDiffEntry? _diff;
-  bool _loading = true;
+class _SourceSegment extends StatelessWidget {
+  const _SourceSegment({
+    super.key,
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final diff = await widget.client.fetchDiff(
-      widget.workspacePath,
-      widget.change.path,
-      sourceId: widget.sourceId,
-    );
-    if (!mounted) return;
-    setState(() {
-      _diff = diff;
-      _loading = false;
-    });
-  }
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final zt = context.zt;
-    final diff = _diff;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: zt.textHi,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? zt.accentSubtle : Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: selected ? zt.accentBorder : zt.hairline,
+              width: 0.8,
             ),
-            const SizedBox(height: 4),
-            Text(
-              widget.change.path,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11.5, color: zt.textLo),
-            ),
-            const SizedBox(height: 10),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (diff == null || !diff.hasPatch)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  widget.unavailable,
-                  style: TextStyle(fontSize: 12, color: zt.textLo),
-                ),
-              )
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 420),
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    diff.patch!,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.35,
-                      fontFamily: 'monospace',
-                      color: zt.textHi,
-                    ),
-                  ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? zt.accent : zt.textLo,
                 ),
               ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  color: selected ? zt.accent : zt.textTertiary,
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// 分支对比元信息：对比标签（固定 upstream...HEAD）/ 无上游 / 拉取失败。
+class _BranchMeta extends StatelessWidget {
+  const _BranchMeta({required this.detail});
+
+  final GitDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final zt = context.zt;
+    final comparison = detail.comparison;
+    final String text;
+    if (detail.comparisonFailed) {
+      text = l10n.gitDetailComparisonUnavailable;
+    } else if (comparison == null || !comparison.hasUpstream) {
+      text = l10n.gitDetailComparisonNoUpstream;
+    } else {
+      text = l10n.gitDetailComparisonLabel(
+        comparison.comparisonLabel ?? '${comparison.baseRef}...${comparison.headRef}',
+      );
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: zt.hairline, width: 0.8),
+      ),
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 11, color: zt.textTertiary),
       ),
     );
   }

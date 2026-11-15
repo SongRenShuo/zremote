@@ -174,7 +174,7 @@ void main() {
     expect(find.text('Git 详情'), findsOneWidget);
   });
 
-  testWidgets('P1-7 GitDetailPage：分支/ahead-behind/脏文件/本地分支只读渲染',
+  testWidgets('P1 GitDetailPage：来源分段/分组/numstat/全屏 diff 只读渲染',
       (tester) async {
     final bridge = ScriptedBridge(script: const [
       // getRepositorySummary
@@ -191,7 +191,9 @@ void main() {
       // getChanges(staged)
       [
         {
-          'path': 'a.dart',
+          'path': '/repo/a.dart',
+          'workspaceRelativePath': 'a.dart',
+          'repoRelativePath': 'a.dart',
           'kind': 'modified',
           'section': 'staged',
           'added': 3,
@@ -202,11 +204,22 @@ void main() {
       // getChanges(unstaged)
       [
         {
-          'path': 'b.dart',
+          'path': '/repo/b.dart',
+          'workspaceRelativePath': 'b.dart',
+          'repoRelativePath': 'b.dart',
           'kind': 'added',
           'section': 'untracked',
           'added': 10,
           'isUntracked': true,
+        },
+      ],
+      // getBranchComparison（无上游：baseRef 空 + 空 changes）
+      [
+        {
+          'baseRef': null,
+          'headRef': 'feat/v2',
+          'comparisonLabel': null,
+          'changes': <Map<String, dynamic>>[],
         },
       ],
       // getLocalBranches
@@ -219,12 +232,13 @@ void main() {
           ],
         },
       ],
-      // getDiff(a.dart)
+      // getDiff(a.dart) 两个 hunk
       [
         {
           'path': 'a.dart',
           'availability': 'patch',
-          'patch': '@@ -1 +1 @@\n-old\n+new',
+          'patch':
+              'diff --git a/a.dart b/a.dart\n@@ -1,2 +1,3 @@\n context\n-old\n+new\n+added\n@@ -10,1 +10,1 @@\n-remove\n+replace\n',
         },
       ],
     ]);
@@ -247,27 +261,40 @@ void main() {
     expect(find.text('本地分支'), findsOneWidget);
     expect(find.text('main'), findsOneWidget);
     expect(find.text('feat/v2'), findsOneWidget);
-    expect(find.text('已暂存'), findsOneWidget);
-    expect(find.text('未跟踪'), findsOneWidget);
-    expect(find.text('a.dart'), findsOneWidget);
+    // 三来源分段。
+    expect(find.byKey(const Key('git-source-unstaged')), findsOneWidget);
+    expect(find.byKey(const Key('git-source-staged')), findsOneWidget);
+    expect(find.byKey(const Key('git-source-branch')), findsOneWidget);
+    // 默认未暂存来源。
+    expect(find.text('未暂存'), findsOneWidget);
     expect(find.text('b.dart'), findsOneWidget);
-    expect(find.text('+3 −1'), findsOneWidget);
     expect(find.text('+10 −0'), findsOneWidget);
-    expect(find.text('2 个改动'), findsNWidgets(2));
-    // 只读：无 stage/commit/push 动作。
-    expect(bridge.commands, hasLength(4));
+    expect(find.text('a.dart'), findsNothing);
+    expect(find.text('2 个改动'), findsOneWidget);
+    // 只读：5 个取数命令，无写方法。
+    expect(bridge.commands, hasLength(5));
     expect(bridge.commands[0]['m'], 'getRepositorySummary');
     expect(bridge.commands[1]['m'], 'getChanges');
     expect(bridge.commands[2]['m'], 'getChanges');
-    expect(bridge.commands[3]['m'], 'getLocalBranches');
+    expect(bridge.commands[3]['m'], 'getBranchComparison');
+    expect(bridge.commands[4]['m'], 'getLocalBranches');
 
-    // 点文件行 → getDiff 只读补丁。
+    // 切到已暂存 → 显示 staged 文件与 numstat。
+    await tester.tap(find.byKey(const Key('git-source-staged')));
+    await tester.pumpAndSettle();
+    expect(find.text('a.dart'), findsOneWidget);
+    expect(find.text('+3 −1'), findsOneWidget);
+    expect(find.text('b.dart'), findsNothing);
+
+    // 点文件行 → 全屏 diff。
     await tester.tap(find.text('a.dart'));
     await tester.pumpAndSettle();
     expect(find.text('文件差异'), findsOneWidget);
-    expect(find.textContaining('@@ -1 +1 @@'), findsOneWidget);
-    expect(bridge.commands, hasLength(5));
-    expect(bridge.commands[4]['m'], 'getDiff');
+    expect(find.textContaining('@@ -1,2 +1,3 @@'), findsOneWidget);
+    expect(bridge.commands, hasLength(6));
+    expect(bridge.commands[5]['m'], 'getDiff');
+    final diffArgs = argsOf(bridge.commands[5]);
+    expect((diffArgs.first as Map)['sourceId'], 'staged');
   });
 
   testWidgets('P1-7 GitDetailPage：无 workspace → 占位不发包', (tester) async {
