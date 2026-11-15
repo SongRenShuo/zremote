@@ -1689,6 +1689,278 @@
   "@modelFullNameCopied": {
     "description": "Toast after copying model name"
   },
+"loginTitle": "Sign in to ZCode",
+  "@loginTitle": {
+    "description": "Login web page title"
+  },
+  "loginSubtitle": "Pick a provider and finish sign-in on the official page (email / phone / WeChat)",
+  "@loginSubtitle": {
+    "description": "Login provider selector subtitle"
+  },
+  "loginProviderZaiCn": "Z.ai (China)",
+  "@loginProviderZaiCn": {
+    "description": "Provider option: zai_cn"
+  },
+  "loginProviderZai": "Z.ai (Global)",
+  "@loginProviderZai": {
+    "description": "Provider option: zai"
+  },
+  "loginProviderBigmodel": "BigModel",
+  "@loginProviderBigmodel": {
+    "description": "Provider option: bigmodel"
+  },
+  "loginStatusInit": "Getting the authorization link…",
+  "@loginStatusInit": {
+    "description": "Login status: cli/init in flight"
+  },
+  "loginStatusAuthorize": "Complete sign-in on the official page below",
+  "@loginStatusAuthorize": {
+    "description": "Login status: authorize page loaded"
+  },
+  "loginStatusSaving": "Authorized. Saving and injecting credentials…",
+  "@loginStatusSaving": {
+    "description": "Login status: saving credentials"
+  },
+  "loginErrorTitle": "Sign-in incomplete",
+  "@loginErrorTitle": {
+    "description": "Login failed state heading"
+  },
+  "loginRetry": "Retry",
+  "@loginRetry": {
+    "description": "Login failed: retry button"
+  },
+  "loginUsePopup": "Use popup sign-in instead",
+  "@loginUsePopup": {
+    "description": "Login failed: fallback to existing popup flow"
+  },
+  "loginCloseConfirmTitle": "Abandon sign-in?",
+  "@loginCloseConfirmTitle": {
+    "description": "Abandon-login confirm title"
+  },
+  "loginCloseConfirmBody": "The authorization flow is not finished; you will have to start over.",
+  "@loginCloseConfirmBody": {
+    "description": "Abandon-login confirm body"
+  },
+  "loginAbandonConfirm": "Abandon",
+  "@loginAbandonConfirm": {
+    "description": "Abandon-login confirm button"
+  },
+  "loginEntry": "Sign in",
+  "@loginEntry": {
+    "description": "Session page account menu: login entry"
+  },
+  "loginRelogin": "Sign in again",
+  "@loginRelogin": {
+    "description": "JWT expiring banner action"
+  },
+  "loginJwtExpiringBanner": "Login credential expires within {hours} hours; consider signing in again",
+  "@loginJwtExpiringBanner": {
+    "description": "JWT expiring warning banner",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "loginErrorNetwork": "Network error. Check the connection and retry",
+  "@loginErrorNetwork": {
+    "description": "Login error kind: network"
+  },
+  "loginErrorTimeout": "Timed out waiting for authorization (5 minutes). Please retry",
+  "@loginErrorTimeout": {
+    "description": "Login error kind: timeout"
+  },
+  "loginErrorRejected": "Authorization was denied or expired. Please retry",
+  "@loginErrorRejected": {
+    "description": "Login error kind: http/api rejection"
+  },
+  "loginErrorBadResponse": "The service returned malformed data. Please retry",
+  "@loginErrorBadResponse": {
+    "description": "Login error kind: bad response shape"
+  },
+  "loginAccountMenu": "Account",
+  "@loginAccountMenu": {
+    "description": "Session page account menu tooltip"
+  },
+  "acctVaultTitle": "Account vault",
+  "@acctVaultTitle": {
+    "description": "Account vault page title"
+  },
+  "acctEmpty": "No saved accounts yet",
+  "@acctEmpty": {
+    "description": "Account vault empty state"
+  },
+  "acctSaveCurrent": "Save current login",
+  "@acctSaveCurrent": {
+    "description": "Vault action: preserve current login"
+  },
+  "acctSavedToast": "Current login saved",
+  "@acctSavedToast": {
+    "description": "Toast after saving current login"
+  },
+  "acctNothingToSave": "This device is not signed in; nothing to save",
+  "@acctNothingToSave": {
+    "description": "Toast when no current login to save"
+  },
+  "acctApply": "Apply to this device",
+  "@acctApply": {
+    "description": "Vault action: apply account to device"
+  },
+  "acctApplyConfirmTitle": "Apply account",
+  "@acctApplyConfirmTitle": {
+    "description": "Apply account confirm title"
+  },
+  "acctApplyConfirmBody": "\"{name}\" will be applied to this device and the page reloaded; the current login is saved to the vault first.",
+  "@acctApplyConfirmBody": {
+    "description": "Apply account confirm body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "acctApplyDone": "Applied, reloading",
+  "@acctApplyDone": {
+    "description": "Toast after applying account"
+  },
+  "acctApplyFailed": "Apply failed",
+  "@acctApplyFailed": {
+    "description": "Toast when apply injection fails"
+  },
+  "acctActiveBadge": "Active",
+  "@acctActiveBadge": {
+    "description": "Badge for account active on this device"
+  },
+  "acctNeedsRelogin": "Re-login",
+  "@acctNeedsRelogin": {
+    "description": "Badge for expired JWT"
+  },
+  "acctDelete": "Delete",
+  "@acctDelete": {
+    "description": "Vault action: delete account"
+  },
+  "acctDeleteConfirmTitle": "Delete account?",
+  "@acctDeleteConfirmTitle": {
+    "description": "Delete account confirm title"
+  },
+  "acctDeleteConfirmBody": "Credentials of \"{name}\" will be removed from the vault; the current login on devices is unaffected.",
+  "@acctDeleteConfirmBody": {
+    "description": "Delete account confirm body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "acctExport": "Export .zsb",
+  "@acctExport": {
+    "description": "Vault action: export .zsb"
+  },
+  "acctImport": "Import .zsb",
+  "@acctImport": {
+    "description": "Vault action: import .zsb"
+  },
+  "acctExportPwdTitle": "Set export password",
+  "@acctExportPwdTitle": {
+    "description": "Export password dialog title"
+  },
+  "acctImportPwdTitle": "Enter import password",
+  "@acctImportPwdTitle": {
+    "description": "Import password dialog title"
+  },
+  "acctPwdHint": "At least 6 characters",
+  "@acctPwdHint": {
+    "description": "Password field hint"
+  },
+  "acctPwdTooShort": "Password must be at least 6 characters",
+  "@acctPwdTooShort": {
+    "description": "Password validation error"
+  },
+  "acctImportWrongPwd": "Wrong password or corrupted file",
+  "@acctImportWrongPwd": {
+    "description": "Import failure: wrong password"
+  },
+  "acctImportBadFile": "Not a valid .zsb file",
+  "@acctImportBadFile": {
+    "description": "Import failure: bad file shape"
+  },
+  "acctImportReport": "Import done: {added} added, {skipped} skipped",
+  "@acctImportReport": {
+    "description": "Import result toast",
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "acctDetailTitle": "Account details",
+  "@acctDetailTitle": {
+    "description": "Account detail page title"
+  },
+  "acctDetailEmail": "Email",
+  "@acctDetailEmail": {
+    "description": "Account detail row label"
+  },
+  "acctDetailName": "Nickname",
+  "@acctDetailName": {
+    "description": "Account detail row label"
+  },
+  "acctDetailProvider": "Provider",
+  "@acctDetailProvider": {
+    "description": "Account detail row label"
+  },
+  "acctDetailAdded": "Added",
+  "@acctDetailAdded": {
+    "description": "Account detail row label"
+  },
+  "acctDetailExpires": "Credential expires",
+  "@acctDetailExpires": {
+    "description": "Account detail row label"
+  },
+  "acctUnknown": "Unknown",
+  "@acctUnknown": {
+    "description": "Fallback for unknown values"
+  },
+  "acctProfileFailed": "Failed to load profile",
+  "@acctProfileFailed": {
+    "description": "Profile fetch error row"
+  },
+  "acctLogout": "Sign out",
+  "@acctLogout": {
+    "description": "Session account menu: logout"
+  },
+  "acctVaultEntry": "Account vault",
+  "@acctVaultEntry": {
+    "description": "Session account menu: open vault"
+  },
+  "acctLogoutConfirmTitle": "Sign out?",
+  "@acctLogoutConfirmTitle": {
+    "description": "Logout confirm title"
+  },
+  "acctLogoutConfirmBody": "All credentials will be revoked and the login state on this device cleared.",
+  "@acctLogoutConfirmBody": {
+    "description": "Logout confirm body"
+  },
+  "acctLogoutDone": "Signed out",
+  "@acctLogoutDone": {
+    "description": "Toast after logout"
+  },
+  "acctLogoutFailed": "Sign-out failed: {detail}",
+  "@acctLogoutFailed": {
+    "description": "Toast when revoke fails",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "acctSessionActions": "Account actions",
+  "@acctSessionActions": {
+    "description": "Session page account sheet title"
+  },
   "modelActionCopy": "Copy",
   "@modelActionCopy": {
     "description": "Copy action button"

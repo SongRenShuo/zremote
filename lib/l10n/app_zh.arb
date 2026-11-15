@@ -2437,6 +2437,278 @@
   "@modelFullNameCopied": {
     "description": "Toast after copying model name"
   },
+"loginTitle": "登录 ZCode",
+  "@loginTitle": {
+    "description": "Login web page title"
+  },
+  "loginSubtitle": "选择登录方式，将在官方登录页完成（支持邮箱/手机号/微信）",
+  "@loginSubtitle": {
+    "description": "Login provider selector subtitle"
+  },
+  "loginProviderZaiCn": "Z.ai（中国）",
+  "@loginProviderZaiCn": {
+    "description": "Provider option: zai_cn"
+  },
+  "loginProviderZai": "Z.ai（全球）",
+  "@loginProviderZai": {
+    "description": "Provider option: zai"
+  },
+  "loginProviderBigmodel": "BigModel",
+  "@loginProviderBigmodel": {
+    "description": "Provider option: bigmodel"
+  },
+  "loginStatusInit": "正在获取授权链接…",
+  "@loginStatusInit": {
+    "description": "Login status: cli/init in flight"
+  },
+  "loginStatusAuthorize": "请在下方官方页面完成登录",
+  "@loginStatusAuthorize": {
+    "description": "Login status: authorize page loaded"
+  },
+  "loginStatusSaving": "授权成功，正在保存并注入凭据…",
+  "@loginStatusSaving": {
+    "description": "Login status: saving credentials"
+  },
+  "loginErrorTitle": "登录未完成",
+  "@loginErrorTitle": {
+    "description": "Login failed state heading"
+  },
+  "loginRetry": "重试",
+  "@loginRetry": {
+    "description": "Login failed: retry button"
+  },
+  "loginUsePopup": "改用弹窗登录",
+  "@loginUsePopup": {
+    "description": "Login failed: fallback to existing popup flow"
+  },
+  "loginCloseConfirmTitle": "放弃登录？",
+  "@loginCloseConfirmTitle": {
+    "description": "Abandon-login confirm title"
+  },
+  "loginCloseConfirmBody": "授权流程尚未完成，退出后需重新开始。",
+  "@loginCloseConfirmBody": {
+    "description": "Abandon-login confirm body"
+  },
+  "loginAbandonConfirm": "放弃",
+  "@loginAbandonConfirm": {
+    "description": "Abandon-login confirm button"
+  },
+  "loginEntry": "登录",
+  "@loginEntry": {
+    "description": "Session page account menu: login entry"
+  },
+  "loginRelogin": "重新登录",
+  "@loginRelogin": {
+    "description": "JWT expiring banner action"
+  },
+  "loginJwtExpiringBanner": "登录凭据将于 {hours} 小时内过期，建议重新登录",
+  "@loginJwtExpiringBanner": {
+    "description": "JWT expiring warning banner",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "loginErrorNetwork": "网络异常，请检查网络后重试",
+  "@loginErrorNetwork": {
+    "description": "Login error kind: network"
+  },
+  "loginErrorTimeout": "等待授权超时（最长 5 分钟），请重试",
+  "@loginErrorTimeout": {
+    "description": "Login error kind: timeout"
+  },
+  "loginErrorRejected": "授权被拒绝或已失效，请重试",
+  "@loginErrorRejected": {
+    "description": "Login error kind: http/api rejection"
+  },
+  "loginErrorBadResponse": "服务返回异常数据，请重试",
+  "@loginErrorBadResponse": {
+    "description": "Login error kind: bad response shape"
+  },
+  "loginAccountMenu": "账号",
+  "@loginAccountMenu": {
+    "description": "Session page account menu tooltip"
+  },
+  "acctVaultTitle": "账号库",
+  "@acctVaultTitle": {
+    "description": "Account vault page title"
+  },
+  "acctEmpty": "还没有保存的账号",
+  "@acctEmpty": {
+    "description": "Account vault empty state"
+  },
+  "acctSaveCurrent": "保存当前登录",
+  "@acctSaveCurrent": {
+    "description": "Vault action: preserve current login"
+  },
+  "acctSavedToast": "已保存当前登录",
+  "@acctSavedToast": {
+    "description": "Toast after saving current login"
+  },
+  "acctNothingToSave": "当前设备未登录，无可保存",
+  "@acctNothingToSave": {
+    "description": "Toast when no current login to save"
+  },
+  "acctApply": "应用到此设备",
+  "@acctApply": {
+    "description": "Vault action: apply account to device"
+  },
+  "acctApplyConfirmTitle": "应用账号",
+  "@acctApplyConfirmTitle": {
+    "description": "Apply account confirm title"
+  },
+  "acctApplyConfirmBody": "将把「{name}」应用到当前设备并刷新页面；现有登录会先保存到账号库。",
+  "@acctApplyConfirmBody": {
+    "description": "Apply account confirm body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "acctApplyDone": "已应用，正在刷新",
+  "@acctApplyDone": {
+    "description": "Toast after applying account"
+  },
+  "acctApplyFailed": "应用失败",
+  "@acctApplyFailed": {
+    "description": "Toast when apply injection fails"
+  },
+  "acctActiveBadge": "在用",
+  "@acctActiveBadge": {
+    "description": "Badge for account active on this device"
+  },
+  "acctNeedsRelogin": "需重登",
+  "@acctNeedsRelogin": {
+    "description": "Badge for expired JWT"
+  },
+  "acctDelete": "删除",
+  "@acctDelete": {
+    "description": "Vault action: delete account"
+  },
+  "acctDeleteConfirmTitle": "删除账号？",
+  "@acctDeleteConfirmTitle": {
+    "description": "Delete account confirm title"
+  },
+  "acctDeleteConfirmBody": "将从账号库删除「{name}」的凭据；不影响设备上的当前登录。",
+  "@acctDeleteConfirmBody": {
+    "description": "Delete account confirm body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "acctExport": "导出 .zsb",
+  "@acctExport": {
+    "description": "Vault action: export .zsb"
+  },
+  "acctImport": "导入 .zsb",
+  "@acctImport": {
+    "description": "Vault action: import .zsb"
+  },
+  "acctExportPwdTitle": "设置导出密码",
+  "@acctExportPwdTitle": {
+    "description": "Export password dialog title"
+  },
+  "acctImportPwdTitle": "输入导入密码",
+  "@acctImportPwdTitle": {
+    "description": "Import password dialog title"
+  },
+  "acctPwdHint": "至少 6 位",
+  "@acctPwdHint": {
+    "description": "Password field hint"
+  },
+  "acctPwdTooShort": "密码至少 6 位",
+  "@acctPwdTooShort": {
+    "description": "Password validation error"
+  },
+  "acctImportWrongPwd": "密码错误或文件已损坏",
+  "@acctImportWrongPwd": {
+    "description": "Import failure: wrong password"
+  },
+  "acctImportBadFile": "不是有效的 .zsb 文件",
+  "@acctImportBadFile": {
+    "description": "Import failure: bad file shape"
+  },
+  "acctImportReport": "导入完成：新增 {added} 个，跳过 {skipped} 个",
+  "@acctImportReport": {
+    "description": "Import result toast",
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "acctDetailTitle": "账号详情",
+  "@acctDetailTitle": {
+    "description": "Account detail page title"
+  },
+  "acctDetailEmail": "邮箱",
+  "@acctDetailEmail": {
+    "description": "Account detail row label"
+  },
+  "acctDetailName": "昵称",
+  "@acctDetailName": {
+    "description": "Account detail row label"
+  },
+  "acctDetailProvider": "提供方",
+  "@acctDetailProvider": {
+    "description": "Account detail row label"
+  },
+  "acctDetailAdded": "添加时间",
+  "@acctDetailAdded": {
+    "description": "Account detail row label"
+  },
+  "acctDetailExpires": "凭据有效期",
+  "@acctDetailExpires": {
+    "description": "Account detail row label"
+  },
+  "acctUnknown": "未知",
+  "@acctUnknown": {
+    "description": "Fallback for unknown values"
+  },
+  "acctProfileFailed": "资料拉取失败",
+  "@acctProfileFailed": {
+    "description": "Profile fetch error row"
+  },
+  "acctLogout": "退出登录",
+  "@acctLogout": {
+    "description": "Session account menu: logout"
+  },
+  "acctVaultEntry": "账号库",
+  "@acctVaultEntry": {
+    "description": "Session account menu: open vault"
+  },
+  "acctLogoutConfirmTitle": "退出登录？",
+  "@acctLogoutConfirmTitle": {
+    "description": "Logout confirm title"
+  },
+  "acctLogoutConfirmBody": "将吊销全部凭据并清除本设备的登录状态。",
+  "@acctLogoutConfirmBody": {
+    "description": "Logout confirm body"
+  },
+  "acctLogoutDone": "已退出登录",
+  "@acctLogoutDone": {
+    "description": "Toast after logout"
+  },
+  "acctLogoutFailed": "退出失败：{detail}",
+  "@acctLogoutFailed": {
+    "description": "Toast when revoke fails",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "acctSessionActions": "账号操作",
+  "@acctSessionActions": {
+    "description": "Session page account sheet title"
+  },
   "modelActionCopy": "复制",
   "@modelActionCopy": {
     "description": "Copy action button"

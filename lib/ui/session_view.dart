@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../services/account_vault.dart';
 import '../services/approval_extractor.dart';
 import '../services/auth_popup_policy.dart';
 import '../services/event_observer.dart';
@@ -24,7 +25,9 @@ import '../services/session_jump.dart';
 import '../services/task_actions.dart';
 import '../services/web_theme.dart';
 import '../services/webview_profile.dart';
+import '../services/zai_auth_client.dart';
 import '../state/active_session.dart';
+import '../state/accounts.dart';
 import '../state/app_lifecycle.dart';
 import '../state/approval_center.dart';
 import '../state/automation.dart';
@@ -41,12 +44,14 @@ import '../state/session_status.dart';
 import '../state/toolbox_nav.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
+import 'account_vault_page.dart';
 import 'assets_page.dart';
 import 'automation_page.dart';
 import 'claim_page.dart';
 import 'desktop_settings_page.dart';
 import 'diagnostics_page.dart';
 import 'haptics.dart';
+import 'login_web_page.dart';
 import 'model_settings_page.dart';
 import 'motion.dart';
 import 'quota_page.dart';
@@ -440,6 +445,200 @@ class _SessionViewState extends ConsumerState<SessionView> {
       ),
     );
     return true;
+  }
+
+  // ---- 账号与登录（V2 P0 接线）----
+
+  Future<String?> _evaluateOnPage(String script) async {
+    final controller = _controller;
+    if (controller == null) return null;
+    try {
+      return await controller.evaluateJavascript(source: script) as String?;
+    } catch (e) {
+      debugPrint('[zr-vault] evaluate failed: $e');
+      return null;
+    }
+  }
+
+  /// 回读当前设备 zcode.z.ai origin 的凭据仓（保全/保存当前登录共用）。
+  Future<Map<String, String>> _readCurrentCredentials() async {
+    final raw = await _evaluateOnPage(AccountVault.credentialReadScript());
+    return AccountVault.parseReadResult(raw);
+  }
+
+  /// 账号注入 + 刷新（账号库页「应用」回调通道）。
+  Future<bool> _applyAccountToWebView(Account account) async {
+    final script = AccountVault.applyToDevice(account, widget.device);
+    if (script.isNotEmpty) {
+      await _evaluateOnPage(script);
+    }
+    await _manualReload('vault-apply');
+    return true;
+  }
+
+  Future<void> _openLogin() async {
+    if (!mounted) return;
+    final outcome = await Navigator.of(context).push<LoginWebOutcome>(
+      MaterialPageRoute<LoginWebOutcome>(
+        fullscreenDialog: true,
+        builder: (_) => LoginWebPage(device: widget.device),
+      ),
+    );
+    if (!mounted) return;
+    unawaited(
+      ref.read(accountsProvider.notifier).reload().catchError((Object e) {
+        debugPrint('[zr-vault] reload failed: $e');
+      }),
+    );
+    switch (outcome) {
+      case LoginWebOutcome.done:
+        await _manualReload('login-done');
+      case LoginWebOutcome.fallbackPopup:
+        // 改用既有弹窗通路：刷新页面，未登录态由宿主页自开 OAuth 弹窗。
+        await _manualReload('login-fallback-popup');
+      case LoginWebOutcome.dismissed:
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _openAccountVault() async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AccountVaultPage(
+          device: widget.device,
+          onCaptureCurrent: _readCurrentCredentials,
+          onApply: _applyAccountToWebView,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    unawaited(
+      ref.read(accountsProvider.notifier).reload().catchError((Object e) {
+        debugPrint('[zr-vault] reload failed: $e');
+      }),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.acctLogoutConfirmTitle),
+        content: Text(l10n.acctLogoutConfirmBody),
+        actions: [
+          TextButton(
+            key: const Key('acct-logout-cancel'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const Key('acct-logout-ok'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.acctLogout),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _logout();
+  }
+
+  Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context)!;
+    final account = ref
+        .read(accountsProvider)
+        .activeAccountOf(widget.device);
+    var revokeError = '';
+    if (account?.jwt != null && account!.jwt!.isNotEmpty) {
+      try {
+        await ZaiAuthClient().revokeAll(
+          account.jwt!,
+          deviceMid: account.virtualDeviceMid,
+        );
+      } catch (e) {
+        debugPrint('[zr-vault] revoke-all failed: $e');
+        revokeError = '$e';
+      }
+    }
+    // 清本设备 localStorage 凭据仓 + 解除在用绑定 + reload。
+    await _evaluateOnPage(AccountVault.credentialClearScript());
+    await ref
+        .read(accountsProvider.notifier)
+        .setActiveForDevice(widget.device, null);
+    if (!mounted) return;
+    await _manualReload('logout');
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            revokeError.isEmpty
+                ? l10n.acctLogoutDone
+                : l10n.acctLogoutFailed(revokeError),
+          ),
+        ),
+      );
+  }
+
+  Future<void> _showAccountSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    final active = ref.read(accountsProvider).activeAccountOf(widget.device);
+    await showZrSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        final zt = sheetContext.zt;
+        Widget action(
+          String label,
+          IconData icon,
+          VoidCallback onTap,
+        ) => ListTile(
+          leading: Icon(icon, size: 20, color: zt.textLo),
+          title: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: zt.textHi,
+            ),
+          ),
+          onTap: () {
+            Navigator.pop(sheetContext);
+            onTap();
+          },
+        );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                l10n.acctSessionActions,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: zt.textLo,
+                ),
+              ),
+            ),
+            action(l10n.loginEntry, Icons.login_rounded, () {
+              unawaited(_openLogin());
+            }),
+            action(l10n.acctVaultEntry, Icons.account_circle_outlined, () {
+              unawaited(_openAccountVault());
+            }),
+            if (active != null)
+              action(l10n.acctLogout, Icons.logout_rounded, () {
+                unawaited(_confirmLogout());
+              }),
+          ],
+        );
+      },
+    );
   }
 
   UnmodifiableListView<UserScript> _userScripts(bool dark) =>
@@ -901,6 +1100,64 @@ class _SessionViewState extends ConsumerState<SessionView> {
     super.dispose();
   }
 
+  /// JWT 过期前 24h 横幅（读账号库，P0-7）。
+  Widget _buildJwtExpiringBanner(BuildContext context) {
+    final account = ref.watch(accountsProvider).activeAccountOf(widget.device);
+    if (account == null || !account.expiringSoon) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context)!;
+    final exp = account.jwtExpAtMs;
+    final hoursLeft = exp == null
+        ? 1
+        : ((exp - DateTime.now().millisecondsSinceEpoch) / 3600000)
+              .ceil()
+              .clamp(1, 999999);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: context.zt.warn.withValues(alpha: 0.10),
+        border: Border(left: BorderSide(color: context.zt.warn, width: 3)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          Icon(Icons.schedule_rounded, size: 20, color: context.zt.warn),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.loginJwtExpiringBanner(hoursLeft),
+              key: const Key('jwt-expiring-banner'),
+              style: TextStyle(fontSize: 12, color: context.zt.textLo),
+            ),
+          ),
+          const SizedBox(width: 10),
+          InkWell(
+            key: const Key('jwt-expiring-relogin'),
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => unawaited(_openLogin()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: context.zt.warn.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: context.zt.warn.withValues(alpha: 0.30)),
+              ),
+              child: Text(
+                l10n.loginRelogin,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: context.zt.warn,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = ref.watch(sessionStatusProvider)[widget.device.id];
@@ -1039,6 +1296,13 @@ class _SessionViewState extends ConsumerState<SessionView> {
               : const SizedBox(height: 2, width: double.infinity),
         ),
         actions: [
+          if (widget.device.kind == DeviceKind.v2)
+            IconButton(
+              key: const Key('session-account-entry'),
+              icon: const Icon(Icons.account_circle_outlined),
+              tooltip: l10n.loginAccountMenu,
+              onPressed: _showAccountSheet,
+            ),
           _ToolboxEntryButton(
             device: widget.device,
             onAutomationPressed: _openAutomation,
@@ -1156,6 +1420,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     ),
                   )
                 : const SizedBox.shrink(),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: _buildJwtExpiringBanner(context),
           ),
           Expanded(
             child: ColoredBox(
