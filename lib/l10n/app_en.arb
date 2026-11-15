@@ -1908,6 +1908,52 @@
   "@loginAccountMenu": {
     "description": "Session page account menu tooltip"
   },
+  "loginEntryAccount": "Sign in to account",
+  "@loginEntryAccount": {
+    "description": "Device-less login entry label (manage empty state / settings account section)"
+  },
+  "loginSavedTitle": "Saved to the account vault",
+  "@loginSavedTitle": {
+    "description": "No-device login success title"
+  },
+  "loginSavedBody": "Account credentials saved. Add a device to use them, or import registered devices from the account.",
+  "@loginSavedBody": {
+    "description": "No-device login success body without account name"
+  },
+  "loginSavedBodyName": "Credentials for account \"{name}\" saved. Add a device to use them, or import registered devices from the account.",
+  "@loginSavedBodyName": {
+    "description": "No-device login success body with account name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "loginImportDevices": "Import account devices",
+  "@loginImportDevices": {
+    "description": "No-device login success: import registered devices of the account"
+  },
+  "loginDone": "Done",
+  "@loginDone": {
+    "description": "No-device login success: done action"
+  },
+  "acctSection": "Account",
+  "@acctSection": {
+    "description": "Settings account section label"
+  },
+  "acctLoginSub": "Sign in to your zcode account; credentials are saved to the account vault",
+  "@acctLoginSub": {
+    "description": "Settings account login subtitle when no account saved"
+  },
+  "acctLoginSubCount": "{count} account(s) saved",
+  "@acctLoginSubCount": {
+    "description": "Settings account login subtitle with saved account count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "acctVaultTitle": "Account vault",
   "@acctVaultTitle": {
     "description": "Account vault page title"

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import '../services/device_import.dart';
 import '../services/keepalive.dart';
 import '../services/notifier.dart' show NotificationGatePolicy, ZrNotifyOverride;
 import '../services/link_builder.dart';
+import '../state/accounts.dart';
 import '../state/app_lifecycle.dart';
 import '../state/behavior.dart';
 import '../state/claim_history.dart';
@@ -23,6 +26,7 @@ import 'bevel_card.dart';
 import 'haptics.dart';
 import 'hw_chip.dart';
 import 'inlaid_well.dart';
+import 'login_web_page.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
 import 'showcase_bits.dart';
@@ -85,6 +89,7 @@ class ManagePage extends ConsumerWidget {
                     _EmptyHint(
                       onScan: () => _openScanner(context, ref),
                       onPaste: () => _showPasteDialog(context, ref),
+                      onLogin: () => _openLogin(context, ref),
                     )
                   else ...[
                     _TelemetryBanner(devices: devices),
@@ -215,6 +220,22 @@ class ManagePage extends ConsumerWidget {
         fullscreenDialog: true,
         builder: (_) => const ScannerPage(),
       ),
+    );
+  }
+
+  /// 无设备登录：不依赖任何设备，凭据入账号库；落地态在 [LoginWebPage] 内。
+  Future<void> _openLogin(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push<LoginWebOutcome>(
+      MaterialPageRoute<LoginWebOutcome>(
+        fullscreenDialog: true,
+        builder: (_) => const LoginWebPage(),
+      ),
+    );
+    if (!context.mounted) return;
+    unawaited(
+      ref.read(accountsProvider.notifier).reload().catchError((Object e) {
+        debugPrint('[zr-login] accounts reload failed: $e');
+      }),
     );
   }
 
@@ -763,10 +784,15 @@ IconData _devicePlatformIcon(String displayName) {
 }
 
 class _EmptyHint extends StatelessWidget {
-  const _EmptyHint({required this.onScan, required this.onPaste});
+  const _EmptyHint({
+    required this.onScan,
+    required this.onPaste,
+    required this.onLogin,
+  });
 
   final VoidCallback onScan;
   final VoidCallback onPaste;
+  final VoidCallback onLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -846,6 +872,17 @@ class _EmptyHint extends StatelessWidget {
             ],
           ),
         ),
+        SizedBox(
+          width: double.infinity,
+          child: TactileButton(
+            key: const Key('empty-login-account'),
+            variant: TactileVariant.primary,
+            label: l10n.loginEntryAccount,
+            icon: const Icon(Icons.login_rounded, size: 15),
+            onPressed: onLogin,
+          ),
+        ),
+        const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
             color: zt.surface,

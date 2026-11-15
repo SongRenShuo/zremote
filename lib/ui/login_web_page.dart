@@ -3,14 +3,19 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../services/account_vault.dart';
+import '../services/remote_device_client.dart';
 import '../services/zai_auth_client.dart';
 import '../services/webview_profile.dart';
+import '../state/accounts.dart';
+import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
+import 'account_device_picker_page.dart';
 
 /// 登录页返回结果。
 enum LoginWebOutcome {
@@ -148,13 +153,16 @@ class ControllerLoginGateway implements LoginWebGateway {
 class LoginWebPage extends StatefulWidget {
   const LoginWebPage({
     super.key,
-    required this.device,
+    this.device,
     this.client,
     this.vault,
     this.gatewayFactory,
+    this.deviceClient,
   });
 
-  final RemoteDevice device;
+  /// 目标设备。null 表示「无设备登录」：只把凭据存入账号库，
+  /// 不绑设备、不注入设备会话页；登录成功后进入「已保存」引导态。
+  final RemoteDevice? device;
 
   /// 测试注入位；默认生产客户端。
   final ZaiAuthClient? client;
@@ -165,6 +173,9 @@ class LoginWebPage extends StatefulWidget {
   /// 测试注入位；默认绑定真实 WebView（生产路径）。
   final LoginGatewayFactory? gatewayFactory;
 
+  /// 账号设备导入客户端（无设备登录后的「导入账户设备」入口用）。
+  final RemoteDeviceClient? deviceClient;
+
   @override
   State<LoginWebPage> createState() => _LoginWebPageState();
 }
@@ -174,6 +185,7 @@ enum _LoginPhase {
   initializing,
   authorizing,
   injecting,
+  saved,
   failed,
 }
 
@@ -208,6 +220,7 @@ class _LoginWebPageState extends State<LoginWebPage> {
   bool _injected = false;
   bool _injectRetryUsed = false;
   bool _webLoading = false;
+  bool _importing = false;
   String _authorizeHost = '';
 
   Timer? _loadDeadlineTimer;
@@ -365,7 +378,16 @@ class _LoginWebPageState extends State<LoginWebPage> {
       );
       if (!mounted || epoch != _flowEpoch) return;
       _readyAccount = account;
-      await vault.setActiveForDevice(widget.device.id, account.id);
+      final device = widget.device;
+      if (device == null) {
+        // 无设备登录：凭据已入账号库，不绑设备、不加载设备会话页。
+        // 落地到「已保存」引导态，由用户决定导入账户设备或稍后再添加。
+        _cancelTimers();
+        if (!mounted || epoch != _flowEpoch) return;
+        setState(() => _phase = _LoginPhase.saved);
+        return;
+      }
+      await vault.setActiveForDevice(device.id, account.id);
       await _ensureGateway().load(_zcodeSessionUri());
       // 注入在 onLoadStop（目标 origin 就绪）后执行。
     } on ZaiAuthException catch (e) {
@@ -378,7 +400,8 @@ class _LoginWebPageState extends State<LoginWebPage> {
   }
 
   Uri _zcodeSessionUri() {
-    final base = Uri.tryParse(widget.device.baseUrl);
+    final device = widget.device;
+    final base = device == null ? null : Uri.tryParse(device.baseUrl);
     if (base != null && base.host == _zcodeHost) return base;
     return Uri.https(_zcodeHost, '/remote/v4');
   }
@@ -386,7 +409,8 @@ class _LoginWebPageState extends State<LoginWebPage> {
   /// 注入目标 origin 集合：设备 baseUrl origin ∪ zcode.z.ai。
   Set<String> _targetOrigins() {
     final origins = <String>{'https://$_zcodeHost'};
-    final base = Uri.tryParse(widget.device.baseUrl);
+    final device = widget.device;
+    final base = device == null ? null : Uri.tryParse(device.baseUrl);
     final origin = base == null ? null : _originOf(base);
     if (origin != null && origin.isNotEmpty) origins.add(origin);
     return origins;
@@ -648,6 +672,7 @@ class _LoginWebPageState extends State<LoginWebPage> {
     final zt = context.zt;
     final l10n = AppLocalizations.of(context)!;
     final canPop = _phase == _LoginPhase.selectProvider ||
+        _phase == _LoginPhase.saved ||
         _phase == _LoginPhase.failed;
     return PopScope(
       canPop: canPop,
@@ -690,6 +715,7 @@ class _LoginWebPageState extends State<LoginWebPage> {
             ),
             _LoginPhase.authorizing ||
             _LoginPhase.injecting => _buildAuthorizeArea(context),
+            _LoginPhase.saved => _buildSaved(context),
             _LoginPhase.failed => _buildFailed(context),
           },
         ),
@@ -745,6 +771,9 @@ class _LoginWebPageState extends State<LoginWebPage> {
       _ => l10n.loginStatusAuthorize,
     };
     _ensureGateway();
+    // 无设备登录：不指定 androidWebProfile，走系统默认 profile（隔离语义
+    // 只在「有设备」时按设备 id 生效；无设备没有可隔离的对象）。
+    final device = widget.device;
     final Widget webview = widget.gatewayFactory != null
         ? const SizedBox.expand(key: Key('login-webview-placeholder'))
         : InAppWebView(
@@ -754,7 +783,9 @@ class _LoginWebPageState extends State<LoginWebPage> {
               domStorageEnabled: true,
               transparentBackground: false,
               useHybridComposition: false,
-              androidWebProfile: webProfileNameFor(widget.device),
+              androidWebProfile: device == null
+                  ? null
+                  : webProfileNameFor(device),
             ),
             onWebViewCreated: (controller) {
               _ensureGateway();
@@ -869,6 +900,125 @@ class _LoginWebPageState extends State<LoginWebPage> {
         ],
       ),
     );
+  }
+
+  /// 无设备登录成功落地：凭据已入账号库，引导「导入账户设备」或稍后再添加。
+  Widget _buildSaved(BuildContext context) {
+    final zt = context.zt;
+    final l10n = AppLocalizations.of(context)!;
+    final account = _readyAccount;
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Icon(Icons.check_circle_outline_rounded, size: 44, color: zt.live),
+          const SizedBox(height: 14),
+          Text(
+            l10n.loginSavedTitle,
+            key: const Key('login-saved-title'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: zt.textHi,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            account == null || account.name.isEmpty
+                ? l10n.loginSavedBody
+                : l10n.loginSavedBodyName(account.name),
+            key: const Key('login-saved-body'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, height: 1.5, color: zt.textLo),
+          ),
+          const SizedBox(height: 22),
+          FilledButton(
+            key: const Key('login-import-devices'),
+            onPressed: _importing
+                ? null
+                : () => unawaited(_importAccountDevices()),
+            child: Text(l10n.loginImportDevices),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            key: const Key('login-done'),
+            onPressed: () => Navigator.of(context).pop(LoginWebOutcome.done),
+            child: Text(l10n.loginDone),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 拉取账号下已注册设备 → [AccountDevicePickerPage] → 写设备库并绑定账号。
+  ///
+  /// 无设备登录的后续路径与账号库页「从账户添加设备」同构；此处独立实现，
+  /// 不复用账号库页（那页仍要求 device，由 nodevice-b 车道解绑）。
+  Future<void> _importAccountDevices() async {
+    final account = _readyAccount;
+    if (account == null || _importing) return;
+    final l10n = AppLocalizations.of(context)!;
+    final jwt = account.jwt;
+    if (jwt == null || jwt.isEmpty) {
+      _toast(l10n.devicesNeedRelogin);
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _importing = true);
+    try {
+      final entries = await (widget.deviceClient ?? RemoteDeviceClient())
+          .listDevices(jwt, deviceMid: account.virtualDeviceMid);
+      if (!mounted) return;
+      if (entries.isEmpty) {
+        _toast(l10n.devicesPickerEmpty, messenger);
+        return;
+      }
+      final container = ProviderScope.containerOf(context);
+      final result = await Navigator.of(context)
+          .push<AccountDevicePickerResult>(
+        MaterialPageRoute<AccountDevicePickerResult>(
+          builder: (_) => AccountDevicePickerPage(
+            accountName: account.name.isNotEmpty ? account.name : account.id,
+            entries: entries,
+            existingDevices: container.read(deviceListProvider),
+            onAdd: (device, {required open}) async {
+              await container.read(deviceListProvider.notifier).add(device);
+              await container
+                  .read(accountsProvider.notifier)
+                  .setActiveForDevice(device, account.id);
+              return true;
+            },
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (result != null) {
+        Navigator.of(context).pop(LoginWebOutcome.done);
+      }
+    } on RemoteDeviceException catch (e) {
+      if (!mounted) return;
+      _toast(
+        e.isUnauthorized
+            ? l10n.devicesNeedRelogin
+            : l10n.devicesFetchFailed(e.message),
+        messenger,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _toast(l10n.devicesFetchFailed('$e'), messenger);
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  void _toast(String message, [ScaffoldMessengerState? messenger]) {
+    if (!mounted) return;
+    (messenger ?? ScaffoldMessenger.of(context))
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

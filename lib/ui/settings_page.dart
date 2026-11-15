@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -11,6 +13,7 @@ import '../services/device_store.dart';
 import '../services/keepalive.dart';
 import '../services/update_checker.dart';
 import '../services/webview_profile.dart';
+import '../state/accounts.dart';
 import '../state/appearance.dart';
 import '../state/app_lifecycle.dart';
 import '../state/behavior.dart';
@@ -25,6 +28,7 @@ import 'about_page.dart';
 import 'data_manage_page.dart';
 import 'haptics.dart';
 import 'ios_limits_section.dart';
+import 'login_web_page.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
 
@@ -124,6 +128,10 @@ class SettingsPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
+            // 无设备登录入口（nodevice-a）：不依赖任何设备即可登录账号。
+            SectionLabel(l10n.acctSection),
+            const _CardGroup(children: [_AccountLoginTile()]),
+            const SizedBox(height: 16),
             SectionLabel(l10n.sectionAppearance),
             const _CardGroup(
               children: [
@@ -301,6 +309,41 @@ class _TileRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 账号区登录入口（nodevice-a）：不依赖设备即可登录，凭据入账号库。
+class _AccountLoginTile extends ConsumerWidget {
+  const _AccountLoginTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final count = ref.watch(accountsProvider).accounts.length;
+    return _TileRow(
+      title: l10n.loginEntryAccount,
+      subtitle: count > 0
+          ? l10n.acctLoginSubCount(count)
+          : l10n.acctLoginSub,
+      icon: Icons.login_rounded,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _open(context, ref),
+    );
+  }
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push<LoginWebOutcome>(
+      MaterialPageRoute<LoginWebOutcome>(
+        fullscreenDialog: true,
+        builder: (_) => const LoginWebPage(),
+      ),
+    );
+    if (!context.mounted) return;
+    unawaited(
+      ref.read(accountsProvider.notifier).reload().catchError((Object e) {
+        debugPrint('[zr-login] accounts reload failed: $e');
+      }),
     );
   }
 }

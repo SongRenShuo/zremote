@@ -2,11 +2,15 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/account_vault.dart';
+import 'package:zremote/services/remote_device_client.dart';
 import 'package:zremote/services/zai_auth_client.dart';
+import 'package:zremote/state/accounts.dart';
+import 'package:zremote/state/session_pool.dart';
 import 'package:zremote/theme.dart';
 import 'package:zremote/ui/login_web_page.dart';
 
@@ -148,6 +152,47 @@ class _MemStore implements SecureStringStore {
   Future<void> delete(String key) async => map.remove(key);
 }
 
+class _FakeDeviceClient extends RemoteDeviceClient {
+  _FakeDeviceClient({this.entries = const []});
+
+  final List<RemoteDeviceEntry> entries;
+
+  @override
+  Future<List<RemoteDeviceEntry>> listDevices(
+    String jwt, {
+    String? deviceMid,
+  }) async => entries;
+}
+
+class _StubDevices extends DeviceListNotifier {
+  _StubDevices(this.initial);
+
+  final List<RemoteDevice> initial;
+
+  @override
+  List<RemoteDevice> build() => initial;
+
+  @override
+  Future<void> add(RemoteDevice device) async {
+    state = [...state, device];
+  }
+}
+
+class _StubAccounts extends AccountsNotifier {
+  _StubAccounts(this.initial);
+
+  AccountsState initial;
+  final List<RemoteDevice> bound = [];
+
+  @override
+  AccountsState build() => initial;
+
+  @override
+  Future<void> setActiveForDevice(RemoteDevice device, String? accountId) async {
+    bound.add(device);
+  }
+}
+
 class _SeqRandom implements Random {
   int v = 7;
 
@@ -196,6 +241,8 @@ Future<Completer<LoginWebOutcome?>> _pumpPushed(
   required ZaiAuthClient client,
   required AccountVault vault,
   required _FakeGateway gateway,
+  bool noDevice = false,
+  RemoteDeviceClient? deviceClient,
 }) async {
   final done = Completer<LoginWebOutcome?>();
   await tester.pumpWidget(
@@ -213,10 +260,11 @@ Future<Completer<LoginWebOutcome?>> _pumpPushed(
                     .push<LoginWebOutcome>(
                       MaterialPageRoute(
                         builder: (_) => LoginWebPage(
-                          device: _device,
+                          device: noDevice ? null : _device,
                           client: client,
                           vault: vault,
                           gatewayFactory: gateway.bind,
+                          deviceClient: deviceClient,
                         ),
                       ),
                     )
@@ -237,17 +285,20 @@ Future<Completer<LoginWebOutcome?>> _pumpPushed(
 Widget _app(
   ZaiAuthClient client,
   AccountVault vault,
-  _FakeGateway gateway,
-) => MaterialApp(
+  _FakeGateway gateway, {
+  bool noDevice = false,
+  RemoteDeviceClient? deviceClient,
+}) => MaterialApp(
   locale: const Locale('zh'),
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   theme: ZT.theme(Brightness.dark),
   home: LoginWebPage(
-    device: _device,
+    device: noDevice ? null : _device,
     client: client,
     vault: vault,
     gatewayFactory: gateway.bind,
+    deviceClient: deviceClient,
   ),
 );
 
@@ -670,5 +721,153 @@ void main() {
     await _settle(tester);
     expect(await done.future, LoginWebOutcome.fallbackPopup);
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('16. 无设备登录：入账号库、不绑设备、进 saved 态、可 pop done', (
+    tester,
+  ) async {
+    final gateway = _FakeGateway();
+    final vault = _vault();
+    final done = await _pumpPushed(
+      tester,
+      client: ZaiAuthClient(http: _FakeHttp([_initOk, _pollReady])),
+      vault: vault,
+      gateway: gateway,
+      noDevice: true,
+    );
+
+    await tester.tap(find.byKey(const Key('login-provider-zai_cn')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await _settle(tester);
+
+    expect(find.byKey(const Key('login-saved-title')), findsOneWidget);
+    expect(find.byKey(const Key('login-import-devices')), findsOneWidget);
+    expect(find.byKey(const Key('login-done')), findsOneWidget);
+    // 只装载官方授权页，不装载设备会话页（无设备可注入）。
+    expect(gateway.loads, hasLength(1));
+
+    final accounts = await vault.loadAll();
+    expect(accounts, hasLength(1));
+    expect(accounts.single.credentials['zcodejwttoken'], 'jwt-ready');
+    // 无设备可绑：绑定表为空。
+    expect(await vault.loadActiveBindings(), isEmpty);
+
+    await tester.tap(find.byKey(const Key('login-done')));
+    await _settle(tester);
+    expect(await done.future, LoginWebOutcome.done);
+  });
+
+  testWidgets('17. 无设备登录后导入入口：账号无设备 → 提示且留在 saved 态', (
+    tester,
+  ) async {
+    final gateway = _FakeGateway();
+    final vault = _vault();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: _app(
+          ZaiAuthClient(http: _FakeHttp([_initOk, _pollReady])),
+          vault,
+          gateway,
+          noDevice: true,
+          deviceClient: _FakeDeviceClient(),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('login-provider-zai_cn')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await _settle(tester);
+    expect(find.byKey(const Key('login-saved-title')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('login-import-devices')));
+    await _settle(tester);
+    expect(find.text('该账号下没有已注册的设备'), findsOneWidget);
+    expect(find.byKey(const Key('login-saved-title')), findsOneWidget);
+  });
+
+  testWidgets('18. 无设备登录后导入：选设备 → 写库 + 绑账号 + pop done', (
+    tester,
+  ) async {
+    final gateway = _FakeGateway();
+    final vault = _vault();
+    final devices = _StubDevices(const []);
+    final accounts = _StubAccounts(const AccountsState());
+    const entry = RemoteDeviceEntry(
+      sid: 'sid-new',
+      mid: 'mid-new',
+      name: 'Office New',
+      platform: 'win32',
+      appVersion: '3.18.2',
+      online: true,
+    );
+    final done = Completer<LoginWebOutcome?>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deviceListProvider.overrideWith(() => devices),
+          accountsProvider.overrideWith(() => accounts),
+        ],
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ZT.theme(Brightness.dark),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: TextButton(
+                  onPressed: () => unawaited(
+                    Navigator.of(context)
+                        .push<LoginWebOutcome>(
+                          MaterialPageRoute(
+                            builder: (_) => LoginWebPage(
+                              client: ZaiAuthClient(
+                                http: _FakeHttp([_initOk, _pollReady]),
+                              ),
+                              vault: vault,
+                              gatewayFactory: gateway.bind,
+                              deviceClient: _FakeDeviceClient(entries: [entry]),
+                            ),
+                          ),
+                        )
+                        .then(done.complete),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('login-provider-zai_cn')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await _settle(tester);
+    expect(find.byKey(const Key('login-saved-title')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('login-import-devices')));
+    await tester.pumpAndSettle();
+    expect(find.text('选择要添加的设备'), findsOneWidget);
+
+    await tester.tap(find.text('Office New'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('devices-add-open')));
+    await tester.pumpAndSettle();
+
+    expect(devices.state, hasLength(1));
+    expect(accounts.bound, hasLength(1));
+    expect(done.isCompleted, isTrue);
+    expect(await done.future, LoginWebOutcome.done);
   });
 }
