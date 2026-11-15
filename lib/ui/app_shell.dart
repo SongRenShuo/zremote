@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/notifier.dart';
+import '../state/claim_entry.dart';
 import '../state/event_feed.dart';
 import '../state/keepalive.dart';
 import '../state/session_pool.dart';
@@ -21,7 +22,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void initState() {
     super.initState();
-    NotificationTap.bind((deviceId) => _jumpTo(deviceId));
+    NotificationTap.bind((payload) => _jumpToPayload(payload));
     NotifierService.instance.setLockScreenRedact(ref.read(biometricProvider));
   }
 
@@ -39,12 +40,25 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
   }
 
+  /// 通知点击路由：`claim:<deviceId>`（领取结果，P2-7）→ 跳设备 +
+  /// 请求打开领取页；其余 payload 语义为设备 id（沿用既有行为）。
+  void _jumpToPayload(String payload) {
+    if (!mounted) return;
+    if (payload.startsWith('claim:')) {
+      final deviceId = payload.substring('claim:'.length);
+      _jumpTo(deviceId);
+      ref.read(claimOpenRequestProvider.notifier).request(deviceId);
+      return;
+    }
+    _jumpTo(payload);
+  }
+
   void _consumePendingTap() {
     if (_pendingTapConsumed) return;
     if (ref.read(deviceListProvider).isEmpty) return;
     _pendingTapConsumed = true;
     final pending = NotificationTap.consumePending();
-    if (pending != null) _jumpTo(pending);
+    if (pending != null) _jumpToPayload(pending);
   }
 
   @override

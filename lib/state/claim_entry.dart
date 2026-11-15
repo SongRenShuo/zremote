@@ -21,3 +21,22 @@ final claimEntryProvider =
     NotifierProvider<ClaimEntryNotifier, Map<String, bool>>(
       ClaimEntryNotifier.new,
     );
+
+/// 领取结果通知点击 → 打开对应设备领取页的请求（P2-7 通知路由）。
+/// app_shell 发起（payload `claim:<deviceId>`），目标 SessionView 消费。
+class ClaimOpenRequestNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void request(String deviceId) {
+    if (state == deviceId) return;
+    state = deviceId;
+  }
+
+  void consume() => state = null;
+}
+
+final claimOpenRequestProvider =
+    NotifierProvider<ClaimOpenRequestNotifier, String?>(
+      ClaimOpenRequestNotifier.new,
+    );

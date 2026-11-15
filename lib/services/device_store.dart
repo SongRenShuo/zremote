@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/device.dart';
 import '../models/notification_prefs.dart';
 import '../state/automation.dart';
+import '../state/claim_history.dart';
+import 'claim_scheduler.dart';
 
 class DeviceStore {
   DeviceStore._();
@@ -182,6 +184,59 @@ class DeviceStore {
     await prefs.setString(
       '$_automationSnapshotPrefix$deviceId',
       jsonEncode(board.toSnapshotJson()),
+    );
+  }
+
+  static const _claimHistoryPrefix = 'zremote.claim.';
+
+  /// 领取历史快照（P2-6）：记录 + 最后同步时间；非空才落盘（写入方保证）。
+  Future<ClaimHistoryBoard?> claimHistorySnapshot(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('$_claimHistoryPrefix$deviceId');
+      if (raw == null || raw.isEmpty) return null;
+      return ClaimHistoryBoard.fromSnapshotJson(jsonDecode(raw));
+    } catch (e) {
+      debugPrint('[claim-history] snapshot load failed: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveClaimHistorySnapshot(
+    String deviceId,
+    ClaimHistoryBoard board,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      '$_claimHistoryPrefix$deviceId',
+      jsonEncode(board.toSnapshotJson()),
+    );
+  }
+
+  static const _claimConfigPrefix = 'zremote.claimConfig.';
+
+  /// 自动领取配置（P2-5）：enabled/silentStart/silentEnd；缺省=开关关 +
+  /// 默认静默 23:00–08:00。读取失败回落默认配置。
+  Future<ClaimAutoConfig> claimAutoConfig(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('$_claimConfigPrefix$deviceId');
+      if (raw == null || raw.isEmpty) return const ClaimAutoConfig();
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return ClaimAutoConfig.fromJson(decoded);
+      }
+    } catch (e) {
+      debugPrint('[claim-config] load failed: $e');
+    }
+    return const ClaimAutoConfig();
+  }
+
+  Future<void> saveClaimAutoConfig(String deviceId, ClaimAutoConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      '$_claimConfigPrefix$deviceId',
+      jsonEncode(config.toJson()),
     );
   }
 }

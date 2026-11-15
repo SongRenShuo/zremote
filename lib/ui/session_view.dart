@@ -24,7 +24,9 @@ import '../services/webview_profile.dart';
 import '../state/active_session.dart';
 import '../state/app_lifecycle.dart';
 import '../state/automation.dart';
+import '../state/claim_config.dart';
 import '../state/claim_entry.dart';
+import '../state/claim_scheduler_hub.dart';
 import '../state/event_feed.dart';
 import '../state/notification_prefs.dart';
 import '../state/resume_reload.dart';
@@ -769,6 +771,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   @override
   void dispose() {
+    // P2-1：会话销毁（设备移除/页面关闭）→ 自动领取停表。
+    ref.read(claimSchedulerHubProvider.notifier).detach(widget.device.id);
     _statusNotifier?.forget(widget.device.id);
     _feedNotifier?.forget(widget.device.id);
     _sessionIndexNotifier?.forget(widget.device.id);
@@ -794,6 +798,30 @@ class _SessionViewState extends ConsumerState<SessionView> {
           prev != AppLifecycleState.resumed) {
         _onAppResume();
       }
+    });
+    // P2-1：仅设备 live 时运行自动领取轮次。
+    ref.listen(sessionStatusProvider, (prev, next) {
+      ref
+          .read(claimSchedulerHubProvider.notifier)
+          .setLive(
+            widget.device.id,
+            next[widget.device.id] == SessionStatus.live,
+          );
+    });
+    // P2-5：配置变更（开关/静默时段）实时作用于调度代理。
+    ref.listen(claimConfigProvider, (prev, next) {
+      final config = next[widget.device.id];
+      if (config != null) {
+        ref
+            .read(claimSchedulerHubProvider.notifier)
+            .updateConfig(widget.device.id, config);
+      }
+    });
+    // P2-7：领取结果通知点击 → 打开本设备领取页。
+    ref.listen(claimOpenRequestProvider, (prev, next) {
+      if (next == null || next != widget.device.id) return;
+      ref.read(claimOpenRequestProvider.notifier).consume();
+      _openClaim();
     });
     if (!_claimEntryProbed &&
         status == SessionStatus.live &&
@@ -1048,6 +1076,12 @@ class _SessionViewState extends ConsumerState<SessionView> {
                                       : ServiceReadiness.unavailable,
                                 )
                               : null,
+                        );
+                        // P2-1：自动领取装配（通路 A 宿主 RPC）。
+                        unawaited(
+                          ref
+                              .read(claimSchedulerHubProvider.notifier)
+                              .attach(widget.device, _rpcBridge!),
                         );
                         controller.addJavaScriptHandler(
                           handlerName: 'zrEvents',

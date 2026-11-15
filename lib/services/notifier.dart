@@ -5,6 +5,9 @@ import '../models/device.dart';
 import '../models/device_label.dart';
 import 'event_observer.dart';
 
+/// 领取结果通知类型（P2-7）：成功 / 需人工验证码。
+enum ClaimNotifyKind { success, captchaNeeded }
+
 class NotificationSpec {
   const NotificationSpec({
     required this.channelId,
@@ -100,6 +103,51 @@ class NotificationSpec {
         return null;
     }
   }
+
+  /// 领取结果通知（P2-7）：独立 zr_claim 渠道；payload 带 `claim:` 前缀，
+  /// NotificationTap 路由据此打开对应设备的领取页。
+  static NotificationSpec claimResult({
+    required RemoteDevice device,
+    required ClaimNotifyKind kind,
+    required String planName,
+    AppLocalizations? l10n,
+  }) {
+    final l = l10n ?? l10nZh;
+    final label = device.displayName(l);
+    switch (kind) {
+      case ClaimNotifyKind.success:
+        return NotificationSpec(
+          channelId: 'zr_claim',
+          channelName: l.claimAutoNotifChannel,
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          title: l.claimAutoNotifSuccessTitle(label),
+          body: l.claimAutoNotifSuccessBody(planName),
+          payload: 'claim:${device.id}',
+        );
+      case ClaimNotifyKind.captchaNeeded:
+        return NotificationSpec(
+          channelId: 'zr_claim',
+          channelName: l.claimAutoNotifChannel,
+          importance: Importance.high,
+          priority: Priority.high,
+          title: l.claimAutoNotifCaptchaTitle(label),
+          body: l.claimAutoNotifCaptchaBody,
+          payload: 'claim:${device.id}',
+        );
+    }
+  }
+
+  /// 领取通知 id：同设备同 kind 按毫秒时间戳区分（多条成功各占一位）。
+  static int claimStableId(
+    RemoteDevice device,
+    ClaimNotifyKind kind,
+    DateTime at,
+  ) =>
+      (device.id.hashCode ^
+          kind.name.hashCode ^
+          at.millisecondsSinceEpoch.hashCode) &
+      0x7FFFFFFF;
 }
 
 abstract final class NotificationTap {
@@ -184,6 +232,40 @@ class NotifierService {
     try {
       if (!_permissionAsked) await ensurePermission();
       final id = NotificationSpec.stableId(device, event);
+      await _plugin.show(
+        id: id,
+        title: spec.title,
+        body: spec.body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            spec.channelId,
+            spec.channelName,
+            importance: spec.importance,
+            priority: spec.priority,
+            visibility: lockScreenVisibility(lockEnabled: _lockScreenRedact),
+          ),
+        ),
+        payload: spec.payload,
+      );
+    } catch (_) {
+    }
+  }
+
+  Future<void> notifyClaim({
+    required RemoteDevice device,
+    required ClaimNotifyKind kind,
+    required String planName,
+    AppLocalizations? l10n,
+  }) async {
+    final spec = NotificationSpec.claimResult(
+      device: device,
+      kind: kind,
+      planName: planName,
+      l10n: l10n,
+    );
+    try {
+      if (!_permissionAsked) await ensurePermission();
+      final id = NotificationSpec.claimStableId(device, kind, DateTime.now());
       await _plugin.show(
         id: id,
         title: spec.title,

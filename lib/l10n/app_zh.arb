@@ -1096,6 +1096,152 @@
   "@claimServiceUnavailable": {
     "description": "Claim page error when session is live but page fiber services are still reloading (e.g. right after a successful claim)"
   },
+  "claimAutoTitle": "自动领取",
+  "@claimAutoTitle": {
+    "description": "Auto-claim switch card title (P2)"
+  },
+  "claimAutoHint": "开启后定期检查并自动领取可领活动，手动操作优先",
+  "@claimAutoHint": {
+    "description": "Auto-claim switch subtitle when disabled"
+  },
+  "claimAutoSilentEntry": "静默时段",
+  "@claimAutoSilentEntry": {
+    "description": "Silent-hours settings entry row inside auto-claim card"
+  },
+  "claimAutoSilentSummary": "{start}–{end} 不自动领取",
+  "@claimAutoSilentSummary": {
+    "description": "Auto-claim subtitle showing silent window",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoSilentOff": "静默时段未启用",
+  "@claimAutoSilentOff": {
+    "description": "Shown when silent hours are disabled"
+  },
+  "claimAutoSilentSheetTitle": "静默时段",
+  "@claimAutoSilentSheetTitle": {
+    "description": "Silent-hours bottom sheet title"
+  },
+  "claimAutoSilentSheetHint": "静默时段内不触发自动领取",
+  "@claimAutoSilentSheetHint": {
+    "description": "Silent-hours bottom sheet hint"
+  },
+  "claimAutoSilentStart": "开始时间",
+  "@claimAutoSilentStart": {
+    "description": "Silent window start time row label"
+  },
+  "claimAutoSilentEnd": "结束时间",
+  "@claimAutoSilentEnd": {
+    "description": "Silent window end time row label"
+  },
+  "claimAutoSilentDisable": "关闭静默时段",
+  "@claimAutoSilentDisable": {
+    "description": "Button to disable silent hours in the sheet"
+  },
+  "claimAutoSilentReset": "恢复默认时段（23:00–08:00）",
+  "@claimAutoSilentReset": {
+    "description": "Button to restore default silent hours in the sheet"
+  },
+  "claimAutoTabLabel": "可领活动",
+  "@claimAutoTabLabel": {
+    "description": "Claim page segmented tab: claimable plans"
+  },
+  "claimHistTabLabel": "历史",
+  "@claimHistTabLabel": {
+    "description": "Claim page segmented tab: history"
+  },
+  "claimHistEmpty": "暂无领取记录",
+  "@claimHistEmpty": {
+    "description": "Claim history tab empty title"
+  },
+  "claimHistEmptyHint": "手动或自动领取后，会在此按时间线展示",
+  "@claimHistEmptyHint": {
+    "description": "Claim history tab empty hint"
+  },
+  "claimHistSourceAuto": "自动",
+  "@claimHistSourceAuto": {
+    "description": "History record source badge: auto"
+  },
+  "claimHistSourceManual": "手动",
+  "@claimHistSourceManual": {
+    "description": "History record source badge: manual"
+  },
+  "claimHistResultOk": "已到账",
+  "@claimHistResultOk": {
+    "description": "History record success result text"
+  },
+  "claimHistResultFail": "领取失败",
+  "@claimHistResultFail": {
+    "description": "History record generic failure text"
+  },
+  "claimHistLastSynced": "最后同步 {time}",
+  "@claimHistLastSynced": {
+    "description": "Claim history last synced time row",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimHistCount": "共 {n} 条",
+  "@claimHistCount": {
+    "description": "Claim history record count header",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "claimHistTodayCount": "今日已领 {n}",
+  "@claimHistTodayCount": {
+    "description": "Toolbox claim card badge: today claimed count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "claimAutoNotifChannel": "领取结果",
+  "@claimAutoNotifChannel": {
+    "description": "Android notification channel name for claim results"
+  },
+  "claimAutoNotifSuccessTitle": "{device} 自动领取成功",
+  "@claimAutoNotifSuccessTitle": {
+    "description": "Claim success notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoNotifSuccessBody": "{plan} 已到账，可在权益中心查看",
+  "@claimAutoNotifSuccessBody": {
+    "description": "Claim success notification body",
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoNotifCaptchaTitle": "{device} 需人工验证码",
+  "@claimAutoNotifCaptchaTitle": {
+    "description": "Captcha-needed notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoNotifCaptchaBody": "自动领取已暂停 1 小时，请进入权益中心手动完成验证",
+  "@claimAutoNotifCaptchaBody": {
+    "description": "Captcha-needed notification body"
+  },
   "telemetryBound": "设备",
   "@telemetryBound": {
     "description": "Telemetry banner: bound devices label"
