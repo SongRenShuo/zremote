@@ -41,6 +41,16 @@
 - **L19 宿主 RPC 的「缺字段」多数不报校验错、只回退业务态——schema 阅读不能替代实调用读数**。证据：`getEntitlementSnapshot` 的 `accountAccess` 在开源 schema 里是 strict 四字段全必填，但实测缺 `entitled` 仍返回完整快照，缺 `type`/`accountType`/`mode` 只是回 `unavailableReason:"not_configured"` 而不抛错（`P0-report.md` P0-5 九组读数）；本仓旧实现「字段为 null 就省略」→ 一律落 `not_configured` → 被上层当「加载失败」（`4bfb1ce` 修复：三字段齐全才发，缺则降级并不再混同错误态）。同族风险：把「业务回退值」当「调用失败」是同一类误判。**Seen 1× (11-15)**
 - **L20 会话索引的 `workspacePath` 不可靠，工作区真值要回退宿主 localStorage**。证据：实测 `sessionIndexProvider` 内 HQZC-01 约 100 条会话 `workspacePath` **全为 null**，而 skills/subagents/mcp/hooks 四频道空参必抛错（`The "path" argument must be of type string`）→ 资产页全灭；真实值在宿主 `localStorage['zcode-workspace-expansion']`（`Record<path,boolean>`，取首个 key）（`03cb8fa` 修复：新增 `_readHostWorkspacePath()` 带缓存，资产页/Git 卡回退）。判据：跨端状态（RPC 索引）与页面本地状态（localStorage）不一致时，以**宿主页面**为准并显式回退。**Seen 1× (11-15)**
 
+## 2026-11-16 真机回归修复轮（问题八~十六，五车道并行）
+
+**数据**：主控 + 5 车道 worktree（fix/v21-{diag,update,quota,git,devices}）；定位 3 个（诊断/更新/额度预警）+ 调研 2 个（Git 精华/账户直连）；全量 **1176 例全绿** + analyze 零问题；提交 `de85332`/`4d3c331`/`b9677ac`/`9ae32ed`/`23603b1`/`2676cd1`/`3db62bc`/`d90db99`；报告在 `~/.zremote-e2e/`（lane-*.md、P0-report、e2e-after-fix-report、*-research）。
+
+- **L21 「发请求 + 关页面」顺序颠倒会弹掉刚压栈的页面**。证据：设置页「连接诊断」先 `request()` 再 `pop()`，Riverpod 3 的 `ref.listen` **同步派发** → SessionView 立刻 push 诊断页，随后的 `pop()` 弹的正是它（实测同构样例：现状 `diagnostics=0 open=1`，先 pop 后 request `diagnostics=1 open=0`）；反证是工具箱同功能入口「先 pop 再回调」一直正常（`b9677ac`）。判据：**凡「发通知/请求 + 关闭当前页」的组合，先关页面再发请求**，且请求要可 `consume()`（残留会误报）。**Seen 1× (11-16)**
+- **L22 版本检查类 API 必须盯住「仓库地址」与「三态返回」**。证据：`UpdateChecker` 写死上游 `pjpv/zremote`（latest v1.7.0）而 App 已 2.0.1 → `compareVersions>=0` 恒真、永远「无更新」；同时 `null` 同时表达「无更新/网络失败/形状异常」，UI 无任何提示（`4d3c331`）。判据：检查类功能至少三条独立路径（有更新/无更新/失败）+ 失败可重试；仓库地址这类"看起来不会变的常量"也要在迁移仓库后全局搜过。**Seen 1× (11-16)**
+- **L23 形状归一化要按「RPC 解包后的真实形态」写，别按嵌套直觉**。证据：`memoryService.listProjectMemories()` 返回对象数组，RPC 解包后 `values` **就是顶层数组**（元素是 Map）；本仓 `_memoryOf` 只找「数组里嵌数组」→ 恒 `degraded` → 真机显示「响应形状不识别，已按空列表降级」（`de85332`）。判据：先写一条**真实形态**的用例再写归一化；「空数组」必须与「形状不符」区分（空=无内容，不降级）。**Seen 1× (11-16)**
+- **L24 跨源比较只用「同量纲字段」；展示与真值分离**。证据：额度预警若用 `remaining` 跨源比较会因单位不同（token/分钟/次）失真，统一用 `percentUsed`（`2676cd1`）；反例同轮：自动化表单下拉直接渲染 `workspacePath` 真值 → 满屏路径（`de85332`）。判据：列表/下拉**展示名与 value 分离**（value 存 ID/路径，展示取名称，无名称回落 basename）。**Seen 1× (11-16)**
+- **L25 共享 provider 驱动的定时任务，测试要固定其依赖表**。证据：`QuotaAlertWatcher` 的「无设备」用例依赖真实 `deviceListProvider` 的异步加载时序，全量跑偶发失败（单独跑必过）——用 `overrideWith` 固定空设备表后稳定（`d90db99`）。判据：**测试断言的前提如果是"某个异步 provider 恰好是空的"，就必须 override 它**，否则用例间会互相应响。**Seen 1× (11-16)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
