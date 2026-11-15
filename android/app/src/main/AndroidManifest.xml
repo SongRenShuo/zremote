@@ -37,12 +37,12 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="zcode.z.ai" android:pathPrefix="/remote"/>
             </intent-filter>
-            <!-- P4-1 自定义 scheme 兜底：zremote://import?url=<encoded link> -->
+            <!-- P4-1 自定义 scheme 兜底：zrsong://import?url=<encoded link> -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="zremote" android:host="import"/>
+                <data android:scheme="zrsong" android:host="import"/>
             </intent-filter>
         </activity>
         <service

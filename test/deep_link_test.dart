@@ -16,7 +16,13 @@ void main() {
       expect(extractRemoteLink('https://zcode.z.ai/remote/'), isNotNull);
     });
 
-    test('zremote://import 包装形态解包', () {
+    test('zrsong://import 包装形态解包（新 scheme）', () {
+      final wrapped = Uri.parse('zrsong://import')
+          .replace(queryParameters: {'url': v4}).toString();
+      expect(extractRemoteLink(wrapped), v4);
+    });
+
+    test('zremote://import 包装形态解包（兼容旧 scheme）', () {
       final wrapped = Uri.parse('zremote://import')
           .replace(queryParameters: {'url': v4}).toString();
       expect(extractRemoteLink(wrapped), v4);
@@ -57,8 +63,13 @@ void main() {
         isNull,
       );
       expect(extractRemoteLink('zremote://import'), isNull); // 无 url 参数
+      expect(extractRemoteLink('zrsong://import'), isNull); // 无 url 参数
       expect(
         extractRemoteLink('zremote://other?url=https%3A%2F%2Fzcode.z.ai%2Fremote%2Fv4%3Fsid%3Dx'),
+        isNull,
+      );
+      expect(
+        extractRemoteLink('zrsong://other?url=https%3A%2F%2Fzcode.z.ai%2Fremote%2Fv4%3Fsid%3Dx'),
         isNull,
       );
       // 包装内的外域目标拒。

@@ -7,7 +7,8 @@ import 'package:flutter/services.dart';
 /// MethodChannel('zremote/deeplink') 送上来：冷启动走 `initial` 拉取，
 /// 热启动（singleTop onNewIntent）走 `onLink` 推送。
 /// 白名单对齐官方壳 App 的 RemoteControlUrlPolicy：只接受
-/// `https://zcode.z.ai/remote*`（或其 zremote://import?url= 包装）。
+/// `https://zcode.z.ai/remote*`（或其 zrsong://import?url= 包装，
+/// 兼容旧 zremote://import 包装）。
 class DeepLinkService {
   static const MethodChannel _channel = MethodChannel('zremote/deeplink');
   static final List<void Function(String)> _listeners = [];
@@ -46,7 +47,8 @@ class DeepLinkService {
 ///
 /// 规则（官方壳 RemoteControlUrlPolicy.kt 对齐）：
 /// - `https://zcode.z.ai/remote` 或 `https://zcode.z.ai/remote/...`（v2/v4/legacy 均此形态）
-/// - 包装形态 `zremote://import?url=<urlencoded 上述链接>`
+/// - 包装形态 `zrsong://import?url=<urlencoded 上述链接>`（新 scheme）
+/// - 兼容形态 `zremote://import?url=<urlencoded 上述链接>`（旧 scheme，仍接受）
 /// - 其余一律拒绝（host 白名单外的 https、http、file、remote 前缀撞名如 /remotefoo）
 String? extractRemoteLink(String raw) {
   final trimmed = raw.trim();
@@ -62,7 +64,8 @@ String? extractRemoteLink(String raw) {
     if (!isRemotePath(uri)) return null;
     return trimmed;
   }
-  if (uri.scheme == 'zremote' && uri.host == 'import') {
+  if ((uri.scheme == 'zrsong' || uri.scheme == 'zremote') &&
+      uri.host == 'import') {
     final target = uri.queryParameters['url'];
     if (target == null) return null;
     final inner = Uri.tryParse(target);

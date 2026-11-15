@@ -1,4 +1,4 @@
-package com.pjpv.zremote
+package cn.song.zremote
 
 import android.content.Context
 import android.content.Intent

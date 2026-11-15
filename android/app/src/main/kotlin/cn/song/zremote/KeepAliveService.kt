@@ -1,4 +1,4 @@
-package com.pjpv.zremote
+package cn.song.zremote
 
 import android.annotation.SuppressLint
 import android.app.Notification
