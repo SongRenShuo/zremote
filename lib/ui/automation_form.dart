@@ -10,6 +10,7 @@ import '../services/rpc_bridge.dart';
 import '../services/rpc_codec.dart';
 import '../state/automation.dart';
 import '../state/behavior.dart';
+import '../state/session_index.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'automation_page.dart';
@@ -743,6 +744,26 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
     }
   }
 
+  /// 工作区展示名：优先用宿主会话索引里的工作区名（`SessionState.workspace`），
+  /// 否则取路径末段。**value 仍是路径**（提交给宿主的契约不变）。
+  String _workspaceLabel(String path) {
+    final device = widget.device;
+    if (device != null) {
+      final sessions = ref.watch(sessionIndexProvider)[device.id];
+      if (sessions != null) {
+        for (final s in sessions.values) {
+          if (s.workspacePath == path) {
+            final name = s.workspace;
+            if (name != null && name.isNotEmpty) return name;
+          }
+        }
+      }
+    }
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/').where((e) => e.isNotEmpty).toList();
+    return segments.isEmpty ? path : segments.last;
+  }
+
   String? _selectedWorkspace(List<String> candidates) {
     if (candidates.isEmpty) return null;
     if (_workspace != null && candidates.contains(_workspace)) {
@@ -988,7 +1009,8 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
                       DropdownMenuItem(
                         value: candidate,
                         child: Text(
-                          candidate,
+                          // 真值是路径，展示用工作区名（问题十四）。
+                          _workspaceLabel(candidate),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

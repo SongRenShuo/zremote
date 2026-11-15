@@ -128,14 +128,27 @@ void main() {
       expect(r.entries.single.enabled, isTrue);
     });
 
-    test('memory：顶层数组与 {workspaces:[...]} 壳两形状', () {
+    test('memory：顶层摘要数组（真实契约形态）', () {
+      // listProjectMemories() 返回 ProjectMemoryWorkspaceSummary[]，
+      // RPC 解包后 values 即该数组本身（元素是 Map，不是嵌套数组）。
       final flat = AssetsClient.normalizeTab(AssetsTabKind.memory, const [
+        {'id': 'w1', 'label': '项目 A', 'updatedAt': 1, 'files': [1, 2, 3]},
+        {'id': 'w2', 'label': '项目 B', 'updatedAt': 2, 'files': <Object?>[]},
+      ]);
+      expect(flat.degraded, isFalse, reason: '真实形态不得降级');
+      expect(flat.entries.map((e) => e.name).toList(), ['项目 A', '项目 B']);
+      expect(flat.entries.first.description, '3 files');
+    });
+
+    test('memory：嵌套数组与 {workspaces:[...]} 壳形态兼容', () {
+      final nested = AssetsClient.normalizeTab(AssetsTabKind.memory, const [
         [
           {'label': '项目 A', 'files': [1, 2, 3]},
         ],
       ]);
-      expect(flat.entries.single.name, '项目 A');
-      expect(flat.entries.single.description, '3 files');
+      expect(nested.degraded, isFalse);
+      expect(nested.entries.single.name, '项目 A');
+      expect(nested.entries.single.description, '3 files');
 
       final wrapped = AssetsClient.normalizeTab(AssetsTabKind.memory, const [
         {
@@ -145,6 +158,12 @@ void main() {
         },
       ]);
       expect(wrapped.entries.single.name, 'w2');
+    });
+
+    test('memory：空数组不降级（无内容≠形状不符）', () {
+      final r = AssetsClient.normalizeTab(AssetsTabKind.memory, const <Object?>[]);
+      expect(r.degraded, isFalse);
+      expect(r.entries, isEmpty);
     });
 
     test('完全不像（无已知容器键）→ degraded 空列表不抛（反例对照）', () {

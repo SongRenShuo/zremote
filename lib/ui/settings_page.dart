@@ -827,6 +827,16 @@ class _DndTile extends ConsumerWidget {
 }
 
 /// 会话行为（P3-4）。
+/// 权限模式中文标签（复用 automation 表单既有 key，避免同一语义两套文案）。
+/// value 仍存原文（build/guarded/plan/yolo），持久化与宿主契约不变。
+String behaviorModeLabel(AppLocalizations l10n, String mode) => switch (mode) {
+  'build' => l10n.automationModeBuild,
+  'guarded' => l10n.automationModeGuarded,
+  'plan' => l10n.automationModePlan,
+  'yolo' => l10n.automationModeYolo,
+  _ => mode,
+};
+
 class _DefaultModeTile extends ConsumerWidget {
   const _DefaultModeTile();
 
@@ -839,8 +849,8 @@ class _DefaultModeTile extends ConsumerWidget {
       subtitle: l10n.settingsBehaviorDefaultModeSub,
       icon: Icons.tune_rounded,
       trailing: Text(
-        mode,
-        style: zrMono(fontSize: 12, color: context.zt.textLo),
+        behaviorModeLabel(l10n, mode),
+        style: TextStyle(fontSize: 12.5, color: context.zt.textLo),
       ),
       onTap: () => _pick(context, ref),
     );
@@ -853,7 +863,7 @@ class _DefaultModeTile extends ConsumerWidget {
       context: context,
       title: l10n.settingsBehaviorDefaultMode,
       options: [
-        for (final m in kBehaviorModes) (m, m.toUpperCase()),
+        for (final m in kBehaviorModes) (m, behaviorModeLabel(l10n, m)),
       ],
       current: current,
     );

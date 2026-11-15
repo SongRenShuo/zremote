@@ -296,23 +296,26 @@ class AssetsClient {
     return const AssetsTabResult(entries: [], degraded: true);
   }
 
+  /// 记忆 Tab 归一化。
+  ///
+  /// 契约（开源=官方）：`memoryService.listProjectMemories()` 返回
+  /// `ProjectMemoryWorkspaceSummary[]`（`{id,label,updatedAt,files[]}`）。
+  /// RPC 回包经 `_valuesOf` 解包后 `values` **就是顶层数组本身**，元素是
+  /// summary 的 Map——旧实现只找「数组里嵌数组」，导致恒降级为
+  /// 「响应形状不识别」（2026-11-15 真机问题十二）。
   static AssetsTabResult _memoryOf(List<Object?> values) {
+    // 空回包＝无内容，不是形状不符（否则空记忆库会显示「响应形状不识别」）。
+    if (values.isEmpty) return const AssetsTabResult(entries: [], degraded: false);
+    // 形态 A：顶层即摘要数组（元素为 Map 且含 label/name/id）。
+    final direct = _memoryEntriesOf(values);
+    if (direct != null) return AssetsTabResult(entries: direct, degraded: false);
+    // 形态 B：某元素是嵌套数组（旧形态，兼容保留）。
     for (final value in values) {
       if (value is! List) continue;
-      final out = <AssetEntry>[];
-      for (final e in value) {
-        if (e is! Map) continue;
-        final name = _strOf(e, const ['label', 'name', 'id']);
-        if (name == null) continue;
-        final files = e['files'];
-        out.add(AssetEntry(
-          name: name,
-          description: files is List ? '${files.length} files' : '',
-        ));
-      }
-      return AssetsTabResult(entries: out, degraded: false);
+      final nested = _memoryEntriesOf(value);
+      if (nested != null) return AssetsTabResult(entries: nested, degraded: false);
     }
-    // 外壳包裹形状：{workspaces|memories: [...]}（含 data/result 壳）。
+    // 形态 C：外壳包裹 {workspaces|memories: [...]}（含 data/result 壳）。
     for (final value in _docsOf(values)) {
       for (final key in const ['workspaces', 'memories']) {
         final raw = value[key];
@@ -322,6 +325,25 @@ class AssetsClient {
       }
     }
     return const AssetsTabResult(entries: [], degraded: true);
+  }
+
+  /// 仅当列表里至少有一个元素是「含 label/name/id 的 Map」时视为摘要数组，
+  /// 返回条目；否则 null（让调用方继续尝试其他形态）。
+  static List<AssetEntry>? _memoryEntriesOf(List<Object?> list) {
+    var sawSummary = false;
+    final out = <AssetEntry>[];
+    for (final e in list) {
+      if (e is! Map) continue;
+      final name = _strOf(e, const ['label', 'name', 'id']);
+      if (name == null) continue;
+      sawSummary = true;
+      final files = e['files'];
+      out.add(AssetEntry(
+        name: name,
+        description: files is List ? '${files.length} files' : '',
+      ));
+    }
+    return sawSummary ? out : null;
   }
 
   static AssetEntry? _entryOf(

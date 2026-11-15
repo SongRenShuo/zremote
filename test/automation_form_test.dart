@@ -642,4 +642,19 @@ void main() {
       l10n.automationOpFailed,
     );
   });
+
+  testWidgets('工作区下拉显示名称而非路径（问题十四）', (tester) async {
+    final bridge = ScriptedBridge();
+    await pumpForm(tester, bridge: bridge);
+    await tester.pumpAndSettle();
+    await tester.dragUntilVisible(
+      find.text('工作区'),
+      find.byType(ListView),
+      const Offset(0, -240),
+    );
+    await tester.pumpAndSettle();
+    // 候选项是路径 J:\tmp\demo；无 device 时回落 basename → 展示 demo，不展示路径。
+    expect(find.text(r'J:\tmp\demo'), findsNothing);
+    expect(find.text('demo'), findsOneWidget);
+  });
 }

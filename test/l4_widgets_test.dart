@@ -168,6 +168,21 @@ void main() {
       expect(find.text('高级'), findsOneWidget);
     });
 
+    testWidgets('新任务默认权限模式显示中文标签（问题十五）', (tester) async {
+      await _pump(tester, const SettingsPage());
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        find.text('新任务默认权限模式'),
+        find.byType(ListView),
+        const Offset(0, -240),
+      );
+      await tester.pumpAndSettle();
+      // 修复前直接显示枚举原文（build / BUILD）。
+      expect(find.text('变更前确认'), findsOneWidget);
+      expect(find.text('BUILD'), findsNothing);
+      expect(find.text('build'), findsNothing);
+    });
+
     testWidgets('主题选择含 OLED 纯黑档', (tester) async {
       await _pump(tester, const SettingsPage());
       await tester.pumpAndSettle();
