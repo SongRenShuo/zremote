@@ -7,11 +7,18 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-notes-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   apply:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Apply release notes from files
         env:
