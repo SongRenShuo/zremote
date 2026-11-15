@@ -123,75 +123,81 @@ class ToolboxSheet extends ConsumerWidget {
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+          // P4-5：网格列数自适应（宽面板/平板 ≥480dp 三列，窄屏两列）。
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cards = <Widget>[
+                _ToolGridCard(
+                  icon: Icons.model_training_rounded,
+                  title: l10n.toolboxModel,
+                  subtitle: l10n.toolboxModelDesc,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onModelSettingsPressed();
+                  },
+                ),
+                _ToolGridCard(
+                  icon: Icons.query_stats_rounded,
+                  title: l10n.toolboxUsage,
+                  subtitle: l10n.toolboxUsageDesc,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onUsagePressed();
+                  },
+                ),
+                _ToolGridCard(
+                  icon: Icons.auto_mode_rounded,
+                  title: l10n.toolboxAutomation,
+                  subtitle: l10n.toolboxAutomationDesc,
+                  badgeText: (autoBoard?.queuedCount ?? 0) > 0
+                      ? l10n.toolboxQueued(autoBoard!.queuedCount)
+                      : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onAutomationPressed();
+                  },
+                ),
+                _ToolGridCard(
+                  icon: Icons.card_giftcard_rounded,
+                  title: l10n.toolboxClaim,
+                  subtitle: l10n.toolboxClaimDesc,
+                  enabled: claimReady,
+                  badgeText: claimReady
+                      ? l10n.toolboxClaimReady
+                      : (todayClaimed > 0
+                            ? l10n.claimHistTodayCount(todayClaimed)
+                            : null),
+                  badgeColor: claimReady ? zt.live : zt.accent,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onClaimPressed();
+                  },
+                ),
+              ];
+              final columns = constraints.maxWidth >= 480 ? 3 : 2;
+              final rows = <Widget>[
+                for (var i = 0; i < cards.length; i += columns)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var j = i; j < i + columns && j < cards.length; j++)
+                        Expanded(child: cards[j]),
+                      // 尾行不满列时补位（保持等宽）。
+                      for (var k = cards.length; k < i + columns; k++)
+                        const Expanded(child: SizedBox(height: 1)),
+                    ],
+                  ),
+              ];
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: _ToolGridCard(
-                      icon: Icons.model_training_rounded,
-                      title: l10n.toolboxModel,
-                      subtitle: l10n.toolboxModelDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        onModelSettingsPressed();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ToolGridCard(
-                      icon: Icons.query_stats_rounded,
-                      title: l10n.toolboxUsage,
-                      subtitle: l10n.toolboxUsageDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        onUsagePressed();
-                      },
-                    ),
-                  ),
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    rows[i],
+                  ],
                 ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ToolGridCard(
-                      icon: Icons.auto_mode_rounded,
-                      title: l10n.toolboxAutomation,
-                      subtitle: l10n.toolboxAutomationDesc,
-                      badgeText: (autoBoard?.queuedCount ?? 0) > 0
-                          ? l10n.toolboxQueued(autoBoard!.queuedCount)
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context);
-                        onAutomationPressed();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ToolGridCard(
-                      icon: Icons.card_giftcard_rounded,
-                      title: l10n.toolboxClaim,
-                      subtitle: l10n.toolboxClaimDesc,
-                      enabled: claimReady,
-                      badgeText: claimReady
-                          ? l10n.toolboxClaimReady
-                          : (todayClaimed > 0
-                                ? l10n.claimHistTodayCount(todayClaimed)
-                                : null),
-                      badgeColor: claimReady ? zt.live : zt.accent,
-                      onTap: () {
-                        Navigator.pop(context);
-                        onClaimPressed();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              );
+            },
           ),
         ),
         // 连接诊断入口（P0-1）：排障与修复验收的基础设施。

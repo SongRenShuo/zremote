@@ -34,12 +34,15 @@ import '../state/service_readiness.dart';
 import '../state/session_index.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
+import '../state/toolbox_nav.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
 import 'automation_page.dart';
 import 'claim_page.dart';
 import 'diagnostics_page.dart';
+import 'haptics.dart';
 import 'model_settings_page.dart';
+import 'motion.dart';
 import 'session_panel.dart';
 import 'sheet_shell.dart';
 import 'status_led.dart';
@@ -526,6 +529,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     ),
                     onTap: () {
                       Navigator.pop(sheetContext);
+                      ZrHaptics.tap();
                       final index = ref.read(deviceListProvider).indexOf(d);
                       ref.read(activeTabProvider.notifier).set(index);
                     },
@@ -823,6 +827,16 @@ class _SessionViewState extends ConsumerState<SessionView> {
       ref.read(claimOpenRequestProvider.notifier).consume();
       _openClaim();
     });
+    // P4-7：通知直达 → 定位具体会话（webview 内滚动展开）。
+    ref.listen(sessionJumpRequestProvider, (prev, next) {
+      if (next == null || next.deviceId != widget.device.id) return;
+      _jumpToSession(next.sessionId);
+    });
+    // P3-7：设置页「连接诊断」入口 → 打开本设备诊断页。
+    ref.listen(diagnosticsOpenRequestProvider, (prev, next) {
+      if (next == null || next.deviceId != widget.device.id) return;
+      _openDiagnostics();
+    });
     if (!_claimEntryProbed &&
         status == SessionStatus.live &&
         _rpcBridge != null) {
@@ -937,8 +951,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
       body: Column(
         children: [
           AnimatedSize(
-            duration: const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
+            duration: ZrMotion.duration(240),
+            curve: ZrMotion.curve,
             child: _errorShown
                 ? Container(
                     width: double.infinity,
@@ -988,8 +1002,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
                 : const SizedBox.shrink(),
           ),
           AnimatedSize(
-            duration: const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
+            duration: ZrMotion.duration(240),
+            curve: ZrMotion.curve,
             child: shouldShowIsolationFallback(
               kind: widget.device.kind,
               multiProfileSupported:
@@ -1043,6 +1057,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         supportMultipleWindows: true,
                         javaScriptCanOpenWindowsAutomatically: true,
                         androidWebProfile: webProfileNameFor(widget.device),
+                        // P3-7：桌面 UA 覆写实验开关（构造时应用，重开会话生效）。
+                        userAgent: desktopUaFor(
+                          ref.watch(uaDesktopProvider),
+                        ),
                       ),
                       onCreateWindow: (controller, action) async =>
                           _openAuthPopup(action),
@@ -1248,7 +1266,7 @@ class ClaimEntryButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final visible = ref.watch(claimEntryProvider)[deviceId] == true;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 120),
+      duration: ZrMotion.duration(120),
       child: visible
           ? IconButton(
               key: const ValueKey('claim-entry-on'),

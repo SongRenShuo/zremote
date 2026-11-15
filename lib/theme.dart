@@ -163,11 +163,34 @@ abstract final class ZT {
     textTertiary: Color(0xFF8C959F),
   );
 
+  /// OLED 纯黑（P3-3）：dark 基础上下调 bg/surface 至纯黑系，
+  /// 强调色/语义色沿用 dark（对比度不降级）。
+  static const oled = ZTPalette(
+    bg: Color(0xFF000000),
+    surface: Color(0xFF050608),
+    surfaceHi: Color(0xFF0B0D10),
+    surfaceHover: Color(0xFF131519),
+    field: Color(0xFF020304),
+    hairline: Color(0x10FFFFFF),
+    hairlineBright: Color(0x1FFFFFFF),
+    accent: Color(0xFF3B82F6),
+    onAccent: Color(0xFFFFFFFF),
+    accentSubtle: Color(0x1F3B82F6),
+    accentBorder: Color(0x523B82F6),
+    live: Color(0xFF10B981),
+    danger: Color(0xFFEF4444),
+    warn: Color(0xFFF59E0B),
+    textHi: Color(0xFFF3F4F6),
+    textLo: Color(0xFF9CA3AF),
+    textTertiary: Color(0xFF6B7280),
+  );
+
   static ZTPalette paletteOf(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
 
-  static ThemeData theme(Brightness brightness) {
-    final p = paletteOf(brightness);
+  /// [palette] 覆盖默认调色板（P3-3 OLED：Brightness.dark + ZT.oled）。
+  static ThemeData theme(Brightness brightness, {ZTPalette? palette}) {
+    final p = palette ?? paletteOf(brightness);
     final scheme =
         ColorScheme.fromSeed(
           seedColor: p.accent,

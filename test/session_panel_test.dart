@@ -112,14 +112,17 @@ void main() {
       sess('s2', title: '任务乙', phase: 'completedSuccess'),
       sess('s3', title: '任务丙', phase: 'error'),
     ]);
-    expect(find.text('运行中'), findsOneWidget);
-    expect(find.text('已完成'), findsOneWidget);
-    expect(find.text('失败'), findsOneWidget);
+    // P4-3：过滤 chip 与状态胶囊同文案，胶囊断言按 key 收窄。
+    Finder pill(String label) =>
+        find.byKey(Key('session-phase-pill-$label'));
+    expect(pill('运行中'), findsOneWidget);
+    expect(pill('已完成'), findsOneWidget);
+    expect(pill('失败'), findsOneWidget);
 
     Color pillBorder(String label) {
       final container = tester.widget<Container>(
         find
-            .ancestor(of: find.text(label), matching: find.byType(Container))
+            .ancestor(of: pill(label), matching: find.byType(Container))
             .first,
       );
       final border = (container.decoration! as BoxDecoration).border as Border;
@@ -137,9 +140,9 @@ void main() {
       sess('s1', title: '任务甲'),
       sess('s2', title: '任务乙', phase: 'mysterious'),
     ]);
-    expect(find.text('运行中'), findsNothing);
-    expect(find.text('已完成'), findsNothing);
-    expect(find.text('失败'), findsNothing);
+    expect(find.byKey(const Key('session-phase-pill-运行中')), findsNothing);
+    expect(find.byKey(const Key('session-phase-pill-已完成')), findsNothing);
+    expect(find.byKey(const Key('session-phase-pill-失败')), findsNothing);
   });
 
   testWidgets('蓝点：仅 activeSessionId 匹配行是 accent 实心，不匹配行透明占位', (tester) async {
@@ -203,9 +206,10 @@ void main() {
       sess('s1', title: '任务甲', phase: 'running', permissionCount: 2),
     ]);
     expect(find.text('2'), findsOneWidget);
-    expect(find.text('运行中'), findsOneWidget);
+    final pillFinder = find.byKey(const Key('session-phase-pill-运行中'));
+    expect(pillFinder, findsOneWidget);
     final badgeX = tester.getTopLeft(find.text('2')).dx;
-    final pillX = tester.getTopLeft(find.text('运行中')).dx;
+    final pillX = tester.getTopLeft(pillFinder).dx;
     expect(badgeX, lessThan(pillX));
   });
 

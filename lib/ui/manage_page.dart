@@ -8,8 +8,11 @@ import '../models/device.dart';
 import '../services/app_settings.dart';
 import '../services/device_import.dart';
 import '../services/keepalive.dart';
+import '../services/notifier.dart' show NotificationGatePolicy, ZrNotifyOverride;
 import '../services/link_builder.dart';
 import '../state/app_lifecycle.dart';
+import '../state/behavior.dart';
+import '../state/claim_history.dart';
 import '../state/session_pool.dart';
 import '../state/keepalive.dart';
 import '../state/session_status.dart';
@@ -17,6 +20,7 @@ import '../state/event_feed.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
 import 'bevel_card.dart';
+import 'haptics.dart';
 import 'hw_chip.dart';
 import 'inlaid_well.dart';
 import 'section_label.dart';
@@ -251,7 +255,8 @@ class ManagePage extends ConsumerWidget {
       }
       return;
     }
-    if (devices.length == 5 && context.mounted) {
+    final softLimit = ref.read(behaviorProvider).softLimit;
+    if (devices.length >= softLimit && context.mounted) {
       final l10n = AppLocalizations.of(context)!;
       await showDialog<void>(
         context: context,
@@ -268,6 +273,7 @@ class ManagePage extends ConsumerWidget {
       );
     }
     await ref.read(deviceListProvider.notifier).add(device);
+    ZrHaptics.success();
     ref.read(activeTabProvider.notifier).set(devices.length);
   }
 }
@@ -1017,6 +1023,12 @@ class _DeviceCard extends ConsumerWidget {
     final platformIcon = _devicePlatformIcon(displayName);
     final live = status == SessionStatus.live;
     final unread = feed?.unread ?? 0;
+    final todayClaimed = ref
+            .watch(claimHistoryProvider)[device.id]
+            ?.todayCount(DateTime.now()) ??
+        0;
+    final pinned =
+        ref.read(deviceListProvider.notifier).isPinned(device);
 
     final (chipColor, chipLabel) = switch (status) {
       SessionStatus.live => (zt.live, l10n.chipOnline),
@@ -1024,9 +1036,15 @@ class _DeviceCard extends ConsumerWidget {
       SessionStatus.loading || null => (zt.warn, l10n.statusConnecting),
     };
 
-    return BevelCard(
+    // P4-8：设备卡语义（TalkBack 读设备名 + 状态，长按菜单可被发现）。
+    return GestureDetector(
+      onLongPress: () => _showQuickMenu(context, ref),
+      child: Semantics(
+        button: true,
+        label: '$displayName · $chipLabel',
+        child: BevelCard(
       radius: 12,
-      accent: isActiveTab,
+      accent: isActiveTab || pinned,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       onTap: () {
@@ -1102,6 +1120,25 @@ class _DeviceCard extends ConsumerWidget {
                       color: chipColor,
                       withLed: true,
                     ),
+                    // P4-2 徽章统一：待审批 / 今日已领（未读在下方指标行）。
+                    if (feed?.permPending ?? false) ...[
+                      const SizedBox(width: 6),
+                      _ZrBadgeChip(
+                        key: Key('device-badge-perm-${device.id}'),
+                        icon: Icons.approval_rounded,
+                        label: l10n.uxBadgePermPending,
+                        color: zt.danger,
+                      ),
+                    ],
+                    if (todayClaimed > 0) ...[
+                      const SizedBox(width: 6),
+                      _ZrBadgeChip(
+                        key: Key('device-badge-claim-${device.id}'),
+                        icon: Icons.card_giftcard_rounded,
+                        label: l10n.claimHistTodayCount(todayClaimed),
+                        color: zt.accent,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1256,7 +1293,204 @@ class _DeviceCard extends ConsumerWidget {
           ),
         ],
       ),
+      ),
+      ),
     );
+  }
+
+  /// P4-2 长按快捷菜单：置顶/换链/复制链接/通知覆盖/删除。
+  Future<void> _showQuickMenu(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final pinned =
+        ref.read(deviceListProvider.notifier).isPinned(device);
+    final override = NotificationGatePolicy.overrideOf(device.params);
+    final action = await showZrSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        final zt = sheetContext.zt;
+        Widget entry(String value, IconData icon, String label,
+            {Color? color}) {
+          return InkWell(
+            key: Key('device-quick-menu-$value'),
+            onTap: () => Navigator.pop(sheetContext, value),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+              child: Row(
+                children: [
+                  Icon(icon, size: 18, color: color ?? zt.textLo),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: color ?? zt.textHi,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Text(
+                device.displayName(l10n),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: zt.textHi,
+                ),
+              ),
+            ),
+            Divider(height: 1, color: zt.hairline),
+            entry(
+              'pin',
+              pinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+              pinned ? l10n.uxUnpin : l10n.uxPin,
+            ),
+            Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: zt.hairline),
+            entry('replace', Icons.sync_alt, l10n.menuReplace),
+            Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: zt.hairline),
+            entry('copy', Icons.link_rounded, l10n.uxCopyLink),
+            Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: zt.hairline),
+            entry(
+              'notify',
+              override == ZrNotifyOverride.off
+                  ? Icons.notifications_off_outlined
+                  : Icons.notifications_active_outlined,
+              '${l10n.uxNotifyOverride} · ${switch (override) {
+                ZrNotifyOverride.on => l10n.uxNotifyOn,
+                ZrNotifyOverride.off => l10n.uxNotifyOff,
+                ZrNotifyOverride.inherit => l10n.uxNotifyInherit,
+              }}',
+            ),
+            Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: zt.hairline),
+            entry('delete', Icons.delete_outline, l10n.menuDelete,
+                color: zt.danger),
+            const SizedBox(height: 6),
+          ],
+        );
+      },
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'pin':
+        ZrHaptics.tap();
+        await ref
+            .read(deviceListProvider.notifier)
+            .setPinned(device.id, !pinned);
+      case 'replace':
+        await _replace(context, ref);
+      case 'copy':
+        ZrHaptics.tap();
+        final url = LinkBuilder.buildUrl(device).toString();
+        await Clipboard.setData(ClipboardData(text: url));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.uxLinkCopied)),
+          );
+        }
+      case 'notify':
+        await _pickNotifyOverride(context, ref);
+      case 'delete':
+        await _confirmDelete(context, ref);
+    }
+  }
+
+  /// P3-1 每设备通知覆盖选择（on/off/inherit）。
+  Future<void> _pickNotifyOverride(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = NotificationGatePolicy.overrideOf(device.params);
+    final choice = await showZrSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        final zt = sheetContext.zt;
+        Widget entry(String value, String label, String sub) => InkWell(
+              key: Key('notify-override-$value'),
+              onTap: () => Navigator.pop(sheetContext, value),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      current.name == value
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 20,
+                      color: current.name == value ? zt.accent : zt.textLo,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: zt.textHi)),
+                          const SizedBox(height: 1),
+                          Text(sub,
+                              style: TextStyle(
+                                  fontSize: 11.5, color: zt.textLo)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Text(
+                l10n.uxNotifyOverride,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: zt.textHi,
+                ),
+              ),
+            ),
+            Divider(height: 1, color: zt.hairline),
+            entry('inherit', l10n.uxNotifyInherit, l10n.uxNotifyInheritSub),
+            entry('on', l10n.uxNotifyOn, l10n.uxNotifyOnSub),
+            entry('off', l10n.uxNotifyOff, l10n.uxNotifyOffSub),
+            const SizedBox(height: 6),
+          ],
+        );
+      },
+    );
+    if (choice == null || !context.mounted) return;
+    ZrHaptics.tap();
+    await ref
+        .read(deviceListProvider.notifier)
+        .setNotifyOverride(device.id, choice);
   }
 
   Widget _metricPod(
@@ -2005,6 +2239,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage>
     _navigating = true;
     await ref.read(deviceListProvider.notifier).add(device);
     if (!mounted) return;
+    ZrHaptics.success();
     Navigator.of(context).pop();
     ref
         .read(activeTabProvider.notifier)
@@ -2116,4 +2351,45 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// P4-2 设备卡徽章 chip（待审批/今日已领）。
+class _ZrBadgeChip extends StatelessWidget {
+  const _ZrBadgeChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

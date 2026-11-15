@@ -5,7 +5,9 @@ import 'l10n/app_localizations.dart';
 import 'models/device_label.dart';
 import 'services/biometric.dart';
 import 'services/device_store.dart';
+import 'services/log_buffer.dart';
 import 'services/notifier.dart';
+import 'state/appearance.dart';
 import 'state/keepalive.dart';
 import 'state/locale.dart';
 import 'state/theme_mode.dart';
@@ -18,6 +20,8 @@ import 'ui/showcase_bits.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // P3-2：诊断日志环形缓冲装配（debugPrint 流捕获 + 原样输出）。
+  LogBuffer.installDebugPrintCapture();
   await NotifierService.instance.init();
   final store = DeviceStore.instance;
   final initialLocale = await store.localeSetting();
@@ -52,17 +56,38 @@ class ZRemoteApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final setting = ref.watch(localeSettingProvider);
     final themeSetting = ref.watch(themeModeSettingProvider);
+    final appearance = ref.watch(appearanceProvider);
+    final relockSeconds = ref.watch(relockDelayProvider);
     return MaterialApp(
       title: 'ZRemote',
       debugShowCheckedModeBanner: false,
       theme: ZT.theme(Brightness.light),
-      darkTheme: ZT.theme(Brightness.dark),
+      // P3-3：oled 档 = dark 亮度 + 纯黑调色板。
+      darkTheme: ZT.theme(
+        Brightness.dark,
+        palette: isOledSetting(themeSetting) ? ZT.oled : null,
+      ),
       themeMode: resolveThemeMode(themeSetting),
       locale: setting == kLocaleSystem ? null : Locale(setting),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: const LifecycleWatcher(child: AppShell()),
-      builder: (context, child) => BiometricGate(child: child!),
+      builder: (context, child) {
+        // P3-3：应用内字号缩放（与系统无障碍系数相乘，14px 基准取样）。
+        final media = MediaQuery.maybeOf(context);
+        final systemFactor = (media?.textScaler ?? TextScaler.noScaling)
+            .scale(14) / 14;
+        final factor = systemFactor * appearance.fontScale.factor;
+        return MediaQuery(
+          data: (media ?? const MediaQueryData())
+              .copyWith(textScaler: TextScaler.linear(factor)),
+          child: BiometricGate(
+            // P3-8：自动锁定延时可配（立即/10s/60s/5min）。
+            relockAfter: Duration(seconds: relockSeconds),
+            child: child!,
+          ),
+        );
+      },
     );
   }
 }

@@ -2440,5 +2440,427 @@
   "modelActionCopy": "复制",
   "@modelActionCopy": {
     "description": "Copy action button"
+  },
+  "themeOled": "OLED 纯黑",
+  "@themeOled": {
+    "description": "Theme picker: OLED pure black option"
+  },
+  "settingsSectionBehavior": "会话行为",
+  "@settingsSectionBehavior": {
+    "description": "Settings section: session behavior"
+  },
+  "settingsSectionData": "数据与诊断",
+  "@settingsSectionData": {
+    "description": "Settings section: data & diagnostics"
+  },
+  "settingsAdvanced": "高级",
+  "@settingsAdvanced": {
+    "description": "Settings section: advanced"
+  },
+  "settingsFontScale": "字号缩放",
+  "@settingsFontScale": {
+    "description": "Font scale setting title"
+  },
+  "settingsFontScaleSmall": "小",
+  "@settingsFontScaleSmall": {
+    "description": "Font scale: small (0.85)"
+  },
+  "settingsFontScaleNormal": "标准",
+  "@settingsFontScaleNormal": {
+    "description": "Font scale: normal (1.0)"
+  },
+  "settingsFontScaleLarge": "大",
+  "@settingsFontScaleLarge": {
+    "description": "Font scale: large (1.15)"
+  },
+  "settingsReduceMotion": "动效减弱",
+  "@settingsReduceMotion": {
+    "description": "Reduce motion switch title"
+  },
+  "settingsReduceMotionSub": "缩短过渡动画时长与曲线",
+  "@settingsReduceMotionSub": {
+    "description": "Reduce motion switch subtitle"
+  },
+  "settingsHaptics": "触感反馈",
+  "@settingsHaptics": {
+    "description": "Haptic feedback switch title"
+  },
+  "settingsHapticsSub": "关键动作轻微振动",
+  "@settingsHapticsSub": {
+    "description": "Haptic feedback switch subtitle"
+  },
+  "settingsRelockDelay": "自动锁定延时",
+  "@settingsRelockDelay": {
+    "description": "Auto-lock delay setting title"
+  },
+  "settingsRelockImmediate": "立即",
+  "@settingsRelockImmediate": {
+    "description": "Auto-lock delay: immediate"
+  },
+  "settingsRelockSeconds": "{n} 秒",
+  "@settingsRelockSeconds": {
+    "description": "Auto-lock delay: seconds",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsRelockMinutes": "{n} 分钟",
+  "@settingsRelockMinutes": {
+    "description": "Auto-lock delay: minutes",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsNotifClaimResult": "自动领取结果",
+  "@settingsNotifClaimResult": {
+    "description": "Notification toggle: auto-claim results"
+  },
+  "settingsNotifClaimResultSub": "领取成功时通知",
+  "@settingsNotifClaimResultSub": {
+    "description": "Notification toggle subtitle: claim results"
+  },
+  "settingsNotifCaptcha": "需人工验证码",
+  "@settingsNotifCaptcha": {
+    "description": "Notification toggle: manual captcha needed"
+  },
+  "settingsNotifCaptchaSub": "自动领取需要人工介入时通知",
+  "@settingsNotifCaptchaSub": {
+    "description": "Notification toggle subtitle: captcha"
+  },
+  "settingsNotifQuotaLow": "额度耗尽预警",
+  "@settingsNotifQuotaLow": {
+    "description": "Notification toggle: quota exhausted (placeholder)"
+  },
+  "settingsNotifQuotaLowSub": "占位（暂未启用）",
+  "@settingsNotifQuotaLowSub": {
+    "description": "Notification toggle subtitle: quota placeholder"
+  },
+  "settingsNotifDnd": "免打扰时段",
+  "@settingsNotifDnd": {
+    "description": "Do-not-disturb window setting"
+  },
+  "settingsNotifDndOff": "关闭",
+  "@settingsNotifDndOff": {
+    "description": "Do-not-disturb: off"
+  },
+  "settingsNotifDndValue": "{start} – {end}",
+  "@settingsNotifDndValue": {
+    "description": "Do-not-disturb: window value",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsNotifDndHint": "时段内仅审批类通知",
+  "@settingsNotifDndHint": {
+    "description": "Do-not-disturb hint: only approvals pass"
+  },
+  "settingsBehaviorDefaultMode": "新任务默认权限模式",
+  "@settingsBehaviorDefaultMode": {
+    "description": "Default permission mode setting"
+  },
+  "settingsBehaviorDefaultModeSub": "新建自动化任务时预填",
+  "@settingsBehaviorDefaultModeSub": {
+    "description": "Default permission mode subtitle"
+  },
+  "settingsBehaviorRestore": "启动恢复策略",
+  "@settingsBehaviorRestore": {
+    "description": "Startup restore policy setting"
+  },
+  "settingsRestoreLastDevice": "上次设备",
+  "@settingsRestoreLastDevice": {
+    "description": "Restore policy: last device"
+  },
+  "settingsRestoreFirst": "首台设备",
+  "@settingsRestoreFirst": {
+    "description": "Restore policy: first device"
+  },
+  "settingsRestoreNone": "不恢复",
+  "@settingsRestoreNone": {
+    "description": "Restore policy: none"
+  },
+  "settingsBehaviorSoftLimit": "设备数量提醒",
+  "@settingsBehaviorSoftLimit": {
+    "description": "Device soft limit setting"
+  },
+  "settingsBehaviorSoftLimitSub": "已有 {limit} 台，再导入时提醒",
+  "@settingsBehaviorSoftLimitSub": {
+    "description": "Device soft limit subtitle",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDataManage": "数据管理",
+  "@settingsDataManage": {
+    "description": "Data management entry"
+  },
+  "settingsDataManageSub": "WebView 缓存/Cookie、日志导出",
+  "@settingsDataManageSub": {
+    "description": "Data management subtitle"
+  },
+  "settingsDiagnosticsEntry": "连接诊断",
+  "@settingsDiagnosticsEntry": {
+    "description": "Diagnostics entry in settings"
+  },
+  "settingsDiagnosticsSub": "打开当前设备的诊断页",
+  "@settingsDiagnosticsSub": {
+    "description": "Diagnostics entry subtitle"
+  },
+  "settingsDiagnosticsNoDevice": "暂无已绑定设备",
+  "@settingsDiagnosticsNoDevice": {
+    "description": "Diagnostics entry: no device"
+  },
+  "settingsUpdateCheck": "检查更新",
+  "@settingsUpdateCheck": {
+    "description": "Check for update entry"
+  },
+  "settingsUpdateCheckSub": "与 GitHub Releases 比对版本",
+  "@settingsUpdateCheckSub": {
+    "description": "Check for update subtitle"
+  },
+  "settingsUpdateChecking": "检查中…",
+  "@settingsUpdateChecking": {
+    "description": "Check for update: checking"
+  },
+  "settingsUpdateAvailable": "发现新版本 {version}",
+  "@settingsUpdateAvailable": {
+    "description": "Check for update: new version found",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateOpenRelease": "查看发布页",
+  "@settingsUpdateOpenRelease": {
+    "description": "Check for update: open release page"
+  },
+  "settingsAbout": "关于",
+  "@settingsAbout": {
+    "description": "About entry in settings"
+  },
+  "settingsAboutSub": "版本、许可与隐私",
+  "@settingsAboutSub": {
+    "description": "About subtitle"
+  },
+  "settingsUaDesktop": "桌面 UA 覆写（实验）",
+  "@settingsUaDesktop": {
+    "description": "Desktop UA override experimental switch"
+  },
+  "settingsUaDesktopSub": "重开会话后生效；用于登录页分流排查",
+  "@settingsUaDesktopSub": {
+    "description": "Desktop UA override subtitle"
+  },
+  "settingsDiscoveryDetail": "服务发现重试策略（只读）：候选别名依次探测，单次超时 25s，结果按会话缓存；no-services 时换下一候选，超时不重试直接上抛。",
+  "@settingsDiscoveryDetail": {
+    "description": "Read-only service discovery retry policy note"
+  },
+  "dataManageTitle": "数据管理",
+  "@dataManageTitle": {
+    "description": "Data manage page title"
+  },
+  "dataManageWebviewSection": "WebView 数据（按设备）",
+  "@dataManageWebviewSection": {
+    "description": "Data manage: per-device webview section"
+  },
+  "dataManageClearAction": "清除",
+  "@dataManageClearAction": {
+    "description": "Data manage: clear action"
+  },
+  "dataManageClearConfirmTitle": "清除 WebView 数据？",
+  "@dataManageClearConfirmTitle": {
+    "description": "Data manage: clear confirm title"
+  },
+  "dataManageClearConfirmBody": "将清除 {device} 的页面缓存与 Cookie，之后需要重新登录。",
+  "@dataManageClearConfirmBody": {
+    "description": "Data manage: clear confirm body",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "dataManageClearDone": "已清除",
+  "@dataManageClearDone": {
+    "description": "Data manage: clear done toast"
+  },
+  "dataManageClearFailed": "清除失败",
+  "@dataManageClearFailed": {
+    "description": "Data manage: clear failed toast"
+  },
+  "dataManageNoDevice": "暂无已绑定设备。",
+  "@dataManageNoDevice": {
+    "description": "Data manage: no devices"
+  },
+  "dataManageWebviewNote": "Cookie 按域删除、缓存按设备 profile 清除；隔离 profile 的 Cookie 可能残留（插件限制），重新登录即可重建。",
+  "@dataManageWebviewNote": {
+    "description": "Data manage: webview limitation note"
+  },
+  "dataManageLogSection": "诊断日志",
+  "@dataManageLogSection": {
+    "description": "Data manage: log section"
+  },
+  "dataManageLogSub": "应用内日志环形缓冲，敏感值（authorization/token/sid）已打码。",
+  "@dataManageLogSub": {
+    "description": "Data manage: log subtitle"
+  },
+  "dataManageLogCount": "已缓冲 {count} 条",
+  "@dataManageLogCount": {
+    "description": "Data manage: buffered line count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataManageLogExport": "导出日志",
+  "@dataManageLogExport": {
+    "description": "Data manage: export log"
+  },
+  "dataManageLogEmpty": "暂无日志可导出",
+  "@dataManageLogEmpty": {
+    "description": "Data manage: no logs"
+  },
+  "dataManageExportFailed": "导出失败",
+  "@dataManageExportFailed": {
+    "description": "Data manage: export failed"
+  },
+  "dataManageZsbSection": "账号包备份（.zsb）",
+  "@dataManageZsbSection": {
+    "description": "Data manage: zsb section"
+  },
+  "dataManageZsbSub": "加密账号包的导入导出由账号保险库页面提供（建设中），本页仅作说明。",
+  "@dataManageZsbSub": {
+    "description": "Data manage: zsb note"
+  },
+  "aboutTitle": "关于",
+  "@aboutTitle": {
+    "description": "About page title"
+  },
+  "aboutVersionValue": "{version} ({build})",
+  "@aboutVersionValue": {
+    "description": "About page: version + build",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutLinks": "链接",
+  "@aboutLinks": {
+    "description": "About page: links section"
+  },
+  "aboutGitHub": "GitHub 仓库",
+  "@aboutGitHub": {
+    "description": "About page: GitHub link"
+  },
+  "aboutIssues": "问题反馈",
+  "@aboutIssues": {
+    "description": "About page: issues link"
+  },
+  "aboutPrivacy": "隐私声明",
+  "@aboutPrivacy": {
+    "description": "About page: privacy section"
+  },
+  "aboutPrivacyBody": "本地优先：设备与凭据仅存于本机安全存储；无遥测、无云端上报；诊断日志导出前已脱敏。",
+  "@aboutPrivacyBody": {
+    "description": "About page: privacy body"
+  },
+  "aboutLicenses": "开源许可",
+  "@aboutLicenses": {
+    "description": "About page: licenses section"
+  },
+  "aboutLicenseJetbrains": "JetBrainsMono 字体 — SIL Open Font License 1.1",
+  "@aboutLicenseJetbrains": {
+    "description": "About page: JetBrainsMono license line"
+  },
+  "aboutLicenseDeps": "主要依赖：Flutter · Riverpod · flutter_inappwebview · flutter_local_notifications · shared_preferences · flutter_secure_storage · dio · share_plus · url_launcher · mobile_scanner",
+  "@aboutLicenseDeps": {
+    "description": "About page: one-line dependency list"
+  },
+  "uxSessionSearchHint": "搜索标题 / 工作区",
+  "@uxSessionSearchHint": {
+    "description": "Session panel: search hint"
+  },
+  "uxSessionFilterAll": "全部",
+  "@uxSessionFilterAll": {
+    "description": "Session panel filter chip: all"
+  },
+  "uxSessionFilterRunning": "运行中",
+  "@uxSessionFilterRunning": {
+    "description": "Session panel filter chip: running"
+  },
+  "uxSessionFilterNeedsInput": "需输入",
+  "@uxSessionFilterNeedsInput": {
+    "description": "Session panel filter chip: needs input"
+  },
+  "uxSessionNoMatch": "无匹配会话",
+  "@uxSessionNoMatch": {
+    "description": "Session panel: no match after filter"
+  },
+  "uxWidePickDevice": "从左侧选择设备",
+  "@uxWidePickDevice": {
+    "description": "Wide layout: pick device hint"
+  },
+  "uxPin": "置顶",
+  "@uxPin": {
+    "description": "Device quick menu: pin"
+  },
+  "uxUnpin": "取消置顶",
+  "@uxUnpin": {
+    "description": "Device quick menu: unpin"
+  },
+  "uxCopyLink": "复制链接",
+  "@uxCopyLink": {
+    "description": "Device quick menu: copy link"
+  },
+  "uxLinkCopied": "控制链接已复制",
+  "@uxLinkCopied": {
+    "description": "Device quick menu: link copied toast"
+  },
+  "uxNotifyOverride": "通知覆盖",
+  "@uxNotifyOverride": {
+    "description": "Device quick menu: notify override"
+  },
+  "uxNotifyOn": "开（覆盖全局）",
+  "@uxNotifyOn": {
+    "description": "Notify override: on"
+  },
+  "uxNotifyOnSub": "忽略全局通知开关，仍受免打扰限制",
+  "@uxNotifyOnSub": {
+    "description": "Notify override: on sub"
+  },
+  "uxNotifyOff": "关（静音此设备）",
+  "@uxNotifyOff": {
+    "description": "Notify override: off"
+  },
+  "uxNotifyOffSub": "该设备一切通知静音",
+  "@uxNotifyOffSub": {
+    "description": "Notify override: off sub"
+  },
+  "uxNotifyInherit": "跟随全局",
+  "@uxNotifyInherit": {
+    "description": "Notify override: inherit"
+  },
+  "uxNotifyInheritSub": "按设置页全局开关",
+  "@uxNotifyInheritSub": {
+    "description": "Notify override: inherit sub"
+  },
+  "uxBadgePermPending": "待审批",
+  "@uxBadgePermPending": {
+    "description": "Device badge: approval pending"
   }
 }

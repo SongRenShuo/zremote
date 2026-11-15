@@ -4,8 +4,12 @@ import '../l10n/app_localizations.dart';
 import '../services/event_observer.dart';
 import '../state/session_index.dart';
 import '../theme.dart';
+import 'haptics.dart';
+import 'motion.dart';
 
-class SessionPanelSheet extends StatelessWidget {
+/// 会话面板（P4-3 搜索与过滤）：搜索框 + 状态 chip 纯本地过滤，
+/// 过滤逻辑在 [SessionFilter] 纯函数（可单测），本组件只管装配。
+class SessionPanelSheet extends StatefulWidget {
   const SessionPanelSheet({
     super.key,
     required this.sessions,
@@ -57,9 +61,27 @@ class SessionPanelSheet extends StatelessWidget {
   }
 
   @override
+  State<SessionPanelSheet> createState() => _SessionPanelSheetState();
+}
+
+class _SessionPanelSheetState extends State<SessionPanelSheet> {
+  final TextEditingController _search = TextEditingController();
+
+  SessionFilterKind _kind = SessionFilterKind.all;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final effectiveNow = now ?? DateTime.now();
+    final effectiveNow = widget.now ?? DateTime.now();
+    final visible = SessionFilter.pinnedFirst(
+      SessionFilter.apply(widget.sessions, query: _search.text, kind: _kind),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -88,11 +110,11 @@ class SessionPanelSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      deviceName == null
-                          ? l10n.sessionsPanelCount(sessions.length)
+                      widget.deviceName == null
+                          ? l10n.sessionsPanelCount(visible.length)
                           : l10n.sessionsPanelSubtitle(
-                              deviceName!,
-                              sessions.length,
+                              widget.deviceName!,
+                              visible.length,
                             ),
                       style: TextStyle(
                         fontSize: 11,
@@ -102,12 +124,12 @@ class SessionPanelSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onClose != null)
+              if (widget.onClose != null)
                 Tooltip(
                   message: AppLocalizations.of(context)!.commonCancel,
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: onClose,
+                    onTap: widget.onClose,
                     child: Container(
                       width: 28,
                       height: 28,
@@ -135,11 +157,63 @@ class SessionPanelSheet extends StatelessWidget {
             ],
           ),
         ),
-        if (sessions.isEmpty)
+        // P4-3：搜索框 + 状态过滤 chip（纯本地过滤，零 RPC）。
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+          child: SizedBox(
+            height: 36,
+            child: TextField(
+              key: const Key('session-panel-search'),
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: l10n.uxSessionSearchHint,
+                prefixIcon: Icon(Icons.search, size: 17, color: context.zt.textLo),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                isDense: true,
+              ),
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 6),
+          child: SizedBox(
+            height: 30,
+            child: Row(
+              children: [
+                for (final (kind, label) in [
+                  (SessionFilterKind.all, l10n.uxSessionFilterAll),
+                  (SessionFilterKind.running, l10n.uxSessionFilterRunning),
+                  (SessionFilterKind.needsInput, l10n.uxSessionFilterNeedsInput),
+                ]) ...[
+                  _FilterChip(
+                    label: label,
+                    selected: _kind == kind,
+                    onTap: () {
+                      ZrHaptics.tap();
+                      setState(() => _kind = kind);
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (widget.sessions.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 40),
             child: Text(
               l10n.sessionsPanelEmpty,
+              style: TextStyle(fontSize: 13, color: context.zt.textLo),
+            ),
+          )
+        else if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Text(
+              l10n.uxSessionNoMatch,
               style: TextStyle(fontSize: 13, color: context.zt.textLo),
             ),
           )
@@ -149,26 +223,73 @@ class SessionPanelSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               children: [
                 for (final group in SessionGrouping.groupByDay(
-                  sessions,
+                  visible,
                   effectiveNow,
                   weekStartsMonday: l10n.localeName.startsWith('zh'),
                 )) ...[
                   _GroupHeader(
-                    label: groupLabel(l10n, group.key),
+                    label: SessionPanelSheet.groupLabel(l10n, group.key),
                     count: group.value.length,
                   ),
                   for (final s in group.value)
                     _SessionRow(
                       session: s,
-                      active: activeSessionId == s.sessionId,
+                      active: widget.activeSessionId == s.sessionId,
                       now: effectiveNow,
-                      onTap: onSessionTap,
+                      onTap: widget.onSessionTap,
                     ),
                 ],
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: ZrMotion.duration(160),
+          curve: ZrMotion.curve,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? zt.accentSubtle : zt.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? zt.accentBorder : zt.hairline,
+              width: 0.8,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected ? zt.accent : zt.textLo,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -272,6 +393,14 @@ class _SessionRow extends StatelessWidget {
                     : null,
               ),
             ),
+            if (s.pinned) ...[
+              Icon(
+                Icons.push_pin_rounded,
+                size: 12,
+                color: context.zt.textTertiary,
+              ),
+              const SizedBox(width: 6),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,6 +564,7 @@ class _PhasePill extends StatelessWidget {
       ),
       child: Text(
         label,
+        key: Key('session-phase-pill-$label'),
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
