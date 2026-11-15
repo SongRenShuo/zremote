@@ -10,6 +10,15 @@
 
 ### 修复
 
+- （待填）
+
+## [2.0.1] - 2026-11-15
+
+> 修复版：登录页 · 额度/套餐 · 福利中心 · 权益中心 · 资产浏览 · Git（开发计划 20261115-1546）。
+> 真机回归 7 项全通过（`~/.zremote-e2e/e2e-after-fix-report.md`）；本地 1072 例全绿 + analyze 零问题。
+
+### 修复
+
 - **登录页一直"加载中"**：授权页 URL 在 WebView 创建前就被 `load()`，被空安全调用静默丢弃（页面从未加载）。新增「待载 URL 队列 + attach 后补载」，并补齐加载失败/超时（`expires_at`，缺省 120s）/渲染消亡/停载 5s 空白探测的失败呈现与「改用弹窗登录」出口（`576ba6b`）
 - **额度中心"额度数据加载失败"**：宿主未配置时返回 `unavailableReason:"not_configured"` + `quota:null`（调用本身成功），被误判为加载失败。现映射为「未配置」空态 + 登录引导；额度页改带 `preferredProviderId + accountAccess`（原先只传 `includeSubscription`），并接线设备在用账号供票（`4bfb1ce`）
 - **模型设置页"套餐信息获取失败"**：`accountAccess` 按「字段为 null 就省略」构造，与宿主 strict 契约不符；现按三字段齐全才发、缺字段降级，并把未配置与真实错误分别文案（`4bfb1ce`）
