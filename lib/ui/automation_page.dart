@@ -39,6 +39,10 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
   /// 定时计划卡片展开的运行记录（automationId 集合）。
   final Set<String> _expandedAutomations = {};
 
+  /// 展开后的运行记录块 key（按 automationId）：用于把新出现的内容
+  /// 主动滚进可视区，避免「点开了但内容在屏幕外」，用户还要再点一次。
+  final Map<String, GlobalKey> _runKeys = {};
+
   final Set<String> _busy = {};
   AutomationNotifier? _notifier;
 
@@ -354,6 +358,35 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
         }
       });
 
+  /// 展开/收起计划卡运行记录。展开时把新出现的运行块滚进可视区
+  /// （内容较高时否则会整块停在屏幕外，用户以为没点开）。
+  void _toggleRuns(Automation auto) {
+    final expanding = !_expandedAutomations.contains(auto.automationId);
+    setState(() {
+      if (expanding) {
+        _expandedAutomations.add(auto.automationId);
+        _runKeys.putIfAbsent(auto.automationId, GlobalKey.new);
+      } else {
+        _expandedAutomations.remove(auto.automationId);
+        _runKeys.remove(auto.automationId);
+      }
+    });
+    if (!expanding) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _runKeys[auto.automationId]?.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        // keepVisibleAtEnd：只在目标底边跌出视口时补足最小滚动，已可见不动列表
+        // （explicit 会把运行块顶到视口上沿，展开顶部卡片会整页跳动）。
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
+
   Future<void> _deleteAutomation(Automation auto) async {
     final l10n = AppLocalizations.of(context)!;
     final ok = await _confirmDialog(
@@ -372,6 +405,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
         },
       );
       _notifier?.removeAutomation(widget.device.id, auto.automationId);
+      _runKeys.remove(auto.automationId);
     });
   }
 
@@ -1250,13 +1284,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
                       ? l10n.automationCollapseRuns
                       : l10n.automationRecentRuns,
                   icon: Icons.history,
-                  onTap: () => setState(() {
-                    if (expanded) {
-                      _expandedAutomations.remove(auto.automationId);
-                    } else {
-                      _expandedAutomations.add(auto.automationId);
-                    }
-                  }),
+                  onTap: () => _toggleRuns(auto),
                 ),
                 ZrActionLink(
                   label: l10n.automationRunNow,
@@ -1288,6 +1316,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
           if (expanded) ...[
             const SizedBox(height: 8),
             Container(
+              key: _runKeys[auto.automationId],
               padding: const EdgeInsets.only(top: 8),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: zt.hairline)),
