@@ -10,6 +10,13 @@ import 'package:zremote/services/quota_client.dart';
 import 'package:zremote/services/task_actions.dart';
 import 'package:zremote/state/notification_prefs.dart';
 import 'package:zremote/state/quota_alert.dart';
+import 'package:zremote/state/session_pool.dart';
+
+/// 固定空设备表：避免 `deviceListProvider` 的异步加载时序让 sweep 用例不稳定。
+class _EmptyDeviceListNotifier extends DeviceListNotifier {
+  @override
+  List<RemoteDevice> build() => const [];
+}
 
 RemoteDevice _device(String id) => RemoteDevice(
   id: id,
@@ -509,6 +516,7 @@ void main() {
               const NotificationPrefs(quotaLow: true),
             ),
           ),
+          deviceListProvider.overrideWith(() => _EmptyDeviceListNotifier()),
         ],
       );
       addTearDown(container.dispose);
