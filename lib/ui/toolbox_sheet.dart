@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../state/automation.dart';
 import '../state/claim_entry.dart';
+import '../state/claim_history.dart';
 import '../state/service_readiness.dart';
 import '../theme.dart';
 import 'sheet_shell.dart';
@@ -55,6 +56,11 @@ class ToolboxSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final autoBoard = ref.watch(automationProvider)[device.id];
     final claimReady = ref.watch(claimEntryProvider)[device.id] == true;
+    // P2-7：徽标扩展「今日已领 N」（读 claim_history 当日成功计数）；
+    // claimReady 判定沿用现有（可领时优先展示可领徽标）。
+    final todayClaimed =
+        ref.watch(claimHistoryProvider)[device.id]?.todayCount(DateTime.now()) ??
+        0;
     final readiness =
         ref.watch(serviceReadinessProvider)[device.id] ??
         ServiceReadiness.unknown;
@@ -171,8 +177,12 @@ class ToolboxSheet extends ConsumerWidget {
                       title: l10n.toolboxClaim,
                       subtitle: l10n.toolboxClaimDesc,
                       enabled: claimReady,
-                      badgeText: claimReady ? l10n.toolboxClaimReady : null,
-                      badgeColor: zt.live,
+                      badgeText: claimReady
+                          ? l10n.toolboxClaimReady
+                          : (todayClaimed > 0
+                                ? l10n.claimHistTodayCount(todayClaimed)
+                                : null),
+                      badgeColor: claimReady ? zt.live : zt.accent,
                       onTap: () {
                         Navigator.pop(context);
                         onClaimPressed();

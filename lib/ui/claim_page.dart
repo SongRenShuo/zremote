@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,8 +7,12 @@ import '../l10n/app_localizations.dart';
 import '../models/claim.dart';
 import '../models/device.dart';
 import '../models/device_label.dart';
+import '../services/claim_scheduler.dart';
 import '../services/rpc_bridge.dart';
+import '../state/claim_config.dart';
 import '../state/claim_entry.dart';
+import '../state/claim_history.dart';
+import '../state/claim_scheduler_hub.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'bevel_card.dart';
@@ -36,12 +42,20 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
   String _errorMessage = '';
   bool _refreshing = false;
   List<ClaimPreview> _previews = const [];
+  int _tabIndex = 0;
 
   final Set<String> _busy = {};
 
   @override
   void initState() {
     super.initState();
+    // P2-5/P2-6：配置加载 + 历史快照恢复（离线可见最后快照）。
+    unawaited(ref.read(claimConfigProvider.notifier).load(widget.device.id));
+    unawaited(
+      ref.read(claimHistoryProvider.notifier).restoreFromStore(
+            widget.device.id,
+          ),
+    );
     _refresh();
   }
 
@@ -55,6 +69,10 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     if (_refreshing) return;
     _refreshing = true;
     if (mounted) setState(() {});
+    // P2-4 手动优先：手动刷新触发 abortRequest，自动轮 ≤90s 让位；
+    // 手动运行中阻止自动 tick。
+    final hub = ref.read(claimSchedulerHubProvider.notifier);
+    hub.manualStarted(widget.device.id);
     try {
       final r = await _callWithRetry(
         'getManualClaimPlanPreviews',
@@ -108,6 +126,8 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
       _toNotReady();
     } finally {
       _refreshing = false;
+      // P2-4：手动结束 60s 冷却后自动轮恢复。
+      hub.manualEnded(widget.device.id);
       if (mounted) setState(() {});
     }
   }
@@ -149,6 +169,27 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     });
   }
 
+  /// 手动领取结果落历史（P2-6，来源 manual）。
+  void _recordClaim({
+    required ClaimPreview plan,
+    required bool success,
+    ClaimOutcome? outcome,
+    String message = '',
+  }) {
+    ref
+        .read(claimHistoryProvider.notifier)
+        .record(
+          widget.device.id,
+          planId: plan.planId,
+          planName: plan.name,
+          success: success,
+          code: outcome?.code,
+          message: message.isNotEmpty ? message : outcome?.message ?? '',
+          source: ClaimRecordSource.manual,
+          benefitSummary: claimBenefitSummary(plan.entitlements),
+        );
+  }
+
   Future<void> _claim(ClaimPreview plan) async {
     final l10n = AppLocalizations.of(context)!;
     if (_busy.isNotEmpty) return;
@@ -157,6 +198,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
       return;
     }
     setState(() => _busy.add(plan.planId));
+    // P2-4 手动优先：领取在途 → 自动轮让位 + 阻止 tick；结束 60s 冷却。
+    final hub = ref.read(claimSchedulerHubProvider.notifier);
+    hub.manualStarted(widget.device.id);
     try {
       final CaptchaConfig cfg;
       try {
@@ -215,6 +259,7 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         outcome = ClaimOutcome.fromJson(r.firstObject ?? const {});
       } catch (e) {
         debugPrint('[claim] claimManualPlan error $e');
+        _recordClaim(plan: plan, success: false, message: e.toString());
         if (mounted) _snack('${l10n.claimFailedGeneric}${_msgOf(e)}');
         return;
       }
@@ -222,14 +267,17 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
 
       if (outcome.success) {
         debugPrint('[claim] claim ok plan=${plan.planId}');
+        _recordClaim(plan: plan, success: true, outcome: outcome);
         if (mounted) setState(() => _busy.clear());
         await showClaimTicketDialog(context, plan: plan, outcome: outcome);
         if (mounted) await _refresh();
       } else {
         debugPrint('[claim] claim fail code=${outcome.code}');
+        _recordClaim(plan: plan, success: false, outcome: outcome);
         await _failureDialog(outcome);
       }
     } finally {
+      hub.manualEnded(widget.device.id);
       if (mounted) setState(() => _busy.clear());
     }
   }
@@ -397,22 +445,60 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                 )
                 : null,
       ),
-      body: switch (_phase) {
-        _ClaimPhase.loading => const Center(child: CircularProgressIndicator()),
-        _ClaimPhase.error => _errorView(l10n, offline),
-        _ClaimPhase.ready =>
-          _previews.isEmpty
-              ? _emptyView(l10n)
-              : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                children: [
-                  _scopeRow(l10n, status),
-                  for (final plan in _previews) _planCard(l10n, plan, offline),
-                ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: ZrSegmented(
+              segments: [
+                ('plans', l10n.claimAutoTabLabel),
+                ('hist', l10n.claimHistTabLabel),
+              ],
+              active: _tabIndex == 0 ? 'plans' : 'hist',
+              onChanged: (value) => setState(
+                () => _tabIndex = value == 'plans' ? 0 : 1,
               ),
-      },
+            ),
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: _tabIndex,
+              children: [_plansTab(l10n, status, offline), _historyTab(l10n)],
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _plansTab(
+    AppLocalizations l10n,
+    SessionStatus? status,
+    bool offline,
+  ) => Column(
+    children: [
+      _autoCard(l10n),
+      Expanded(
+        child: switch (_phase) {
+          _ClaimPhase.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
+          _ClaimPhase.error => _errorView(l10n, offline),
+          _ClaimPhase.ready =>
+            _previews.isEmpty
+                ? _emptyView(l10n)
+                : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  children: [
+                    _scopeRow(l10n, status),
+                    for (final plan in _previews)
+                      _planCard(l10n, plan, offline),
+                  ],
+                ),
+        },
+      ),
+    ],
+  );
 
   Widget _scopeRow(AppLocalizations l10n, SessionStatus? status) {
     return Padding(
@@ -423,6 +509,480 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         dotColor: status == SessionStatus.live
             ? context.zt.live
             : context.zt.danger,
+      ),
+    );
+  }
+
+  static String _hhmm(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minutes % 60).toString().padLeft(2, '0')}';
+
+  /// P2-4/P2-5：顶部「自动领取」开关 + 静默时段设置入口。
+  Widget _autoCard(AppLocalizations l10n) {
+    final config =
+        ref.watch(claimConfigProvider)[widget.device.id] ??
+        const ClaimAutoConfig();
+    final zt = context.zt;
+    final subtitle = !config.enabled
+        ? l10n.claimAutoHint
+        : config.silentEnabled
+        ? l10n.claimAutoSilentSummary(
+            _hhmm(config.silentStartMinutes),
+            _hhmm(config.silentEndMinutes),
+          )
+        : l10n.claimAutoSilentOff;
+    return BevelCard(
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: zt.accentSubtle,
+                ),
+                child: Icon(
+                  Icons.auto_mode_rounded,
+                  size: 17,
+                  color: config.enabled ? zt.live : zt.textTertiary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.claimAutoTitle,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: zt.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: zt.textLo),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                key: const Key('claim-auto-switch'),
+                value: config.enabled,
+                onChanged: (value) => ref
+                    .read(claimConfigProvider.notifier)
+                    .setEnabled(widget.device.id, value),
+              ),
+            ],
+          ),
+          if (config.enabled)
+            InkWell(
+              key: const Key('claim-auto-silent-entry'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: _editSilentHours,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 6, 10, 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.bedtime_outlined, size: 14, color: zt.textLo),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.claimAutoSilentEntry,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: zt.textLo,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      config.silentEnabled
+                          ? '${_hhmm(config.silentStartMinutes)}–'
+                                '${_hhmm(config.silentEndMinutes)}'
+                          : l10n.claimAutoSilentOff,
+                      style: zrMono(fontSize: 11, color: zt.textTertiary),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(Icons.chevron_right, size: 16, color: zt.textLo),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 静默时段设置底部弹层（开始/结束时间选择 + 关闭/恢复默认）。
+  Future<void> _editSilentHours() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+        builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          // 弹层非 build 上下文，用 read + setSheetState 驱动刷新。
+          final config =
+              ref.read(claimConfigProvider)[widget.device.id] ??
+              const ClaimAutoConfig();
+          final zt = sheetContext.zt;
+          Future<void> pick(bool isStart) async {
+            final initial = isStart
+                ? config.silentStartMinutes
+                : config.silentEndMinutes;
+            final picked = await showTimePicker(
+              context: sheetContext,
+              initialTime: TimeOfDay(
+                hour: initial ~/ 60,
+                minute: initial % 60,
+              ),
+            );
+            if (picked == null) return;
+            final minutes = picked.hour * 60 + picked.minute;
+            await ref
+                .read(claimConfigProvider.notifier)
+                .setSilent(
+                  widget.device.id,
+                  isStart ? minutes : config.silentStartMinutes,
+                  isStart ? config.silentEndMinutes : minutes,
+                );
+            setSheetState(() {});
+          }
+
+          Widget timeRow(String label, int minutes, bool isStart) => InkWell(
+            key: Key(isStart ? 'claim-auto-silent-start' : 'claim-auto-silent-end'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => pick(isStart),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: zt.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: zt.hairline),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: zt.textHi,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _hhmm(minutes),
+                    style: zrMono(fontSize: 14, color: zt.accent),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 14,
+                    color: zt.textTertiary,
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.bedtime_outlined,
+                        size: 18,
+                        color: zt.accent,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.claimAutoSilentSheetTitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: zt.textHi,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.claimAutoSilentSheetHint,
+                    style: TextStyle(fontSize: 12, color: zt.textLo),
+                  ),
+                  const SizedBox(height: 14),
+                  timeRow(
+                    l10n.claimAutoSilentStart,
+                    config.silentStartMinutes,
+                    true,
+                  ),
+                  const SizedBox(height: 8),
+                  timeRow(
+                    l10n.claimAutoSilentEnd,
+                    config.silentEndMinutes,
+                    false,
+                  ),
+                  const SizedBox(height: 14),
+                  TextButton(
+                    key: const Key('claim-auto-silent-toggle'),
+                    onPressed: () async {
+                      if (config.silentEnabled) {
+                        await ref
+                            .read(claimConfigProvider.notifier)
+                            .setSilent(widget.device.id, 0, 0);
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      } else {
+                        await ref
+                            .read(claimConfigProvider.notifier)
+                            .setSilent(
+                              widget.device.id,
+                              ClaimSchedulerPolicy.defaultSilentStart,
+                              ClaimSchedulerPolicy.defaultSilentEnd,
+                            );
+                        setSheetState(() {});
+                      }
+                    },
+                    child: Text(
+                      config.silentEnabled
+                          ? l10n.claimAutoSilentDisable
+                          : l10n.claimAutoSilentReset,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 历史 Tab（P2-6）：时间线列表，来源徽章 auto/manual，失败原因着色。
+  Widget _historyTab(AppLocalizations l10n) {
+    final board = ref.watch(claimHistoryProvider)[widget.device.id];
+    final records = board?.records ?? const <ClaimRecord>[];
+    final zt = context.zt;
+    if (records.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: zt.accentSubtle,
+                  border: Border.all(color: zt.accentBorder, width: 1.2),
+                ),
+                child: Icon(
+                  Icons.history_rounded,
+                  size: 32,
+                  color: zt.accent,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                l10n.claimHistEmpty,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: zt.textHi,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.claimHistEmptyHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: zt.textLo),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final synced = board?.lastSyncedAt;
+    final locale = Localizations.localeOf(context).toString();
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        if (synced != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(Icons.schedule, size: 12, color: zt.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  l10n.claimHistLastSynced(ClaimFormat.dateTime(synced, locale)),
+                  style: zrMono(fontSize: 11, color: zt.textTertiary),
+                ),
+              ],
+            ),
+          ),
+        ZrSectionHead(title: l10n.claimHistCount(records.length)),
+        const SizedBox(height: 8),
+        for (final record in records) _historyCard(l10n, record),
+      ],
+    );
+  }
+
+  Widget _historyCard(AppLocalizations l10n, ClaimRecord record) {
+    final zt = context.zt;
+    final title = record.planName.isNotEmpty ? record.planName : record.planId;
+    final okColor = record.success ? zt.live : zt.danger;
+    final codeMessage = record.code == null
+        ? null
+        : _codeMessage(l10n, record.code!);
+    final resultText = record.success
+        ? l10n.claimHistResultOk
+        : codeMessage ??
+              (record.message.isNotEmpty
+                  ? record.message
+                  : l10n.claimHistResultFail);
+    String two(int v) => v.toString().padLeft(2, '0');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: zt.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: zt.hairline),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 48,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${two(record.at.hour)}:${two(record.at.minute)}',
+                  style: zrMono(
+                    fontSize: 13,
+                    weight: FontWeight.w700,
+                    color: zt.textHi,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${two(record.at.month)}-${two(record.at.day)}',
+                  style: zrMono(fontSize: 10, color: zt.textTertiary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                          color: zt.textHi,
+                        ),
+                      ),
+                    ),
+                    _sourceBadge(l10n, record.source),
+                  ],
+                ),
+                if (record.benefitSummary.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    record.benefitSummary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: zrMono(fontSize: 11, color: zt.textLo),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      record.success
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
+                      size: 13,
+                      color: okColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        resultText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: okColor,
+                        ),
+                      ),
+                    ),
+                    if (record.code != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '#${record.code}',
+                        style: zrMono(fontSize: 10, color: zt.textTertiary),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceBadge(AppLocalizations l10n, ClaimRecordSource source) {
+    final zt = context.zt;
+    final isAuto = source == ClaimRecordSource.auto;
+    final color = isAuto ? zt.live : zt.accent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.6),
+      ),
+      child: Text(
+        isAuto ? l10n.claimHistSourceAuto : l10n.claimHistSourceManual,
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }

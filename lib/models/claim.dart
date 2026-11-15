@@ -8,6 +8,41 @@ DateTime? parseSecOrMs(dynamic v) {
 int? parseSecOrMsToMillis(dynamic v) =>
     v is num ? (v < 1e12 ? (v * 1000).toInt() : v.toInt()) : null;
 
+/// 权益摘要（领取历史展示用）：token/model_usage 总量 + 每日补充，
+/// locale 无关的纯数字格式（如 "300,000,000 Tokens + 60,000,000/day"）。
+String claimBenefitSummary(List<ClaimEntitlement> entitlements) {
+  var total = 0;
+  var totalFound = false;
+  var daily = 0;
+  var dailyFound = false;
+  for (final e in entitlements) {
+    if (e.unitType != 'token' || e.units == null) continue;
+    if (e.meter == 'model_usage') {
+      total += e.units!.toInt();
+      totalFound = true;
+    } else if (e.period == 'daily') {
+      daily += e.units!.toInt();
+      dailyFound = true;
+    }
+  }
+  if (!totalFound && !dailyFound) return '';
+  String grouped(int v) {
+    final digits = v.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      buffer.write(digits[i]);
+      final remain = digits.length - 1 - i;
+      if (remain > 0 && remain % 3 == 0) buffer.write(',');
+    }
+    return buffer.toString();
+  }
+
+  return [
+    if (totalFound) '${grouped(total)} Tokens',
+    if (dailyFound) '${grouped(daily)}/day',
+  ].join(' + ');
+}
+
 class ClaimEntitlement {
   const ClaimEntitlement({
     this.showName = '',
