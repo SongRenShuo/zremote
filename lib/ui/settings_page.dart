@@ -743,6 +743,10 @@ class _NotificationCard extends ConsumerWidget {
           prefs.quotaLow,
           (v) => notifier.set(prefs.copyWith(quotaLow: v)),
         ),
+        if (prefs.quotaLow) ...[
+          const _GroupDivider(),
+          _QuotaThresholdTile(prefs: prefs),
+        ],
         const _GroupDivider(),
         _DndTile(prefs: prefs),
         Padding(
@@ -823,6 +827,99 @@ class _DndTile extends ConsumerWidget {
     await ref
         .read(notificationPrefsProvider.notifier)
         .set(prefs.copyWith(dndStartMinutes: start, dndEndMinutes: end));
+  }
+}
+
+/// 额度预警阈值滑杆（额度消耗预警）：50–100%，步进 1；拖动结束才落盘。
+class _QuotaThresholdTile extends ConsumerStatefulWidget {
+  const _QuotaThresholdTile({required this.prefs});
+
+  final NotificationPrefs prefs;
+
+  @override
+  ConsumerState<_QuotaThresholdTile> createState() => _QuotaThresholdTileState();
+}
+
+class _QuotaThresholdTileState extends ConsumerState<_QuotaThresholdTile> {
+  late double _value = widget.prefs.quotaAlertThreshold.toDouble();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final zt = context.zt;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: zt.warn.withValues(alpha: 0.10),
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 17,
+                  color: zt.warn,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.settingsNotifQuotaThreshold,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: zt.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      l10n.settingsNotifQuotaThresholdSub,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.4,
+                        color: zt.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${_value.round()}%',
+                style: zrMono(
+                  fontSize: 13,
+                  weight: FontWeight.w700,
+                  color: zt.textHi,
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            key: const Key('quota-threshold-slider'),
+            value: _value,
+            min: 50,
+            max: 100,
+            divisions: 50,
+            label: '${_value.round()}%',
+            onChanged: (v) => setState(() => _value = v),
+            onChangeEnd: (v) {
+              ZrHaptics.tap();
+              ref
+                  .read(notificationPrefsProvider.notifier)
+                  .set(widget.prefs.copyWith(quotaAlertThreshold: v.round()));
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 

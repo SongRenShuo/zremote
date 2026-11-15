@@ -13,16 +13,19 @@ import '../services/device_import.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
 import '../services/task_actions.dart';
+import '../state/accounts.dart';
 import '../state/approval_center.dart';
 import '../state/claim_entry.dart';
 import '../state/event_feed.dart';
 import '../state/keepalive.dart';
 import '../state/notification_prefs.dart';
+import '../state/quota_alert.dart';
 import '../state/session_index.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'manage_page.dart';
+import 'quota_page.dart';
 import 'settings_page.dart';
 import 'session_view.dart';
 import 'haptics.dart';
@@ -139,8 +142,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   /// 通知点击路由：`claim:<deviceId>`（领取结果，P2-7）→ 跳设备 +
-  /// 请求打开领取页；`<deviceId>#<taskId>`（P4-7）→ 跳设备 +
-  /// 请求定位具体会话；其余 payload 语义为设备 id（沿用既有行为）。
+  /// 请求打开领取页；`quota:<deviceId>`（额度预警）→ 跳设备 + 打开额度中心；
+  /// `<deviceId>#<taskId>`（P4-7）→ 跳设备 + 请求定位具体会话；其余 payload
+  /// 语义为设备 id（沿用既有行为）。
   void _jumpToPayload(String payload) {
     if (!mounted) return;
     final target = NotificationPayload.parse(payload);
@@ -148,6 +152,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     _jumpTo(target.deviceId);
     if (target.claim) {
       ref.read(claimOpenRequestProvider.notifier).request(target.deviceId);
+      return;
+    }
+    if (target.quota) {
+      _openQuotaCenter(target.deviceId);
       return;
     }
     final taskId = target.taskId;
@@ -160,12 +168,41 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  /// 额度预警通知点击 → 打开额度中心（桥来自会话挂桥注册；未挂桥仅切设备）。
+  void _openQuotaCenter(String deviceId) {
+    final devices = ref.read(deviceListProvider);
+    final index = devices.indexWhere((d) => d.id == deviceId);
+    if (index < 0) return;
+    final bridge =
+        ref.read(approvalCenterProvider.notifier).clientOf(deviceId)?.bridge;
+    if (bridge == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => QuotaPage(
+          device: devices[index],
+          bridge: bridge,
+          tokenProvider: () async => ticketsOfActiveAccount(
+            ref.read(accountsProvider),
+            devices[index],
+          ).quotaTokens,
+        ),
+      ),
+    );
+  }
+
   /// P1-4 通知动作路由：`perm:<deviceId>:<taskId>` payload +
   /// actionId（zr-act-approve / zr-act-deny）→ 审批回执；
+  /// `quota:<deviceId>` + zr-act-claim → 打开领取页；
   /// 无桥/无待办/RPC 失败 → 静默回退跳设备会话页由用户在页面内操作。
   /// 决策逻辑在 approval_route（纯函数可测），这里只执行。
   Future<void> _handleApprovalAction(String actionId, String payload) async {
     if (!mounted) return;
+    final quotaId = TaskActionsClient.parseQuotaPayload(payload);
+    if (quotaId != null) {
+      _jumpTo(quotaId);
+      ref.read(claimOpenRequestProvider.notifier).request(quotaId);
+      return;
+    }
     final parsed = TaskActionsClient.parsePermPayload(payload);
     final client = parsed == null
         ? null
@@ -221,6 +258,10 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (prev != null && prev.isEmpty && next.isNotEmpty) {
         _consumePendingTap();
         ref.read(activeTabProvider.notifier).restoreLast();
+      }
+      // 额度预警后台节拍：有设备才启动（无设备无对象可查）。
+      if (next.isNotEmpty) {
+        ref.read(quotaAlertWatcherProvider.notifier).start();
       }
     });
 

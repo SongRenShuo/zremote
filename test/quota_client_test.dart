@@ -17,6 +17,7 @@ import 'package:zremote/models/provider_settings.dart'
 import 'package:zremote/services/account_credentials.dart';
 import 'package:zremote/services/account_vault.dart';
 import 'package:zremote/services/quota_client.dart';
+import 'package:zremote/services/rpc_bridge.dart' show RpcRemoteException;
 
 import 'scripted_bridge.dart';
 
@@ -873,15 +874,25 @@ void main() {
       expect(status.entries.where((e) => e.isWeekly).single.available, 3);
     });
 
-    test('使用成功：幂等键 uuid v4 且随命令下发', () async {
-      final scripted = ScriptedBridge(script: const [
+    // 重置卡三个 RPC 方法都先解析 entitle provider（getView），再带
+    // preferredProviderId + accountAccess 调宿主（契约 CodingPlanUsageRequest）。
+    final providerView = _providerViewJson([
+      _providerJson('builtin:zai-coding-plan', mode: 'individual-coding-plan'),
+    ]);
+    final noProviderView = _providerViewJson([
+      _providerJson('p-no', entitled: false),
+    ]);
+
+    test('使用成功：幂等键 uuid v4 + 契约参数随命令下发', () async {
+      final scripted = ScriptedBridge(script: [
+        [providerView],
         [
-          {'success': true},
+          {'used': true},
         ],
       ]);
       final client = QuotaClient(bridge: scripted.bridge);
       final result = await client.useResetCard('FIVE_HOURS');
-      expect(result.success, isTrue);
+      expect(result.success, isTrue, reason: '宿主成功回执为 {used: true}');
       expect(result.rateLimited, isFalse);
       expect(
         RegExp(
@@ -889,15 +900,33 @@ void main() {
         ).hasMatch(result.idempotencyKey!),
         isTrue,
       );
-      final args = argsOf(scripted.commands.single);
-      expect(args.single, {
-        'idempotency_key': result.idempotencyKey,
-        'reset_type': 'FIVE_HOURS',
-      });
+      expect(scripted.commands, hasLength(2));
+      final request = requestOf(scripted.commands[1]);
+      expect(request.channel, 'usage-stats');
+      expect(request.method, 'useCodingPlanReset');
+      final params = request.params as Map<String, dynamic>;
+      expect(params['preferredProviderId'], 'builtin:zai-coding-plan');
+      expect(params['accountAccess'], isA<Map<String, dynamic>>());
+      expect(params['idempotencyKey'], result.idempotencyKey);
+      expect(params['resetType'], 'FIVE_HOURS');
+      expect(params.containsKey('range'), isTrue);
+    });
+
+    test('无限流：无 entitle provider → 按 no_bigmodel_api_key 失败态', () async {
+      final scripted = ScriptedBridge(script: [
+        [noProviderView],
+      ]);
+      final result = await QuotaClient(
+        bridge: scripted.bridge,
+      ).useResetCard('FIVE_HOURS');
+      expect(result.success, isFalse);
+      expect(result.message, contains('no_bigmodel_api_key'));
+      expect(scripted.commands, hasLength(1), reason: '未发 reset 调用');
     });
 
     test('限流 3301（响应体形状）：next_try_at 倒计时读数', () async {
-      final scripted = ScriptedBridge(script: const [
+      final scripted = ScriptedBridge(script: [
+        [providerView],
         [
           {'success': false, 'code': 3301, 'next_try_at': 1762339200000},
         ],
@@ -910,10 +939,11 @@ void main() {
     });
 
     test('限流 3301（RPC 异常文本形状）：正则提取 next_try_at', () async {
-      final scripted = ScriptedBridge(script: const [
+      final scripted = ScriptedBridge(script: [
+        [providerView],
         [],
       ], errors: {
-        0: 'use_coding_plan_reset rejected: code=3301, next_try_at=1731600000000',
+        1: 'use_coding_plan_reset rejected: code=3301, next_try_at=1731600000000',
       });
       final client = QuotaClient(bridge: scripted.bridge);
       final result = await client.useResetCard('FIVE_HOURS');
@@ -921,18 +951,41 @@ void main() {
       expect(result.nextTryAt!.millisecondsSinceEpoch, 1731600000000);
     });
 
-    test('resetCardSupported：no-method → false；ok → true；业务错 → true', () async {
-      final noMethod = ScriptedBridge(script: const [
+    test('resetCardSupported：无 provider/no-method/无 key → false；业务错 → true', () async {
+      final noProvider = ScriptedBridge(script: [
+        [noProviderView],
+      ]);
+      expect(
+        await QuotaClient(bridge: noProvider.bridge).resetCardSupported(),
+        isFalse,
+        reason: '无 entitle provider 视作不支持（隐藏区块）',
+      );
+
+      final noMethod = ScriptedBridge(script: [
+        [providerView],
         [],
       ], errors: {
-        0: 'no-method: useCodingPlanReset',
+        1: 'no-method: useCodingPlanReset',
       });
       expect(
         await QuotaClient(bridge: noMethod.bridge).resetCardSupported(),
         isFalse,
       );
 
-      final ok = ScriptedBridge(script: const [
+      final noKey = ScriptedBridge(script: [
+        [providerView],
+        [],
+      ], errors: {
+        1: 'no_bigmodel_api_key',
+      });
+      expect(
+        await QuotaClient(bridge: noKey.bridge).resetCardSupported(),
+        isFalse,
+        reason: '非 coding-plan provider 视作不支持',
+      );
+
+      final ok = ScriptedBridge(script: [
+        [providerView],
         [
           {'resets': []},
         ],
@@ -942,10 +995,11 @@ void main() {
         isTrue,
       );
 
-      final bizFail = ScriptedBridge(script: const [
+      final bizFail = ScriptedBridge(script: [
+        [providerView],
         [],
       ], errors: {
-        0: 'coding_plan_reset_not_available',
+        1: 'coding_plan_reset_not_available',
       });
       expect(
         await QuotaClient(bridge: bizFail.bridge).resetCardSupported(),
@@ -954,16 +1008,55 @@ void main() {
       );
     });
 
-    test('fetchResetCardStatus：no-method 抛 ResetCardUnsupportedException',
-        () async {
-      final noMethod = ScriptedBridge(script: const [
+    test('fetchResetCardStatus：无 provider/no-method → Unsupported；RPC 错误 → 失败态', () async {
+      final noProvider = ScriptedBridge(script: [
+        [noProviderView],
+      ]);
+      await expectLater(
+        QuotaClient(bridge: noProvider.bridge).fetchResetCardStatus(),
+        throwsA(isA<ResetCardUnsupportedException>()),
+      );
+
+      final noMethod = ScriptedBridge(script: [
+        [providerView],
         [],
       ], errors: {
-        0: 'no-method: getCodingPlanUsageSnapshot',
+        1: 'no-method: getCodingPlanUsageSnapshot',
       });
       await expectLater(
         QuotaClient(bridge: noMethod.bridge).fetchResetCardStatus(),
         throwsA(isA<ResetCardUnsupportedException>()),
+      );
+
+      final rpcError = ScriptedBridge(script: [
+        [providerView],
+        [],
+      ], errors: {
+        1: 'network down',
+      });
+      await expectLater(
+        QuotaClient(bridge: rpcError.bridge).fetchResetCardStatus(),
+        throwsA(isA<RpcRemoteException>()),
+        reason: '真实 RPC 错误才走「加载失败」可重试态',
+      );
+
+      final ok = ScriptedBridge(script: [
+        [providerView],
+        [
+          {
+            'resets': [
+              {'reset_type': 'FIVE_HOURS', 'available': 1},
+            ],
+          },
+        ],
+      ]);
+      final status = await QuotaClient(bridge: ok.bridge).fetchResetCardStatus();
+      expect(status.entries.single.available, 1);
+      final request = requestOf(ok.commands[1]);
+      expect(request.params, isA<Map<String, dynamic>>());
+      expect(
+        (request.params as Map<String, dynamic>)['preferredProviderId'],
+        'builtin:zai-coding-plan',
       );
     });
   });

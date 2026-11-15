@@ -11,6 +11,7 @@ import '../state/automation.dart';
 import '../state/behavior.dart';
 import '../state/claim_history.dart';
 import 'claim_scheduler.dart';
+import 'quota_alert.dart';
 
 /// 行为配置允许的权限模式（与 automation_form kPermissionModes 同源；
 /// 独立声明避免 services 反向依赖 ui）。
@@ -216,6 +217,7 @@ class DeviceStore {
   static const _notifClaimResultKey = 'zremote.notify.claimResult';
   static const _notifCaptchaKey = 'zremote.notify.captchaManual';
   static const _notifQuotaLowKey = 'zremote.notify.quotaLow';
+  static const _notifQuotaThresholdKey = 'zremote.notify.quotaThreshold';
   static const _notifDndStartKey = 'zremote.notify.dndStart';
   static const _notifDndEndKey = 'zremote.notify.dndEnd';
 
@@ -228,9 +230,17 @@ class DeviceStore {
       claimResult: prefs.getBool(_notifClaimResultKey) ?? true,
       captchaManual: prefs.getBool(_notifCaptchaKey) ?? false,
       quotaLow: prefs.getBool(_notifQuotaLowKey) ?? false,
+      quotaAlertThreshold: _thresholdOf(prefs),
       dndStartMinutes: _minuteOf(prefs, _notifDndStartKey),
       dndEndMinutes: _minuteOf(prefs, _notifDndEndKey),
     );
+  }
+
+  /// 额度预警阈值读出（越界/类型漂移回落默认 80）。
+  static int _thresholdOf(SharedPreferences prefs) {
+    final v = prefs.getInt(_notifQuotaThresholdKey);
+    if (v == null) return QuotaAlertPolicy.defaultThreshold;
+    return QuotaAlertPolicy.clampThreshold(v);
   }
 
   /// DND 分钟值读出（越界/类型漂移回落 0，与「关闭」同义）。
@@ -248,6 +258,7 @@ class DeviceStore {
     await prefs.setBool(_notifClaimResultKey, value.claimResult);
     await prefs.setBool(_notifCaptchaKey, value.captchaManual);
     await prefs.setBool(_notifQuotaLowKey, value.quotaLow);
+    await prefs.setInt(_notifQuotaThresholdKey, value.quotaAlertThreshold);
     await prefs.setInt(_notifDndStartKey, value.dndStartMinutes);
     await prefs.setInt(_notifDndEndKey, value.dndEndMinutes);
   }
@@ -330,5 +341,34 @@ class DeviceStore {
       '$_claimConfigPrefix$deviceId',
       jsonEncode(config.toJson()),
     );
+  }
+
+  static const _quotaAlertPrefix = 'zremote.quotaAlert.';
+
+  /// 额度预警水位（`zremote.quotaAlert.<deviceId>`）：容错解析，脏值回落
+  /// null（不预警）。写入 null 表示清零。
+  Future<QuotaAlertWaterLevel?> quotaAlertWaterLevel(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('$_quotaAlertPrefix$deviceId');
+      if (raw == null || raw.isEmpty) return null;
+      return QuotaAlertWaterLevel.fromJson(jsonDecode(raw));
+    } catch (e) {
+      debugPrint('[quota-alert] water level load failed: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveQuotaAlertWaterLevel(
+    String deviceId,
+    QuotaAlertWaterLevel? level,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_quotaAlertPrefix$deviceId';
+    if (level == null) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, jsonEncode(level.toJson()));
   }
 }

@@ -28,6 +28,19 @@ class TaskActionsClient {
   static const String actionApprove = 'zr-act-approve';
   static const String actionDeny = 'zr-act-deny';
 
+  /// 额度预警「去领取」动作 id（payload `quota:<deviceId>`）。
+  static const String actionClaim = 'zr-act-claim';
+
+  /// 额度预警通知 payload 前缀：`quota:<deviceId>`。
+  static const String quotaPayloadPrefix = 'quota:';
+
+  /// 解析 `quota:<deviceId>`；不匹配前缀或 id 为空返回 null。
+  static String? parseQuotaPayload(String payload) {
+    if (!payload.startsWith(quotaPayloadPrefix)) return null;
+    final id = payload.substring(quotaPayloadPrefix.length);
+    return id.isEmpty ? null : id;
+  }
+
   /// 解析 `perm:<deviceId>:<taskId>`；不匹配前缀或段数不足返回 null。
   static ({String deviceId, String taskId})? parsePermPayload(String payload) {
     if (!payload.startsWith(permPayloadPrefix)) return null;

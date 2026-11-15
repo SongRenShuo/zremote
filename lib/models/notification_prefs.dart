@@ -6,6 +6,7 @@ class NotificationPrefs {
     this.claimResult = true,
     this.captchaManual = false,
     this.quotaLow = false,
+    this.quotaAlertThreshold = 80,
     this.dndStartMinutes = 0,
     this.dndEndMinutes = 0,
   });
@@ -22,8 +23,11 @@ class NotificationPrefs {
   /// 需人工验证码（P3-1，L3 zr_claim 渠道 captchaNeeded kind）。
   final bool captchaManual;
 
-  /// 额度耗尽预警（P3-1 占位，暂无发送方）。
+  /// 额度消耗预警开关（额度中心/设置页共用）。
   final bool quotaLow;
+
+  /// 额度预警阈值（已用百分比，默认 80；耗尽固定 100%）。
+  final int quotaAlertThreshold;
 
   /// 免打扰起始（一天内分钟数，0-1439）。start==end 表示关闭（默认）。
   final int dndStartMinutes;
@@ -41,6 +45,7 @@ class NotificationPrefs {
     bool? claimResult,
     bool? captchaManual,
     bool? quotaLow,
+    int? quotaAlertThreshold,
     int? dndStartMinutes,
     int? dndEndMinutes,
   }) => NotificationPrefs(
@@ -50,6 +55,7 @@ class NotificationPrefs {
     claimResult: claimResult ?? this.claimResult,
     captchaManual: captchaManual ?? this.captchaManual,
     quotaLow: quotaLow ?? this.quotaLow,
+    quotaAlertThreshold: quotaAlertThreshold ?? this.quotaAlertThreshold,
     dndStartMinutes: dndStartMinutes ?? this.dndStartMinutes,
     dndEndMinutes: dndEndMinutes ?? this.dndEndMinutes,
   );
