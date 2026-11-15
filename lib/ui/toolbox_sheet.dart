@@ -96,6 +96,10 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
   String _query = '';
   bool _expanded = false;
 
+  /// 「更多」展开后新出现的资产组 / Git 卡用此 key 主动滚进可视区：
+  /// 否则新内容整块停在屏幕外，用户会以为没点开（问题十八）。
+  final GlobalKey _moreRevealKey = GlobalKey();
+
   /// 折叠阈值：入口数 ≥8 时默认收起（任务 P1-9）。
   static const int collapseThreshold = 8;
 
@@ -355,9 +359,12 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
                   zt: zt,
                 ),
                 if (showGitCard)
-                  GitCard(
-                    client: widget.gitClient,
-                    workspacePath: widget.workspacePath,
+                  KeyedSubtree(
+                    key: _moreRevealKey,
+                    child: GitCard(
+                      client: widget.gitClient,
+                      workspacePath: widget.workspacePath,
+                    ),
                   ),
               ],
             ),
@@ -368,7 +375,7 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
             child: TextButton(
               key: const Key('toolbox-more'),
-              onPressed: () => setState(() => _expanded = true),
+              onPressed: _expandMore,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -414,6 +421,23 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
         ),
       ],
     );
+  }
+
+  /// 展开「更多」：除了显示资产组，再把新出现的内容滚进可视区。
+  void _expandMore() {
+    setState(() => _expanded = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _moreRevealKey.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        // keepVisibleAtEnd：内容本就放得下时不动列表，只补足「差多少」。
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
   }
 
   List<Widget> _groupSection({
