@@ -7,11 +7,24 @@ on:
 permissions:
   contents: write
 
+# 发行轮并发纪律（参考 build-plugin.yml 的 release/publish 分组）：
+# 发行不可取消、不可与另一轮并发覆盖同一 tag 的 Release 资产，故 cancel-in-progress: false。
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  apk:
+  # 验证腿：analyze + test，与 CI 同口径。
+  # 为什么不删（apk 旧版会跑这两步，看着像重复劳动）：tag 可能指向未被 main 的 CI 覆盖的提交，
+  # 且本轮以 verify 通过为发布前提——未过验证不建 Release，验证强度不降。
+  # 为什么也不挡构建：verify 与 apk/ipa 并行，不在关键路径上（apk 构建约 430s，verify 约 100s）。
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v4
         with:
@@ -24,9 +37,61 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
       - run: flutter analyze
       - run: flutter test
+
+  # APK 构建腿：与 ipa 并行（旧版 ipa needs apk，白等约 216s）。
+  apk:
+    runs-on: ubuntu-latest
+    # 实测 build apk 约 430s（含 Gradle 依赖下载/NDK/CMake 安装），40 分钟给足首构建余量。
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+
+      # Gradle 用户home缓存（依赖 + wrapper）：旧版每轮从零下载，实测 Gradle 任务 427.7s 里
+      # 有相当一段是依赖解析/下载。key 覆盖 android 构建脚本与 pubspec.lock（依赖覆盖路径包也变）。
+      - name: 缓存 Gradle 依赖与 wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/build.gradle.kts', 'android/app/build.gradle.kts', 'android/settings.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties', 'android/gradle.properties', 'pubspec.lock') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
 
       # 签名密钥来自 repo secrets；未配置则跳过，构建回退 debug 签名
       - name: Restore release keystore
@@ -46,19 +111,17 @@ jobs:
         with:
           name: zremote-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          # 产物缺失即红：旧版默认 warn，可能带着空资产去建 Release。
+          if-no-files-found: error
 
-      - name: GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: build/app/outputs/flutter-apk/app-release.apk
-
-  # iOS 出未签名 IPA：无 Apple 开发者账号也可分发，用户自行签名侧载
+  # iOS 出未签名 IPA：无 Apple 开发者账号也可分发，用户自行签名侧载。
   ipa:
-    needs: apk
     runs-on: macos-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: subosito/flutter-action@v2
         with:
@@ -66,7 +129,16 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
       - run: flutter build ios --release --no-codesign
 
       - name: Package unsigned IPA
@@ -79,13 +151,36 @@ jobs:
         with:
           name: zremote-ios-unsigned-ipa
           path: zremote-ios-unsigned.ipa
+          if-no-files-found: error
 
-      - name: Attach unsigned IPA to Release
+  # 统一建 Release：等 verify + apk + ipa 全绿再建，避免旧版 apk/ipa 两处并发写同一 Release 的竞态，
+  # 也让「验证失败 → 不建 Release」成为原子语义。
+  publish:
+    needs: [verify, apk, ipa]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 下载 APK 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: zremote-apk
+          path: artifacts/apk
+
+      - name: 下载 IPA 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: zremote-ios-unsigned-ipa
+          path: artifacts/ipa
+
+      - name: GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          append_body: true
+          generate_release_notes: true
+          # body 会前置到自动生成的发布说明之前（softprops/action-gh-release 文档），两者共存。
           body: |
             > **iOS 包 `zremote-ios-unsigned.ipa` 为未签名包，无法直接安装。**
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
-          files: zremote-ios-unsigned.ipa
+          files: |
+            artifacts/apk/app-release.apk
+            artifacts/ipa/zremote-ios-unsigned.ipa

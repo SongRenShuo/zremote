@@ -7,11 +7,25 @@ on:
   # 支持在任意分支上手动触发（Actions 页选分支 → Run workflow）
   workflow_dispatch:
 
+# 并发纪律（参考 mybatis-plus-sql-visualizer push-test.yml）：
+# 同分支新推送直接取消同分支在跑的整轮，队列永远只留最新提交。
+# 高频推送下结论延迟从「按轮数线性累积」变成固定的一轮墙钟；连推 5 次只按最后那次计成本。
+concurrency:
+  group: ci-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    # 明确超时：正常约 1.5~2.5 分钟（近 10 轮实测 79~148s），20 分钟给足抖动余量又不让挂死轮空占。
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v4
         with:
@@ -24,15 +38,31 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      # 网络瞬断自愈（参考 run-gradle-retry 的思路，但只包最易受网络影响、代价最小的一步）：
+      # pub get 失败重试 3 次；三次都失败才判红，不掩盖真实错误。
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
       - run: flutter analyze
       - run: flutter test
 
-  # iOS 可构建性巡检：macOS 出未签名包，防 iOS 侧悄悄烂掉
+  # iOS 可构建性巡检：macOS 出未签名包，防 iOS 侧悄悄烂掉。
+  # 关键路径实测：近 10 轮 ios 墙钟 43~348s（均值约 230s），其中 Xcode build 约 80~260s、
+  # Flutter SDK 缓存恢复约 20~67s。这条腿是整轮 CI 的地板，故不裁（裁了等于放弃 iOS 可构建性验证）。
   ios:
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: subosito/flutter-action@v2
         with:
@@ -40,5 +70,14 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
       - run: flutter build ios --release --no-codesign
