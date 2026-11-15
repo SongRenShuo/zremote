@@ -547,6 +547,86 @@
   "@notifChannelDone": {
     "description": "OS notification channel name for completions"
   },
+  "notifChannelQuota": "额度预警",
+  "@notifChannelQuota": {
+    "description": "OS notification channel name for quota alerts"
+  },
+  "quotaAlertWarnTitle": "{device} 额度已用 {percent}%",
+  "@quotaAlertWarnTitle": {
+    "description": "Quota warning notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertWarnBody": "{plan} 剩余 {remaining}%，预计 {reset} 重置",
+  "@quotaAlertWarnBody": {
+    "description": "Quota warning notification body",
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      },
+      "reset": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalTitle": "{device} 额度已耗尽",
+  "@quotaAlertCriticalTitle": {
+    "description": "Quota exhausted notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalBody": "去领取或等待 {reset} 重置",
+  "@quotaAlertCriticalBody": {
+    "description": "Quota exhausted notification body (auto claim off)",
+    "placeholders": {
+      "reset": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalAutoBody": "自动领取未成功，需人工领取",
+  "@quotaAlertCriticalAutoBody": {
+    "description": "Quota exhausted notification body (auto claim on)"
+  },
+  "quotaAlertActionClaim": "去领取",
+  "@quotaAlertActionClaim": {
+    "description": "Quota alert notification action button"
+  },
+  "quotaAlertBannerWarn": "额度已用 {percent}%，{plan} 剩余 {remaining}%",
+  "@quotaAlertBannerWarn": {
+    "description": "Quota center warning banner",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertBannerCritical": "额度已耗尽，需领取或等待重置",
+  "@quotaAlertBannerCritical": {
+    "description": "Quota center exhausted banner"
+  },
+  "quotaAlertBannerClaim": "去领取",
+  "@quotaAlertBannerClaim": {
+    "description": "Quota center exhausted banner action"
+  },
   "notifSessionFallback": "会话",
   "@notifSessionFallback": {
     "description": "Fallback session title when event carries none"
@@ -3539,13 +3619,21 @@
   "@settingsNotifCaptchaSub": {
     "description": "Notification toggle subtitle: captcha"
   },
-  "settingsNotifQuotaLow": "额度耗尽预警",
+  "settingsNotifQuotaLow": "额度消耗预警",
   "@settingsNotifQuotaLow": {
-    "description": "Notification toggle: quota exhausted (placeholder)"
+    "description": "Notification toggle: quota usage alert"
   },
-  "settingsNotifQuotaLowSub": "占位（暂未启用）",
+  "settingsNotifQuotaLowSub": "额度用量超过阈值时提醒",
   "@settingsNotifQuotaLowSub": {
-    "description": "Notification toggle subtitle: quota placeholder"
+    "description": "Notification toggle subtitle: quota alert"
+  },
+  "settingsNotifQuotaThreshold": "额度预警阈值",
+  "@settingsNotifQuotaThreshold": {
+    "description": "Quota alert threshold slider title"
+  },
+  "settingsNotifQuotaThresholdSub": "用量达到该百分比时提醒（耗尽固定 100%）",
+  "@settingsNotifQuotaThresholdSub": {
+    "description": "Quota alert threshold slider subtitle"
   },
   "settingsNotifDnd": "免打扰时段",
   "@settingsNotifDnd": {

@@ -118,6 +118,83 @@
   "notifChannelApproval": "Approval requests",
   "notifChannelFail": "Task failed",
   "notifChannelDone": "Task completed",
+  "notifChannelQuota": "Quota alerts",
+  "quotaAlertWarnTitle": "{device} quota {percent}% used",
+  "@quotaAlertWarnTitle": {
+    "description": "Quota warning notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertWarnBody": "{plan}: {remaining}% left, resets {reset}",
+  "@quotaAlertWarnBody": {
+    "description": "Quota warning notification body",
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      },
+      "reset": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalTitle": "{device} quota exhausted",
+  "@quotaAlertCriticalTitle": {
+    "description": "Quota exhausted notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalBody": "Claim now or wait for the {reset} reset",
+  "@quotaAlertCriticalBody": {
+    "description": "Quota exhausted notification body (auto claim off)",
+    "placeholders": {
+      "reset": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertCriticalAutoBody": "Auto-claim did not succeed; manual claim required",
+  "@quotaAlertCriticalAutoBody": {
+    "description": "Quota exhausted notification body (auto claim on)"
+  },
+  "quotaAlertActionClaim": "Claim",
+  "@quotaAlertActionClaim": {
+    "description": "Quota alert notification action button"
+  },
+  "quotaAlertBannerWarn": "{percent}% used · {plan}: {remaining}% left",
+  "@quotaAlertBannerWarn": {
+    "description": "Quota center warning banner",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaAlertBannerCritical": "Quota exhausted — claim or wait for reset",
+  "@quotaAlertBannerCritical": {
+    "description": "Quota center exhausted banner"
+  },
+  "quotaAlertBannerClaim": "Claim",
+  "@quotaAlertBannerClaim": {
+    "description": "Quota center exhausted banner action"
+  },
   "notifSessionFallback": "Session",
   "notifPermTitle": "[{device}] {session} needs your approval",
   "notifPermBody": "An agent action is waiting for your approval",
@@ -2791,13 +2868,21 @@
   "@settingsNotifCaptchaSub": {
     "description": "Notification toggle subtitle: captcha"
   },
-  "settingsNotifQuotaLow": "Quota exhausted warning",
+  "settingsNotifQuotaLow": "Quota usage alerts",
   "@settingsNotifQuotaLow": {
-    "description": "Notification toggle: quota exhausted (placeholder)"
+    "description": "Notification toggle: quota usage alert"
   },
-  "settingsNotifQuotaLowSub": "Placeholder (not active yet)",
+  "settingsNotifQuotaLowSub": "Notify when quota usage crosses the threshold",
   "@settingsNotifQuotaLowSub": {
-    "description": "Notification toggle subtitle: quota placeholder"
+    "description": "Notification toggle subtitle: quota alert"
+  },
+  "settingsNotifQuotaThreshold": "Quota alert threshold",
+  "@settingsNotifQuotaThreshold": {
+    "description": "Quota alert threshold slider title"
+  },
+  "settingsNotifQuotaThresholdSub": "Alert at this usage percentage (exhausted fixed at 100%)",
+  "@settingsNotifQuotaThresholdSub": {
+    "description": "Quota alert threshold slider subtitle"
   },
   "settingsNotifDnd": "Do not disturb",
   "@settingsNotifDnd": {

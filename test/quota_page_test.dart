@@ -116,6 +116,29 @@ QuotaOverview _twoPlanOverview() {
   ]);
 }
 
+/// 单槽总览：主槽 percentUsed=percent（预警条判档用）。
+QuotaOverview _singleSlotOverview(double percent) {
+  final slot = PlanSlot(
+    pid: 'coding-max',
+    tierCode: QuotaTierCode.max,
+    tier: 'Max',
+    name: 'GLM Coding Max',
+    total: 100,
+    used: percent,
+    remaining: 100 - percent,
+    percentUsed: percent,
+    items: const [],
+  );
+  return QuotaOverview(
+    plans: [slot],
+    items: const [],
+    refreshedAt: DateTime(2026, 11, 15, 10, 30),
+    sources: const ['host-snapshot'],
+    percentUsed: percent,
+    remaining: 100 - percent,
+  );
+}
+
 ResetCardStatus _resetStatus() => const ResetCardStatus(
   entries: [
     ResetCardEntry(
@@ -135,6 +158,7 @@ Future<_FakeQuotaClient> _pumpPage(
   QuotaOverview? overview,
   ResetCardStatus? status,
   bool supported = true,
+  VoidCallback? onClaimPressed,
 }) async {
   final device = RemoteDevice(
     id: 'd1',
@@ -158,6 +182,7 @@ Future<_FakeQuotaClient> _pumpPage(
           device: device,
           bridge: fake.bridge,
           client: fake,
+          onClaimPressed: onClaimPressed,
         ),
       ),
     ),
@@ -341,5 +366,34 @@ void main() {
     );
     expect(find.text('当前账号暂无生效套餐'), findsOneWidget);
     expect(find.byKey(const Key('quota-slot-0')), findsNothing);
+  });
+
+  testWidgets('预警条：默认 40% 不显示（未达阈值）', (tester) async {
+    await _pumpPage(tester);
+    expect(find.byKey(const Key('quota-alert-banner')), findsNothing);
+    expect(find.byKey(const Key('quota-alert-claim')), findsNothing);
+  });
+
+  testWidgets('预警条：85% 显示黄条与用量文案', (tester) async {
+    await _pumpPage(tester, overview: _singleSlotOverview(85));
+    expect(find.byKey(const Key('quota-alert-banner')), findsOneWidget);
+    expect(find.textContaining('85%'), findsWidgets);
+    expect(find.textContaining('GLM Coding Max'), findsWidgets);
+    expect(find.byKey(const Key('quota-alert-claim')), findsNothing,
+        reason: '未耗尽不给「去领取」');
+  });
+
+  testWidgets('预警条：耗尽红条 + 「去领取」回调', (tester) async {
+    var claimed = 0;
+    await _pumpPage(
+      tester,
+      overview: _singleSlotOverview(100),
+      onClaimPressed: () => claimed++,
+    );
+    expect(find.byKey(const Key('quota-alert-banner')), findsOneWidget);
+    expect(find.text('额度已耗尽，需领取或等待重置'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quota-alert-claim')));
+    await tester.pumpAndSettle();
+    expect(claimed, 1);
   });
 }

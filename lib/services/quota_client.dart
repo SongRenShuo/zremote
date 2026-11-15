@@ -10,6 +10,7 @@ import '../models/provider_settings.dart'
         EntitlementSemantic,
         ProviderSettingsView,
         UsageEntitlement,
+        ZrProvider,
         classifyEntitlement,
         entitlementParamsFor,
         pickEntitlementProvider;
@@ -1031,7 +1032,10 @@ class ResetCardUseResult {
     String idempotencyKey,
   ) {
     final code = j['code'] is num ? (j['code'] as num).toInt() : null;
-    final success = j['success'] == true && code != 3301;
+    // 宿主成功回执为 {used: true}（CodingPlanResetUseResult）；旧形状
+    // {success: true} 兼容保留。
+    final success =
+        (j['used'] == true || j['success'] == true) && code != 3301;
     return ResetCardUseResult(
       success: success,
       message: j['message'] is String ? j['message'] as String : '',
@@ -1140,6 +1144,12 @@ class QuotaClient {
   /// 视图不可用 / 无 entitle provider → null（调用方降级为仅
   /// `includeSubscription`）。异常一律吞掉降级，不阻断额度拉取。
   Future<Map<String, dynamic>?> loadEntitlementParams() async {
+    final provider = await _entitlementProvider();
+    return provider == null ? null : entitlementParamsFor(provider);
+  }
+
+  /// 挑 entitle provider（额度/重置卡共用）：视图不可用 / 无候选 → null。
+  Future<ZrProvider?> _entitlementProvider() async {
     try {
       final r = await bridge.call(
         'provider-settings',
@@ -1147,13 +1157,41 @@ class QuotaClient {
         timeout: const Duration(seconds: 15),
       );
       final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
-      final provider = pickEntitlementProvider(view, null);
-      if (provider == null) return null;
-      return entitlementParamsFor(provider);
+      return pickEntitlementProvider(view, null);
     } catch (e) {
       debugPrint('[quota] provider view degraded: $e');
       return null;
     }
+  }
+
+  /// 重置卡请求参数（宿主 `CodingPlanUsageRequest` 契约）：
+  /// `range` + `preferredProviderId` + `accountAccess`。
+  ///
+  /// 宿主 `getCodingPlanUsageSnapshot` / `useCodingPlanReset` 要求
+  /// `preferredProviderId` 指向 coding-plan provider 且带 `accountAccess`，
+  /// 缺失会抛 `no_bigmodel_api_key`（实测「重置卡状态加载失败」根因）。
+  /// 无 entitle provider / 未配置 → null，调用方按「不支持」处理。
+  Future<Map<String, dynamic>?> _resetCardParams() async {
+    final provider = await _entitlementProvider();
+    if (provider == null) return null;
+    final params = entitlementParamsFor(provider);
+    final access = params['accountAccess'];
+    return <String, dynamic>{
+      'range': 'today',
+      'preferredProviderId': params['preferredProviderId'],
+      if (access is Map<String, dynamic>) 'accountAccess': access,
+    };
+  }
+
+  /// 重置卡「不支持」错误族：方法缺失 / 无服务 / 无 coding-plan key /
+  /// 未配置 / 无套餐。命中即隐藏区块，而不是展示「加载失败」。
+  static bool _isUnsupportedResetError(String message) {
+    return message.contains('no-method') ||
+        message.contains('no-services') ||
+        message.contains('no_bigmodel_api_key') ||
+        message.contains('coding_plan_api_key_required') ||
+        message.contains('not_configured') ||
+        message.contains('no_plan');
   }
 
   /// 汇总拉取：通路 A（宿主快照）+ 通路 B（无 token 时优雅降级）。
@@ -1312,51 +1350,69 @@ class QuotaClient {
 
   // ---- 重置卡（P1-5）------------------------------------------------------
 
-  /// 探测宿主重置卡方法是否存在：no-method / no-services → 不支持。
+  /// 探测宿主重置卡是否可用：无 provider/未配置、no-method/no-services、
+  /// 无 coding-plan key 一律视为**不支持**（UI 隐藏区块）；其余错误按
+  /// 「方法在、状态加载失败」处理。
   Future<bool> resetCardSupported() async {
+    final params = await _resetCardParams();
+    if (params == null) return false;
     try {
       await bridge.call(
         'usage-stats',
         'getCodingPlanUsageSnapshot',
+        params: params,
         timeout: const Duration(seconds: 6),
       );
       return true;
     } on RpcRemoteException catch (e) {
-      return !(e.message.contains('no-method') ||
-          e.message.contains('no-services'));
+      return !_isUnsupportedResetError(e.message);
     } catch (_) {
       return false;
     }
   }
 
   /// 重置卡状态：可用数、过期时间、最近使用记录、has_unread_history。
+  /// 无 provider/未配置 → [ResetCardUnsupportedException]（隐藏区块）；
+  /// 真实网络/RPC 错误原样抛出（页面展示失败态可重试）。
   Future<ResetCardStatus> fetchResetCardStatus() async {
+    final params = await _resetCardParams();
+    if (params == null) {
+      throw const ResetCardUnsupportedException('no entitle provider');
+    }
     try {
       final r = await bridge.call(
         'usage-stats',
         'getCodingPlanUsageSnapshot',
+        params: params,
         timeout: const Duration(seconds: 10),
       );
       return ResetCardStatus.fromJson(r.firstObjectDeep ?? const {});
     } on RpcRemoteException catch (e) {
-      if (e.message.contains('no-method') ||
-          e.message.contains('no-services')) {
+      if (_isUnsupportedResetError(e.message)) {
         throw ResetCardUnsupportedException(e.message);
       }
       rethrow;
     }
   }
 
-  /// 使用重置卡：{idempotency_key: uuid, reset_type}；3301 限流带 next_try_at。
+  /// 使用重置卡：请求形状按宿主契约 `CodingPlanResetUseRequest`
+  /// （preferredProviderId + accountAccess + idempotencyKey + resetType）；
+  /// 3301 限流带 next_try_at。
   Future<ResetCardUseResult> useResetCard(String resetType) async {
     final key = _uuid.v4();
+    final params = await _resetCardParams();
+    if (params == null) {
+      return ResetCardUseResult.fromErrorText('no_bigmodel_api_key', key);
+    }
     try {
-      final r = await bridge.callArgs(
+      final r = await bridge.call(
         'usage-stats',
         'useCodingPlanReset',
-        args: [
-          {'idempotency_key': key, 'reset_type': resetType},
-        ],
+        params: {
+          ...params,
+          'idempotencyKey': key,
+          'resetType': resetType,
+        },
         timeout: const Duration(seconds: 15),
       );
       return ResetCardUseResult.fromResponse(

@@ -5,6 +5,7 @@ import '../models/device.dart';
 import '../models/device_label.dart';
 import '../models/notification_prefs.dart';
 import 'event_observer.dart';
+import 'quota_alert.dart';
 import 'task_actions.dart';
 
 /// 领取结果通知类型（P2-7）：成功 / 需人工验证码。
@@ -97,11 +98,15 @@ class ZrNotificationTarget {
     required this.deviceId,
     this.taskId,
     this.claim = false,
+    this.quota = false,
   });
 
   final String deviceId;
   final String? taskId;
   final bool claim;
+
+  /// 额度预警 payload（`quota:<deviceId>`）→ 点击开额度中心。
+  final bool quota;
 }
 
 abstract final class NotificationPayload {
@@ -115,6 +120,8 @@ abstract final class NotificationPayload {
       if (id.isEmpty) return null;
       return ZrNotificationTarget(deviceId: id, claim: true);
     }
+    final quotaId = TaskActionsClient.parseQuotaPayload(payload);
+    if (quotaId != null) return ZrNotificationTarget(deviceId: quotaId, quota: true);
     final hash = payload.indexOf('#');
     if (hash <= 0) return ZrNotificationTarget(deviceId: payload);
     final id = payload.substring(0, hash);
@@ -153,6 +160,10 @@ class NotificationSpec {
 
   /// Android 通知 action 按钮（批准/拒绝等）；空列表不带按钮。
   final List<NotificationActionSpec> actions;
+
+  /// 通知文案百分比：≥10 取整，否则一位小数（与额度页展示一致）。
+  static String _fmtPercent(num v) =>
+      v >= 10 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   static int stableId(RemoteDevice device, ObservedEvent event) =>
       (device.id.hashCode ^
@@ -291,6 +302,47 @@ class NotificationSpec {
     }
   }
 
+  /// 额度预警通知（额度消耗预警）：独立 zr_quota 渠道；payload 带 `quota:`
+  /// 前缀，点击进额度中心，action「去领取」进领取页。
+  ///
+  /// critical 按 [claimAutoEnabled] 分支文案：自动领取已开则提示需人工，
+  /// 未开则引导去领取。耗尽只提示，不自动领取。
+  static NotificationSpec quotaLow({
+    required RemoteDevice device,
+    required QuotaAlertLevel level,
+    required QuotaAlertSnapshot snapshot,
+    required bool claimAutoEnabled,
+    AppLocalizations? l10n,
+  }) {
+    final l = l10n ?? l10nZh;
+    final label = device.displayName(l);
+    final critical = level == QuotaAlertLevel.critical;
+    final percent = _fmtPercent(snapshot.percentUsed);
+    final remaining = _fmtPercent(snapshot.remainingPercent);
+    final reset = snapshot.resetText ?? '';
+    return NotificationSpec(
+      channelId: 'zr_quota',
+      channelName: l.notifChannelQuota,
+      importance: critical ? Importance.high : Importance.defaultImportance,
+      priority: critical ? Priority.high : Priority.defaultPriority,
+      title: critical
+          ? l.quotaAlertCriticalTitle(label)
+          : l.quotaAlertWarnTitle(label, percent),
+      body: critical
+          ? (claimAutoEnabled
+                ? l.quotaAlertCriticalAutoBody
+                : l.quotaAlertCriticalBody(reset))
+          : l.quotaAlertWarnBody(snapshot.planName, remaining, reset),
+      payload: '${TaskActionsClient.quotaPayloadPrefix}${device.id}',
+      actions: [
+        NotificationActionSpec(
+          id: TaskActionsClient.actionClaim,
+          title: l.quotaAlertActionClaim,
+        ),
+      ],
+    );
+  }
+
   /// 领取通知 id：同设备同 kind 按毫秒时间戳区分（多条成功各占一位）。
   static int claimStableId(
     RemoteDevice device,
@@ -299,6 +351,17 @@ class NotificationSpec {
   ) =>
       (device.id.hashCode ^
           kind.name.hashCode ^
+          at.millisecondsSinceEpoch.hashCode) &
+      0x7FFFFFFF;
+
+  /// 额度预警通知 id：同设备同档位按毫秒时间戳区分（多条提醒各占一位）。
+  static int quotaStableId(
+    RemoteDevice device,
+    QuotaAlertLevel level,
+    DateTime at,
+  ) =>
+      (device.id.hashCode ^
+          level.name.hashCode ^
           at.millisecondsSinceEpoch.hashCode) &
       0x7FFFFFFF;
 }
@@ -521,6 +584,39 @@ class NotifierService {
     try {
       if (!_permissionAsked) await ensurePermission();
       final id = NotificationSpec.claimStableId(device, kind, DateTime.now());
+      await _plugin.show(
+        id: id,
+        title: spec.title,
+        body: spec.body,
+        notificationDetails: notificationDetailsFor(
+          spec,
+          lockEnabled: _lockScreenRedact,
+        ),
+        payload: spec.payload,
+      );
+    } catch (_) {
+    }
+  }
+
+  /// 额度消耗预警：gate 走 quotaLow 开关 × DND × 每设备覆盖。
+  Future<void> notifyQuotaLow({
+    required RemoteDevice device,
+    required QuotaAlertLevel level,
+    required QuotaAlertSnapshot snapshot,
+    required bool claimAutoEnabled,
+    AppLocalizations? l10n,
+  }) async {
+    if (!_gateAllows(device, ZrNotifyCategory.quotaLow)) return;
+    final spec = NotificationSpec.quotaLow(
+      device: device,
+      level: level,
+      snapshot: snapshot,
+      claimAutoEnabled: claimAutoEnabled,
+      l10n: l10n,
+    );
+    try {
+      if (!_permissionAsked) await ensurePermission();
+      final id = NotificationSpec.quotaStableId(device, level, DateTime.now());
       await _plugin.show(
         id: id,
         title: spec.title,

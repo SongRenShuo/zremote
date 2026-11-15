@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../models/device_label.dart';
+import '../services/quota_alert.dart';
 import '../services/quota_client.dart';
 import '../services/rpc_bridge.dart';
+import '../state/claim_entry.dart';
+import '../state/notification_prefs.dart';
+import '../state/quota_alert.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'bevel_card.dart';
@@ -22,6 +26,7 @@ class QuotaPage extends ConsumerStatefulWidget {
     required this.bridge,
     this.tokenProvider,
     this.client,
+    this.onClaimPressed,
   });
 
   final RemoteDevice device;
@@ -32,6 +37,9 @@ class QuotaPage extends ConsumerStatefulWidget {
 
   /// 测试注入用；null 时按 bridge + tokenProvider 构造。
   final QuotaClient? client;
+
+  /// 预警条「去领取」回调；缺省走 claimOpenRequestProvider（会话页监听）。
+  final VoidCallback? onClaimPressed;
 
   @override
   ConsumerState<QuotaPage> createState() => _QuotaPageState();
@@ -82,6 +90,10 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
         '[quota] refresh ok plans=${overview.plans.length} '
         'sources=${overview.sources.join("+")}',
       );
+      // 额度预警（P1）：每次成功 fetch 后评估；去重/水位在状态层。
+      await ref
+          .read(quotaAlertProvider.notifier)
+          .evaluateDevice(widget.device, overview);
       await _refreshResetCard();
     } on QuotaFetchException catch (e) {
       debugPrint('[quota] refresh failed: ${e.message}');
@@ -240,6 +252,7 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
+              _alertBanner(l10n),
               _summaryCard(l10n),
               const SizedBox(height: 8),
               if (!_overview!.notConfigured) _sourceRow(l10n),
@@ -306,6 +319,73 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
         ),
       ),
     );
+  }
+
+  /// 顶部预警条：≥阈值黄、≥95% 红、耗尽红 + 「去领取」。
+  /// 仅按总览判档（不读开关，开关只控制通知）；未配置/无套餐/无数据不显示。
+  Widget _alertBanner(AppLocalizations l10n) {
+    final overview = _overview;
+    if (overview == null || overview.notConfigured || overview.noPlan) {
+      return const SizedBox.shrink();
+    }
+    final snapshot = QuotaAlertEvaluator.snapshotOf(overview);
+    if (snapshot == null) return const SizedBox.shrink();
+    final threshold = ref.watch(
+      notificationPrefsProvider,
+    ).quotaAlertThreshold;
+    final level = QuotaAlertEvaluator.levelOf(snapshot, threshold: threshold);
+    if (level == QuotaAlertLevel.none) return const SizedBox.shrink();
+
+    final zt = context.zt;
+    final critical = level == QuotaAlertLevel.critical;
+    final color =
+        critical || snapshot.percentUsed >= 95 ? zt.danger : zt.warn;
+    final text = critical
+        ? l10n.quotaAlertBannerCritical
+        : l10n.quotaAlertBannerWarn(
+            _fmtPercent(snapshot.percentUsed),
+            snapshot.planName,
+            _fmtPercent(snapshot.remainingPercent),
+          );
+    return BevelCard(
+      key: const Key('quota-alert-banner'),
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            critical ? Icons.error_outline : Icons.warning_amber_rounded,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12.5, height: 1.35, color: zt.textHi),
+            ),
+          ),
+          if (critical) ...[
+            const SizedBox(width: 8),
+            TactileButton(
+              key: const Key('quota-alert-claim'),
+              label: l10n.quotaAlertBannerClaim,
+              height: 32,
+              onPressed: _claim,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _claim() {
+    final callback = widget.onClaimPressed;
+    if (callback != null) {
+      callback();
+      return;
+    }
+    ref.read(claimOpenRequestProvider.notifier).request(widget.device.id);
   }
 
   Widget _summaryCard(AppLocalizations l10n) {
