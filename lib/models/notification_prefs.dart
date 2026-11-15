@@ -3,6 +3,11 @@ class NotificationPrefs {
     this.approval = true,
     this.complete = false,
     this.fail = false,
+    this.claimResult = true,
+    this.captchaManual = false,
+    this.quotaLow = false,
+    this.dndStartMinutes = 0,
+    this.dndEndMinutes = 0,
   });
 
   final bool approval;
@@ -11,12 +16,43 @@ class NotificationPrefs {
 
   final bool fail;
 
-  NotificationPrefs copyWith({bool? approval, bool? complete, bool? fail}) =>
-      NotificationPrefs(
-        approval: approval ?? this.approval,
-        complete: complete ?? this.complete,
-        fail: fail ?? this.fail,
-      );
+  /// 自动领取结果（P3-1，L3 zr_claim 渠道 success kind）。
+  final bool claimResult;
+
+  /// 需人工验证码（P3-1，L3 zr_claim 渠道 captchaNeeded kind）。
+  final bool captchaManual;
+
+  /// 额度耗尽预警（P3-1 占位，暂无发送方）。
+  final bool quotaLow;
+
+  /// 免打扰起始（一天内分钟数，0-1439）。start==end 表示关闭（默认）。
+  final int dndStartMinutes;
+
+  /// 免打扰结束（一天内分钟数，0-1439）。跨零点窗口（如 23:00-08:00）
+  /// 由 start>end 表达。
+  final int dndEndMinutes;
+
+  bool get dndEnabled => dndStartMinutes != dndEndMinutes;
+
+  NotificationPrefs copyWith({
+    bool? approval,
+    bool? complete,
+    bool? fail,
+    bool? claimResult,
+    bool? captchaManual,
+    bool? quotaLow,
+    int? dndStartMinutes,
+    int? dndEndMinutes,
+  }) => NotificationPrefs(
+    approval: approval ?? this.approval,
+    complete: complete ?? this.complete,
+    fail: fail ?? this.fail,
+    claimResult: claimResult ?? this.claimResult,
+    captchaManual: captchaManual ?? this.captchaManual,
+    quotaLow: quotaLow ?? this.quotaLow,
+    dndStartMinutes: dndStartMinutes ?? this.dndStartMinutes,
+    dndEndMinutes: dndEndMinutes ?? this.dndEndMinutes,
+  );
 
   bool enabled(String eventType) => switch (eventType) {
     'permission_request' || 'elicitation_request' => approval,

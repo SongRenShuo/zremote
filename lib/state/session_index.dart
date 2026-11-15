@@ -148,6 +148,77 @@ final sessionIndexProvider =
       Map<String, Map<String, SessionState>>
     >(SessionIndexNotifier.new);
 
+/// 会话面板状态过滤（P4-3）：全部 / 运行中 / 需输入。
+enum SessionFilterKind { all, running, needsInput }
+
+/// 纯本地过滤（P4-3，零 RPC）：搜索词（标题/工作区/会话 id 不区分大小写）
+/// × 状态 chip。纯函数可单测。
+abstract final class SessionFilter {
+  static bool matchesQuery(SessionState s, String rawQuery) {
+    final query = rawQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    if (s.title != null && s.title!.toLowerCase().contains(query)) return true;
+    if (s.workspace != null &&
+        s.workspace!.toLowerCase().contains(query)) {
+      return true;
+    }
+    if (s.workspacePath != null &&
+        s.workspacePath!.toLowerCase().contains(query)) {
+      return true;
+    }
+    return s.sessionId.toLowerCase().contains(query);
+  }
+
+  static bool matchesKind(SessionState s, SessionFilterKind kind) =>
+      switch (kind) {
+        SessionFilterKind.all => true,
+        SessionFilterKind.running => s.phase == 'running',
+        SessionFilterKind.needsInput =>
+          s.permissionCount > 0 || s.userInputCount > 0,
+      };
+
+  static List<SessionState> apply(
+    List<SessionState> sessions, {
+    String query = '',
+    SessionFilterKind kind = SessionFilterKind.all,
+  }) => [
+    for (final s in sessions)
+      if (matchesQuery(s, query) && matchesKind(s, kind)) s,
+  ];
+
+  /// 置顶优先排序（P4-3 置顶组增强）：pinned 在前，组内保持原序
+  /// （调用方先按 SessionRanking 排好）。
+  static List<SessionState> pinnedFirst(List<SessionState> sorted) => [
+    for (final s in sorted)
+      if (s.pinned) s,
+    for (final s in sorted)
+      if (!s.pinned) s,
+  ];
+}
+
+/// 通知直达会话跳转请求（P4-7）：app_shell 发起（payload 带 taskId），
+/// 目标 SessionView 消费（evaluateJavascript 执行 SessionJump 脚本）。
+///
+/// seq 自增保证同一会话连续两次请求都能触发监听方。
+class SessionJumpRequestNotifier
+    extends Notifier<({String deviceId, String sessionId, int seq})?> {
+  int _seq = 0;
+
+  @override
+  ({String deviceId, String sessionId, int seq})? build() => null;
+
+  void request(String deviceId, String sessionId) {
+    _seq++;
+    state = (deviceId: deviceId, sessionId: sessionId, seq: _seq);
+  }
+}
+
+final sessionJumpRequestProvider =
+    NotifierProvider<SessionJumpRequestNotifier,
+        ({String deviceId, String sessionId, int seq})?>(
+      SessionJumpRequestNotifier.new,
+    );
+
 abstract final class RelativeTime {
   static ({String kind, int n}) format(int? lastActivityAtMs, int nowMs) {
     final diff = lastActivityAtMs == null ? null : nowMs - lastActivityAtMs;

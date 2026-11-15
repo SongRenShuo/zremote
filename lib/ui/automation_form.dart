@@ -9,6 +9,7 @@ import '../models/device_label.dart';
 import '../services/rpc_bridge.dart';
 import '../services/rpc_codec.dart';
 import '../state/automation.dart';
+import '../state/behavior.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'automation_page.dart';
@@ -240,6 +241,13 @@ class _AutomationFormPageState extends ConsumerState<AutomationFormPage> {
       _workspace = task.workspacePath;
       _permissionMode = task.permissionMode;
       _originalPermissionMode = task.permissionMode;
+    }
+    // P3-4：新建（非编辑）时预填「新任务默认权限模式」记忆值。
+    if (editing == null && task == null) {
+      final remembered = ref.read(behaviorProvider).defaultMode;
+      if (kPermissionModes.contains(remembered)) {
+        _permissionMode = remembered;
+      }
     }
     // 编辑回填：宿主 automations 的模型数据在 modelSelection.modelId /
     // options.reasoningLevel（Automation.fromJson 已归一进 model/thoughtLevel）。

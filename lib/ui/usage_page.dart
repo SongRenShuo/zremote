@@ -14,6 +14,7 @@ import 'bevel_card.dart';
 import 'claim_ticket_dialog.dart';
 import 'inlaid_well.dart';
 import 'section_label.dart';
+import 'showcase_bits.dart';
 import 'sheet_shell.dart';
 import 'status_led.dart';
 import 'tactile_button.dart';
@@ -352,7 +353,8 @@ class _UsagePageState extends ConsumerState<UsagePage> {
                 : null,
       ),
       body: switch (_phase) {
-        _UsagePhase.loading => const Center(child: CircularProgressIndicator()),
+        // P4-4：加载态统一骨架屏（替代裸 spinner，消除空白歧义）。
+        _UsagePhase.loading => const ZrSkeletonList(cardCount: 2, rowsPerCard: 3),
         _UsagePhase.error => _errorView(l10n, offline),
         _UsagePhase.ready => ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),

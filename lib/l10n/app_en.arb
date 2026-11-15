@@ -1986,7 +1986,7 @@
   "@rewardsExternalFail": {
     "description": "Toast when external browser launch fails"
   },
-"approvalNotifApprove": "Approve",
+  "approvalNotifApprove": "Approve",
   "@approvalNotifApprove": {
     "description": "P1-4 notification action button: approve permission"
   },
@@ -2010,7 +2010,9 @@
   "@desktopSettingsHint": {
     "description": "P1-6 page hint that toggles affect the desktop host",
     "placeholders": {
-      "device": {"type": "String"}
+      "device": {
+        "type": "String"
+      }
     }
   },
   "desktopSettingsShowReasoning": "Show reasoning in message stream",
@@ -2041,8 +2043,12 @@
   "@desktopSettingsConfirmBody": {
     "description": "P1-6 update confirm dialog body",
     "placeholders": {
-      "name": {"type": "String"},
-      "value": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
     }
   },
   "desktopSettingsValueOn": "ON",
@@ -2061,7 +2067,9 @@
   "@desktopSettingsUpdateFailed": {
     "description": "P1-6 update failure toast",
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "gitCardTitle": "Git Overview",
@@ -2084,22 +2092,30 @@
   "@gitCardBranch": {
     "description": "P1-7 branch line",
     "placeholders": {
-      "branch": {"type": "String"}
+      "branch": {
+        "type": "String"
+      }
     }
   },
   "gitCardAheadBehind": "↑{ahead} ↓{behind}",
   "@gitCardAheadBehind": {
     "description": "P1-7 ahead/behind counts",
     "placeholders": {
-      "ahead": {"type": "int"},
-      "behind": {"type": "int"}
+      "ahead": {
+        "type": "int"
+      },
+      "behind": {
+        "type": "int"
+      }
     }
   },
   "gitCardDirty": "{count} changed",
   "@gitCardDirty": {
     "description": "P1-7 dirty file count badge; count unknown when omitted",
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "gitCardClean": "clean",
@@ -2138,7 +2154,9 @@
   "@assetsTabUnavailable": {
     "description": "P1-8 per-tab service unavailable message",
     "placeholders": {
-      "tab": {"type": "String"}
+      "tab": {
+        "type": "String"
+      }
     }
   },
   "assetsTabEmpty": "Nothing here yet",
@@ -2185,8 +2203,430 @@
   "@toolboxAssetsDesc": {
     "description": "P1-8 assets toolbox entry subtitle"
   },
-"gitCardDirtyUnknown": "dirty",
+  "gitCardDirtyUnknown": "dirty",
   "@gitCardDirtyUnknown": {
     "description": "P1-7 dirty badge when count unknown (isDirty only)"
+  },
+  "themeOled": "OLED black",
+  "@themeOled": {
+    "description": "Theme picker: OLED pure black option"
+  },
+  "settingsSectionBehavior": "Session behavior",
+  "@settingsSectionBehavior": {
+    "description": "Settings section: session behavior"
+  },
+  "settingsSectionData": "Data & diagnostics",
+  "@settingsSectionData": {
+    "description": "Settings section: data & diagnostics"
+  },
+  "settingsAdvanced": "Advanced",
+  "@settingsAdvanced": {
+    "description": "Settings section: advanced"
+  },
+  "settingsFontScale": "Font size",
+  "@settingsFontScale": {
+    "description": "Font scale setting title"
+  },
+  "settingsFontScaleSmall": "Small",
+  "@settingsFontScaleSmall": {
+    "description": "Font scale: small (0.85)"
+  },
+  "settingsFontScaleNormal": "Default",
+  "@settingsFontScaleNormal": {
+    "description": "Font scale: normal (1.0)"
+  },
+  "settingsFontScaleLarge": "Large",
+  "@settingsFontScaleLarge": {
+    "description": "Font scale: large (1.15)"
+  },
+  "settingsReduceMotion": "Reduce motion",
+  "@settingsReduceMotion": {
+    "description": "Reduce motion switch title"
+  },
+  "settingsReduceMotionSub": "Shorter transition durations",
+  "@settingsReduceMotionSub": {
+    "description": "Reduce motion switch subtitle"
+  },
+  "settingsHaptics": "Haptic feedback",
+  "@settingsHaptics": {
+    "description": "Haptic feedback switch title"
+  },
+  "settingsHapticsSub": "Light vibration on key actions",
+  "@settingsHapticsSub": {
+    "description": "Haptic feedback switch subtitle"
+  },
+  "settingsRelockDelay": "Auto-lock delay",
+  "@settingsRelockDelay": {
+    "description": "Auto-lock delay setting title"
+  },
+  "settingsRelockImmediate": "Immediately",
+  "@settingsRelockImmediate": {
+    "description": "Auto-lock delay: immediate"
+  },
+  "settingsRelockSeconds": "{n} s",
+  "@settingsRelockSeconds": {
+    "description": "Auto-lock delay: seconds",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsRelockMinutes": "{n} min",
+  "@settingsRelockMinutes": {
+    "description": "Auto-lock delay: minutes",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsNotifClaimResult": "Auto-claim results",
+  "@settingsNotifClaimResult": {
+    "description": "Notification toggle: auto-claim results"
+  },
+  "settingsNotifClaimResultSub": "Notify on successful claims",
+  "@settingsNotifClaimResultSub": {
+    "description": "Notification toggle subtitle: claim results"
+  },
+  "settingsNotifCaptcha": "Manual captcha required",
+  "@settingsNotifCaptcha": {
+    "description": "Notification toggle: manual captcha needed"
+  },
+  "settingsNotifCaptchaSub": "Notify when auto-claim needs a human",
+  "@settingsNotifCaptchaSub": {
+    "description": "Notification toggle subtitle: captcha"
+  },
+  "settingsNotifQuotaLow": "Quota exhausted warning",
+  "@settingsNotifQuotaLow": {
+    "description": "Notification toggle: quota exhausted (placeholder)"
+  },
+  "settingsNotifQuotaLowSub": "Placeholder (not active yet)",
+  "@settingsNotifQuotaLowSub": {
+    "description": "Notification toggle subtitle: quota placeholder"
+  },
+  "settingsNotifDnd": "Do not disturb",
+  "@settingsNotifDnd": {
+    "description": "Do-not-disturb window setting"
+  },
+  "settingsNotifDndOff": "Off",
+  "@settingsNotifDndOff": {
+    "description": "Do-not-disturb: off"
+  },
+  "settingsNotifDndValue": "{start} – {end}",
+  "@settingsNotifDndValue": {
+    "description": "Do-not-disturb: window value",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsNotifDndHint": "only approvals pass in window",
+  "@settingsNotifDndHint": {
+    "description": "Do-not-disturb hint: only approvals pass"
+  },
+  "settingsBehaviorDefaultMode": "Default permission mode",
+  "@settingsBehaviorDefaultMode": {
+    "description": "Default permission mode setting"
+  },
+  "settingsBehaviorDefaultModeSub": "Prefilled for new automation tasks",
+  "@settingsBehaviorDefaultModeSub": {
+    "description": "Default permission mode subtitle"
+  },
+  "settingsBehaviorRestore": "Startup restore",
+  "@settingsBehaviorRestore": {
+    "description": "Startup restore policy setting"
+  },
+  "settingsRestoreLastDevice": "Last device",
+  "@settingsRestoreLastDevice": {
+    "description": "Restore policy: last device"
+  },
+  "settingsRestoreFirst": "First device",
+  "@settingsRestoreFirst": {
+    "description": "Restore policy: first device"
+  },
+  "settingsRestoreNone": "None",
+  "@settingsRestoreNone": {
+    "description": "Restore policy: none"
+  },
+  "settingsBehaviorSoftLimit": "Device count reminder",
+  "@settingsBehaviorSoftLimit": {
+    "description": "Device soft limit setting"
+  },
+  "settingsBehaviorSoftLimitSub": "Remind when adding beyond {limit} devices",
+  "@settingsBehaviorSoftLimitSub": {
+    "description": "Device soft limit subtitle",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDataManage": "Data management",
+  "@settingsDataManage": {
+    "description": "Data management entry"
+  },
+  "settingsDataManageSub": "WebView cache/cookies, log export",
+  "@settingsDataManageSub": {
+    "description": "Data management subtitle"
+  },
+  "settingsDiagnosticsEntry": "Connection diagnostics",
+  "@settingsDiagnosticsEntry": {
+    "description": "Diagnostics entry in settings"
+  },
+  "settingsDiagnosticsSub": "Open the active device diagnostics page",
+  "@settingsDiagnosticsSub": {
+    "description": "Diagnostics entry subtitle"
+  },
+  "settingsDiagnosticsNoDevice": "No paired device yet",
+  "@settingsDiagnosticsNoDevice": {
+    "description": "Diagnostics entry: no device"
+  },
+  "settingsUpdateCheck": "Check for update",
+  "@settingsUpdateCheck": {
+    "description": "Check for update entry"
+  },
+  "settingsUpdateCheckSub": "Compare against GitHub Releases",
+  "@settingsUpdateCheckSub": {
+    "description": "Check for update subtitle"
+  },
+  "settingsUpdateChecking": "Checking…",
+  "@settingsUpdateChecking": {
+    "description": "Check for update: checking"
+  },
+  "settingsUpdateAvailable": "New version {version} available",
+  "@settingsUpdateAvailable": {
+    "description": "Check for update: new version found",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateOpenRelease": "Open release page",
+  "@settingsUpdateOpenRelease": {
+    "description": "Check for update: open release page"
+  },
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "About entry in settings"
+  },
+  "settingsAboutSub": "Version, licenses & privacy",
+  "@settingsAboutSub": {
+    "description": "About subtitle"
+  },
+  "settingsUaDesktop": "Desktop UA override (experimental)",
+  "@settingsUaDesktop": {
+    "description": "Desktop UA override experimental switch"
+  },
+  "settingsUaDesktopSub": "Applies after session reload; for login-page A/B diagnosis",
+  "@settingsUaDesktopSub": {
+    "description": "Desktop UA override subtitle"
+  },
+  "settingsDiscoveryDetail": "Service discovery retry policy (read-only): candidate aliases probed in order, 25s timeout each, results cached per session; no-services switches to the next candidate, timeouts fail fast without retry.",
+  "@settingsDiscoveryDetail": {
+    "description": "Read-only service discovery retry policy note"
+  },
+  "dataManageTitle": "Data management",
+  "@dataManageTitle": {
+    "description": "Data manage page title"
+  },
+  "dataManageWebviewSection": "WebView data (per device)",
+  "@dataManageWebviewSection": {
+    "description": "Data manage: per-device webview section"
+  },
+  "dataManageClearAction": "Clear",
+  "@dataManageClearAction": {
+    "description": "Data manage: clear action"
+  },
+  "dataManageClearConfirmTitle": "Clear WebView data?",
+  "@dataManageClearConfirmTitle": {
+    "description": "Data manage: clear confirm title"
+  },
+  "dataManageClearConfirmBody": "This clears cached pages and cookies for {device}; you will need to sign in again.",
+  "@dataManageClearConfirmBody": {
+    "description": "Data manage: clear confirm body",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "dataManageClearDone": "Cleared",
+  "@dataManageClearDone": {
+    "description": "Data manage: clear done toast"
+  },
+  "dataManageClearFailed": "Clear failed",
+  "@dataManageClearFailed": {
+    "description": "Data manage: clear failed toast"
+  },
+  "dataManageNoDevice": "No paired device yet.",
+  "@dataManageNoDevice": {
+    "description": "Data manage: no devices"
+  },
+  "dataManageWebviewNote": "Cookies are deleted per origin and cache per device profile; cookies in isolated profiles may remain (plugin limitation) and are rebuilt on sign-in.",
+  "@dataManageWebviewNote": {
+    "description": "Data manage: webview limitation note"
+  },
+  "dataManageLogSection": "Diagnostics log",
+  "@dataManageLogSection": {
+    "description": "Data manage: log section"
+  },
+  "dataManageLogSub": "In-app ring buffer; sensitive values (authorization/token/sid) are redacted.",
+  "@dataManageLogSub": {
+    "description": "Data manage: log subtitle"
+  },
+  "dataManageLogCount": "{count} lines buffered",
+  "@dataManageLogCount": {
+    "description": "Data manage: buffered line count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dataManageLogExport": "Export log",
+  "@dataManageLogExport": {
+    "description": "Data manage: export log"
+  },
+  "dataManageLogEmpty": "No logs to export",
+  "@dataManageLogEmpty": {
+    "description": "Data manage: no logs"
+  },
+  "dataManageExportFailed": "Export failed",
+  "@dataManageExportFailed": {
+    "description": "Data manage: export failed"
+  },
+  "dataManageZsbSection": "Account bundle backup (.zsb)",
+  "@dataManageZsbSection": {
+    "description": "Data manage: zsb section"
+  },
+  "dataManageZsbSub": "Encrypted account bundle import/export is provided by the account vault page (in progress); this page only describes it.",
+  "@dataManageZsbSub": {
+    "description": "Data manage: zsb note"
+  },
+  "aboutTitle": "About",
+  "@aboutTitle": {
+    "description": "About page title"
+  },
+  "aboutVersionValue": "{version} ({build})",
+  "@aboutVersionValue": {
+    "description": "About page: version + build",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutLinks": "Links",
+  "@aboutLinks": {
+    "description": "About page: links section"
+  },
+  "aboutGitHub": "GitHub repository",
+  "@aboutGitHub": {
+    "description": "About page: GitHub link"
+  },
+  "aboutIssues": "Report an issue",
+  "@aboutIssues": {
+    "description": "About page: issues link"
+  },
+  "aboutPrivacy": "Privacy",
+  "@aboutPrivacy": {
+    "description": "About page: privacy section"
+  },
+  "aboutPrivacyBody": "Local-first: devices and credentials stay in on-device secure storage; no telemetry, no cloud reporting; exported logs are redacted.",
+  "@aboutPrivacyBody": {
+    "description": "About page: privacy body"
+  },
+  "aboutLicenses": "Open-source licenses",
+  "@aboutLicenses": {
+    "description": "About page: licenses section"
+  },
+  "aboutLicenseJetbrains": "JetBrainsMono font — SIL Open Font License 1.1",
+  "@aboutLicenseJetbrains": {
+    "description": "About page: JetBrainsMono license line"
+  },
+  "aboutLicenseDeps": "Key dependencies: Flutter · Riverpod · flutter_inappwebview · flutter_local_notifications · shared_preferences · flutter_secure_storage · dio · share_plus · url_launcher · mobile_scanner",
+  "@aboutLicenseDeps": {
+    "description": "About page: one-line dependency list"
+  },
+  "uxSessionSearchHint": "Search title / workspace",
+  "@uxSessionSearchHint": {
+    "description": "Session panel: search hint"
+  },
+  "uxSessionFilterAll": "All",
+  "@uxSessionFilterAll": {
+    "description": "Session panel filter chip: all"
+  },
+  "uxSessionFilterRunning": "Running",
+  "@uxSessionFilterRunning": {
+    "description": "Session panel filter chip: running"
+  },
+  "uxSessionFilterNeedsInput": "Needs input",
+  "@uxSessionFilterNeedsInput": {
+    "description": "Session panel filter chip: needs input"
+  },
+  "uxSessionNoMatch": "No matching sessions",
+  "@uxSessionNoMatch": {
+    "description": "Session panel: no match after filter"
+  },
+  "uxWidePickDevice": "Pick a device from the rail",
+  "@uxWidePickDevice": {
+    "description": "Wide layout: pick device hint"
+  },
+  "uxPin": "Pin to top",
+  "@uxPin": {
+    "description": "Device quick menu: pin"
+  },
+  "uxUnpin": "Unpin",
+  "@uxUnpin": {
+    "description": "Device quick menu: unpin"
+  },
+  "uxCopyLink": "Copy link",
+  "@uxCopyLink": {
+    "description": "Device quick menu: copy link"
+  },
+  "uxLinkCopied": "Control link copied",
+  "@uxLinkCopied": {
+    "description": "Device quick menu: link copied toast"
+  },
+  "uxNotifyOverride": "Notifications",
+  "@uxNotifyOverride": {
+    "description": "Device quick menu: notify override"
+  },
+  "uxNotifyOn": "On (override global)",
+  "@uxNotifyOn": {
+    "description": "Notify override: on"
+  },
+  "uxNotifyOnSub": "Ignores global toggles, still honors DND",
+  "@uxNotifyOnSub": {
+    "description": "Notify override: on sub"
+  },
+  "uxNotifyOff": "Off (mute this device)",
+  "@uxNotifyOff": {
+    "description": "Notify override: off"
+  },
+  "uxNotifyOffSub": "All notifications muted for this device",
+  "@uxNotifyOffSub": {
+    "description": "Notify override: off sub"
+  },
+  "uxNotifyInherit": "Follow global",
+  "@uxNotifyInherit": {
+    "description": "Notify override: inherit"
+  },
+  "uxNotifyInheritSub": "Use the global settings toggles",
+  "@uxNotifyInheritSub": {
+    "description": "Notify override: inherit sub"
+  },
+  "uxBadgePermPending": "Approval",
+  "@uxBadgePermPending": {
+    "description": "Device badge: approval pending"
   }
 }

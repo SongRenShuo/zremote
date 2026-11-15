@@ -6,9 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/device.dart';
 import '../models/notification_prefs.dart';
+import '../state/appearance.dart';
 import '../state/automation.dart';
+import '../state/behavior.dart';
 import '../state/claim_history.dart';
 import 'claim_scheduler.dart';
+
+/// 行为配置允许的权限模式（与 automation_form kPermissionModes 同源；
+/// 独立声明避免 services 反向依赖 ui）。
+const List<String> kBehaviorModes = ['build', 'guarded', 'plan', 'yolo'];
 
 class DeviceStore {
   DeviceStore._();
@@ -92,6 +98,22 @@ class DeviceStore {
     await prefs.setBool(_biometricKey, value);
   }
 
+  static const _relockDelayKey = 'zremote.biometric.relockDelay';
+  static const kRelockChoices = <int>[0, 10, 60, 300];
+
+  /// 自动锁定延时（P3-8，秒）：立即 0 / 10s / 60s / 5min；非法值回落 10s。
+  Future<int> relockDelaySeconds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getInt(_relockDelayKey);
+    if (v == null || !kRelockChoices.contains(v)) return 10;
+    return v;
+  }
+
+  Future<void> setRelockDelaySeconds(int seconds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_relockDelayKey, seconds);
+  }
+
   static const _keepAliveKey = 'zremote.keepalive';
 
   Future<bool> keepAliveEnabled() async {
@@ -128,6 +150,27 @@ class DeviceStore {
     await prefs.setString(_themeModeKey, value);
   }
 
+  static const _appearanceFontScaleKey = 'zremote.appearance.fontScale';
+  static const _appearanceReduceMotionKey = 'zremote.appearance.reduceMotion';
+  static const _appearanceHapticsKey = 'zremote.appearance.haptics';
+
+  /// 外观增强（P3-3）：字号/动效/触感；脏值回落默认档。
+  Future<AppearancePrefs> appearancePrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return AppearancePrefs(
+      fontScale: ZrFontScale.ofKey(prefs.getString(_appearanceFontScaleKey)),
+      reduceMotion: prefs.getBool(_appearanceReduceMotionKey) ?? false,
+      haptics: prefs.getBool(_appearanceHapticsKey) ?? true,
+    );
+  }
+
+  Future<void> setAppearancePrefs(AppearancePrefs value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_appearanceFontScaleKey, value.fontScale.key);
+    await prefs.setBool(_appearanceReduceMotionKey, value.reduceMotion);
+    await prefs.setBool(_appearanceHapticsKey, value.haptics);
+  }
+
   static const _lastDeviceKey = 'zremote.lastDevice';
 
   Future<String?> lastDeviceId() async {
@@ -140,9 +183,41 @@ class DeviceStore {
     await prefs.setString(_lastDeviceKey, id);
   }
 
+  static const _behaviorModeKey = 'zremote.behavior.defaultMode';
+  static const _behaviorRestoreKey = 'zremote.behavior.restore';
+  static const _behaviorSoftLimitKey = 'zremote.behavior.softLimit';
+
+  /// 会话行为（P3-4）：默认权限模式 / 启动恢复 / 软上限；脏值回落默认。
+  Future<BehaviorPrefs> behaviorPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mode = prefs.getString(_behaviorModeKey);
+    final limit = prefs.getInt(_behaviorSoftLimitKey);
+    return BehaviorPrefs(
+      defaultMode: (mode == null ||
+              mode.isEmpty ||
+              !kBehaviorModes.contains(mode))
+          ? 'build'
+          : mode,
+      restorePolicy: restorePolicyOf(prefs.getString(_behaviorRestoreKey)),
+      softLimit: limit == null ? 5 : limit.clamp(1, 10),
+    );
+  }
+
+  Future<void> setBehaviorPrefs(BehaviorPrefs value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_behaviorModeKey, value.defaultMode);
+    await prefs.setString(_behaviorRestoreKey, value.restorePolicy.name);
+    await prefs.setInt(_behaviorSoftLimitKey, value.softLimit);
+  }
+
   static const _notifApprovalKey = 'zremote.notify.approval';
   static const _notifCompleteKey = 'zremote.notify.complete';
   static const _notifFailKey = 'zremote.notify.fail';
+  static const _notifClaimResultKey = 'zremote.notify.claimResult';
+  static const _notifCaptchaKey = 'zremote.notify.captchaManual';
+  static const _notifQuotaLowKey = 'zremote.notify.quotaLow';
+  static const _notifDndStartKey = 'zremote.notify.dndStart';
+  static const _notifDndEndKey = 'zremote.notify.dndEnd';
 
   Future<NotificationPrefs> notificationPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -150,7 +225,19 @@ class DeviceStore {
       approval: prefs.getBool(_notifApprovalKey) ?? true,
       complete: prefs.getBool(_notifCompleteKey) ?? false,
       fail: prefs.getBool(_notifFailKey) ?? false,
+      claimResult: prefs.getBool(_notifClaimResultKey) ?? true,
+      captchaManual: prefs.getBool(_notifCaptchaKey) ?? false,
+      quotaLow: prefs.getBool(_notifQuotaLowKey) ?? false,
+      dndStartMinutes: _minuteOf(prefs, _notifDndStartKey),
+      dndEndMinutes: _minuteOf(prefs, _notifDndEndKey),
     );
+  }
+
+  /// DND 分钟值读出（越界/类型漂移回落 0，与「关闭」同义）。
+  static int _minuteOf(SharedPreferences prefs, String key) {
+    final v = prefs.getInt(key);
+    if (v == null || v < 0 || v >= 24 * 60) return 0;
+    return v;
   }
 
   Future<void> setNotificationPrefs(NotificationPrefs value) async {
@@ -158,6 +245,11 @@ class DeviceStore {
     await prefs.setBool(_notifApprovalKey, value.approval);
     await prefs.setBool(_notifCompleteKey, value.complete);
     await prefs.setBool(_notifFailKey, value.fail);
+    await prefs.setBool(_notifClaimResultKey, value.claimResult);
+    await prefs.setBool(_notifCaptchaKey, value.captchaManual);
+    await prefs.setBool(_notifQuotaLowKey, value.quotaLow);
+    await prefs.setInt(_notifDndStartKey, value.dndStartMinutes);
+    await prefs.setInt(_notifDndEndKey, value.dndEndMinutes);
   }
 
   static const _automationSnapshotPrefix = 'zremote.automation.';

@@ -4,15 +4,25 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/notification_prefs.dart';
 import '../services/biometric.dart';
+import '../services/device_store.dart';
 import '../services/keepalive.dart';
+import '../services/update_checker.dart';
+import '../services/webview_profile.dart';
+import '../state/appearance.dart';
 import '../state/app_lifecycle.dart';
+import '../state/behavior.dart';
 import '../state/locale.dart';
 import '../state/notification_prefs.dart';
 import '../state/keepalive.dart';
 import '../state/session_pool.dart';
 import '../state/theme_mode.dart';
+import '../state/toolbox_nav.dart';
 import '../theme.dart';
+import 'about_page.dart';
+import 'data_manage_page.dart';
+import 'haptics.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
 
@@ -114,13 +124,25 @@ class SettingsPage extends ConsumerWidget {
           children: [
             SectionLabel(l10n.sectionAppearance),
             const _CardGroup(
-              children: [_LanguageTile(), _GroupDivider(), _ThemeTile()],
+              children: [
+                _LanguageTile(),
+                _GroupDivider(),
+                _ThemeTile(),
+                _GroupDivider(),
+                _FontScaleTile(),
+                _GroupDivider(),
+                _ReduceMotionTile(),
+                _GroupDivider(),
+                _HapticsTile(),
+              ],
             ),
             const SizedBox(height: 16),
             SectionLabel(l10n.sectionSecurityKeepalive),
             const _CardGroup(
               children: [
                 _BiometricTile(),
+                _GroupDivider(),
+                _RelockTile(),
                 _GroupDivider(),
                 _KeepAliveTile(),
                 _GroupDivider(),
@@ -130,6 +152,45 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 16),
             SectionLabel(l10n.sectionNotifications),
             const _NotificationCard(),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.settingsSectionBehavior),
+            const _CardGroup(
+              children: [
+                _DefaultModeTile(),
+                _GroupDivider(),
+                _RestoreTile(),
+                _GroupDivider(),
+                _SoftLimitTile(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.settingsSectionData),
+            const _CardGroup(
+              children: [
+                _DataManageTile(),
+                _GroupDivider(),
+                _DiagnosticsTile(),
+                _GroupDivider(),
+                _UpdateTile(),
+                _GroupDivider(),
+                _AboutTile(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.settingsAdvanced),
+            const _CardGroup(children: [_UaDesktopTile()]),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
+              child: Text(
+                l10n.settingsDiscoveryDetail,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.5,
+                  color: context.zt.textTertiary,
+                ),
+              ),
+            ),
             const _VersionFooter(),
           ],
         ),
@@ -286,6 +347,7 @@ class _ThemeTile extends ConsumerWidget {
     final current = switch (setting) {
       kThemeDark => l10n.themeDark,
       kThemeLight => l10n.themeLight,
+      kThemeOled => l10n.themeOled,
       _ => l10n.themeSystem,
     };
     return _TileRow(
@@ -307,11 +369,145 @@ class _ThemeTile extends ConsumerWidget {
         (kThemeSystem, l10n.themeSystem),
         (kThemeDark, l10n.themeDark),
         (kThemeLight, l10n.themeLight),
+        (kThemeOled, l10n.themeOled),
       ],
       current: setting,
     );
     if (choice == null || choice == setting) return;
     await ref.read(themeModeSettingProvider.notifier).set(choice);
+  }
+}
+
+/// 字号缩放（P3-3）：0.85 / 1.0 / 1.15。
+class _FontScaleTile extends ConsumerWidget {
+  const _FontScaleTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scale = ref.watch(appearanceProvider).fontScale;
+    final current = switch (scale) {
+      ZrFontScale.small => l10n.settingsFontScaleSmall,
+      ZrFontScale.large => l10n.settingsFontScaleLarge,
+      _ => l10n.settingsFontScaleNormal,
+    };
+    return _TileRow(
+      title: l10n.settingsFontScale,
+      subtitle: current,
+      icon: Icons.format_size,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = ref.read(appearanceProvider).fontScale;
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsFontScale,
+      options: [
+        (ZrFontScale.small.name, l10n.settingsFontScaleSmall),
+        (ZrFontScale.normal.name, l10n.settingsFontScaleNormal),
+        (ZrFontScale.large.name, l10n.settingsFontScaleLarge),
+      ],
+      current: current.name,
+    );
+    if (choice == null) return;
+    final scale = ZrFontScale.values.firstWhere(
+      (s) => s.name == choice,
+      orElse: () => ZrFontScale.normal,
+    );
+    if (scale == current) return;
+    ZrHaptics.tap();
+    await ref.read(appearanceProvider.notifier).setFontScale(scale);
+  }
+}
+
+/// 动效减弱（P3-3）。
+class _ReduceMotionTile extends ConsumerWidget {
+  const _ReduceMotionTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final value = ref.watch(appearanceProvider).reduceMotion;
+    return _TileRow(
+      title: l10n.settingsReduceMotion,
+      subtitle: l10n.settingsReduceMotionSub,
+      icon: Icons.animation,
+      trailing: Switch(value: value, onChanged: (v) => _set(ref, v)),
+    );
+  }
+
+  Future<void> _set(WidgetRef ref, bool v) async {
+    ZrHaptics.tap();
+    await ref.read(appearanceProvider.notifier).setReduceMotion(v);
+  }
+}
+
+/// 触感反馈（P3-3）。
+class _HapticsTile extends ConsumerWidget {
+  const _HapticsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final value = ref.watch(appearanceProvider).haptics;
+    return _TileRow(
+      title: l10n.settingsHaptics,
+      subtitle: l10n.settingsHapticsSub,
+      icon: Icons.vibration,
+      trailing: Switch(value: value, onChanged: (v) => _set(ref, v)),
+    );
+  }
+
+  Future<void> _set(WidgetRef ref, bool v) async {
+    if (v) ZrHaptics.tap();
+    await ref.read(appearanceProvider.notifier).setHaptics(v);
+  }
+}
+
+/// 自动锁定延时（P3-8）：立即 / 10s / 60s / 5min。
+class _RelockTile extends ConsumerWidget {
+  const _RelockTile();
+
+  String _label(AppLocalizations l10n, int seconds) {
+    if (seconds == 0) return l10n.settingsRelockImmediate;
+    if (seconds < 60) return l10n.settingsRelockSeconds(seconds);
+    return l10n.settingsRelockMinutes(seconds ~/ 60);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final seconds = ref.watch(relockDelayProvider);
+    return _TileRow(
+      title: l10n.settingsRelockDelay,
+      subtitle: _label(l10n, seconds),
+      icon: Icons.lock_clock,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = ref.read(relockDelayProvider);
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsRelockDelay,
+      options: [
+        for (final s in DeviceStore.kRelockChoices)
+          ('$s', _label(l10n, s)),
+      ],
+      current: '$current',
+    );
+    if (choice == null) return;
+    final seconds = int.tryParse(choice);
+    if (seconds == null || seconds == current) return;
+    ZrHaptics.tap();
+    await ref.read(relockDelayProvider.notifier).set(seconds);
   }
 }
 
@@ -490,7 +686,13 @@ class _NotificationCard extends ConsumerWidget {
     ) => _TileRow(
       title: title,
       subtitle: subtitle,
-      trailing: Switch(value: value, onChanged: onChanged),
+      trailing: Switch(
+        value: value,
+        onChanged: (v) {
+          ZrHaptics.tap();
+          onChanged(v);
+        },
+      ),
     );
 
     return _CardGroup(
@@ -515,6 +717,30 @@ class _NotificationCard extends ConsumerWidget {
           prefs.fail,
           (v) => notifier.set(prefs.copyWith(fail: v)),
         ),
+        const _GroupDivider(),
+        // P3-1 新类型：自动领取结果 / 需人工验证码 / 额度耗尽（占位）。
+        tile(
+          l10n.settingsNotifClaimResult,
+          l10n.settingsNotifClaimResultSub,
+          prefs.claimResult,
+          (v) => notifier.set(prefs.copyWith(claimResult: v)),
+        ),
+        const _GroupDivider(),
+        tile(
+          l10n.settingsNotifCaptcha,
+          l10n.settingsNotifCaptchaSub,
+          prefs.captchaManual,
+          (v) => notifier.set(prefs.copyWith(captchaManual: v)),
+        ),
+        const _GroupDivider(),
+        tile(
+          l10n.settingsNotifQuotaLow,
+          l10n.settingsNotifQuotaLowSub,
+          prefs.quotaLow,
+          (v) => notifier.set(prefs.copyWith(quotaLow: v)),
+        ),
+        const _GroupDivider(),
+        _DndTile(prefs: prefs),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
           child: Align(
@@ -529,6 +755,338 @@ class _NotificationCard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 免打扰时段（P3-1）：预设档（关闭 / 22:00–07:00 / 23:00–08:00 /
+/// 12:00–13:30）；时段内仅审批类高优放行。
+class _DndTile extends ConsumerWidget {
+  const _DndTile({required this.prefs});
+
+  final NotificationPrefs prefs;
+
+  static String _hhmm(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minutes % 60).toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final subtitle = prefs.dndEnabled
+        ? l10n.settingsNotifDndValue(
+            _hhmm(prefs.dndStartMinutes),
+            _hhmm(prefs.dndEndMinutes),
+          )
+        : l10n.settingsNotifDndOff;
+    return _TileRow(
+      title: l10n.settingsNotifDnd,
+      subtitle: '$subtitle · ${l10n.settingsNotifDndHint}',
+      icon: Icons.do_not_disturb_on_outlined,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final currentKey = prefs.dndEnabled
+        ? '${prefs.dndStartMinutes}-${prefs.dndEndMinutes}'
+        : 'off';
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsNotifDnd,
+      options: [
+        ('off', l10n.settingsNotifDndOff),
+        ('1320-420', l10n.settingsNotifDndValue('22:00', '07:00')),
+        ('1380-480', l10n.settingsNotifDndValue('23:00', '08:00')),
+        ('720-810', l10n.settingsNotifDndValue('12:00', '13:30')),
+      ],
+      current: currentKey,
+    );
+    if (choice == null) return;
+    if (choice == 'off') {
+      await ref
+          .read(notificationPrefsProvider.notifier)
+          .set(prefs.copyWith(dndStartMinutes: 0, dndEndMinutes: 0));
+      return;
+    }
+    final parts = choice.split('-');
+    final start = int.tryParse(parts[0]);
+    final end = int.tryParse(parts[1]);
+    if (start == null || end == null) return;
+    ZrHaptics.tap();
+    await ref
+        .read(notificationPrefsProvider.notifier)
+        .set(prefs.copyWith(dndStartMinutes: start, dndEndMinutes: end));
+  }
+}
+
+/// 会话行为（P3-4）。
+class _DefaultModeTile extends ConsumerWidget {
+  const _DefaultModeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final mode = ref.watch(behaviorProvider).defaultMode;
+    return _TileRow(
+      title: l10n.settingsBehaviorDefaultMode,
+      subtitle: l10n.settingsBehaviorDefaultModeSub,
+      icon: Icons.tune_rounded,
+      trailing: Text(
+        mode,
+        style: zrMono(fontSize: 12, color: context.zt.textLo),
+      ),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = ref.read(behaviorProvider).defaultMode;
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsBehaviorDefaultMode,
+      options: [
+        for (final m in kBehaviorModes) (m, m.toUpperCase()),
+      ],
+      current: current,
+    );
+    if (choice == null || choice == current) return;
+    ZrHaptics.tap();
+    await ref.read(behaviorProvider.notifier).setDefaultMode(choice);
+  }
+}
+
+class _RestoreTile extends ConsumerWidget {
+  const _RestoreTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final policy = ref.watch(behaviorProvider).restorePolicy;
+    final current = switch (policy) {
+      ZrRestorePolicy.first => l10n.settingsRestoreFirst,
+      ZrRestorePolicy.none => l10n.settingsRestoreNone,
+      _ => l10n.settingsRestoreLastDevice,
+    };
+    return _TileRow(
+      title: l10n.settingsBehaviorRestore,
+      subtitle: current,
+      icon: Icons.restart_alt,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = ref.read(behaviorProvider).restorePolicy.name;
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsBehaviorRestore,
+      options: [
+        (kRestoreLastDevice, l10n.settingsRestoreLastDevice),
+        (kRestoreFirst, l10n.settingsRestoreFirst),
+        (kRestoreNone, l10n.settingsRestoreNone),
+      ],
+      current: current,
+    );
+    if (choice == null) return;
+    final policy = restorePolicyOf(choice);
+    if (policy.name == current) return;
+    ZrHaptics.tap();
+    await ref.read(behaviorProvider.notifier).setRestorePolicy(policy);
+  }
+}
+
+class _SoftLimitTile extends ConsumerWidget {
+  const _SoftLimitTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final limit = ref.watch(behaviorProvider).softLimit;
+    return _TileRow(
+      title: l10n.settingsBehaviorSoftLimit,
+      subtitle: l10n.settingsBehaviorSoftLimitSub(limit),
+      icon: Icons.device_hub_outlined,
+      trailing: Text(
+        '$limit',
+        style: zrMono(fontSize: 12, color: context.zt.textLo),
+      ),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = '${ref.read(behaviorProvider).softLimit}';
+    final choice = await _showOptionSheet(
+      context: context,
+      title: l10n.settingsBehaviorSoftLimit,
+      options: [for (var n = 1; n <= 10; n++) ('$n', '$n')],
+      current: current,
+    );
+    if (choice == null) return;
+    final limit = int.tryParse(choice);
+    if (limit == null || '$limit' == current) return;
+    ZrHaptics.tap();
+    await ref.read(behaviorProvider.notifier).setSoftLimit(limit);
+  }
+}
+
+/// 数据与诊断（P3-2/P3-5/P3-6/P3-7 入口）。
+class _DataManageTile extends StatelessWidget {
+  const _DataManageTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return _TileRow(
+      title: l10n.settingsDataManage,
+      subtitle: l10n.settingsDataManageSub,
+      icon: Icons.storage,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const DataManagePage()),
+      ),
+    );
+  }
+}
+
+class _DiagnosticsTile extends ConsumerWidget {
+  const _DiagnosticsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final devices = ref.watch(deviceListProvider);
+    final hasDevice = devices.isNotEmpty;
+    return _TileRow(
+      title: l10n.settingsDiagnosticsEntry,
+      subtitle: hasDevice
+          ? l10n.settingsDiagnosticsSub
+          : l10n.settingsDiagnosticsNoDevice,
+      icon: Icons.troubleshoot_outlined,
+      onTap: hasDevice
+          ? () {
+              final active = ref.read(activeTabProvider);
+              final device =
+                  active < devices.length ? devices[active] : devices.first;
+              ref
+                  .read(diagnosticsOpenRequestProvider.notifier)
+                  .request(device.id);
+              Navigator.of(context).pop();
+            }
+          : null,
+    );
+  }
+}
+
+class _AboutTile extends StatelessWidget {
+  const _AboutTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return _TileRow(
+      title: l10n.settingsAbout,
+      subtitle: l10n.settingsAboutSub,
+      icon: Icons.info_outline,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const AboutPage()),
+      ),
+    );
+  }
+}
+
+/// 更新检查（P3-5 接 UI）：GitHub Releases latest 比对，只提示不强更。
+class _UpdateTile extends ConsumerStatefulWidget {
+  const _UpdateTile();
+
+  @override
+  ConsumerState<_UpdateTile> createState() => _UpdateTileState();
+}
+
+class _UpdateTileState extends ConsumerState<_UpdateTile> {
+  bool _checking = false;
+  UpdateInfo? _update;
+
+  Future<void> _check() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final update = await UpdateChecker(currentVersion: info.version)
+          .checkLatest();
+      if (!mounted) return;
+      setState(() => _update = update);
+    } catch (_) {
+      if (mounted) setState(() => _update = null);
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final update = _update;
+    final subtitle = _checking
+        ? l10n.settingsUpdateChecking
+        : (update == null
+            ? l10n.settingsUpdateCheckSub
+            : l10n.settingsUpdateAvailable(update.latestVersion));
+    return _TileRow(
+      title: l10n.settingsUpdateCheck,
+      subtitle: subtitle,
+      icon: Icons.system_update_alt,
+      trailing: _checking
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : (update == null
+              ? Icon(Icons.chevron_right, color: context.zt.textLo)
+              : TextButton(
+                  onPressed: () => _openRelease(update.releaseUrl),
+                  child: Text(l10n.settingsUpdateOpenRelease),
+                )),
+      onTap: _checking ? null : _check,
+    );
+  }
+
+  Future<void> _openRelease(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+}
+
+/// 高级区（P3-7）：WebView 桌面 UA 覆写实验开关。
+class _UaDesktopTile extends ConsumerWidget {
+  const _UaDesktopTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final value = ref.watch(uaDesktopProvider);
+    return _TileRow(
+      title: l10n.settingsUaDesktop,
+      subtitle: l10n.settingsUaDesktopSub,
+      icon: Icons.science_outlined,
+      iconColor: context.zt.warn,
+      trailing: Switch(
+        value: value,
+        onChanged: (v) {
+          ZrHaptics.tap();
+          ref.read(uaDesktopProvider.notifier).set(v);
+        },
+      ),
     );
   }
 }

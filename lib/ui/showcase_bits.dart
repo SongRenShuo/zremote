@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'motion.dart';
 
 class ZrSectionHead extends StatelessWidget {
   const ZrSectionHead({
@@ -674,4 +675,171 @@ class ZrDashedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant ZrDashedLinePainter old) => old.color != color;
+}
+
+/// 骨架块（P4-4）：加载占位，脉冲呼吸（动效减弱时静止）。
+class ZrSkeletonBlock extends StatefulWidget {
+  const ZrSkeletonBlock({
+    super.key,
+    this.width = double.infinity,
+    this.height = 14,
+    this.radius = 6,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  State<ZrSkeletonBlock> createState() => _ZrSkeletonBlockState();
+}
+
+class _ZrSkeletonBlockState extends State<ZrSkeletonBlock>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!ZrMotion.reduced) {
+      _pulse = AnimationController(
+        vsync: this,
+        duration: ZrMotion.duration(1100),
+      )..repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = context.zt.surfaceHover.withValues(
+      alpha: Theme.of(context).brightness == Brightness.dark ? 0.6 : 1.0,
+    );
+    final block = Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: base,
+        borderRadius: BorderRadius.circular(widget.radius),
+      ),
+    );
+    final controller = _pulse;
+    if (controller == null) return block;
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.45, end: 1.0).animate(
+        CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+      ),
+      child: block,
+    );
+  }
+}
+
+/// 骨架屏列表（P4-4）：卡片区加载态统一占位（用量页等）。
+class ZrSkeletonList extends StatelessWidget {
+  const ZrSkeletonList({super.key, this.cardCount = 3, this.rowsPerCard = 3});
+
+  /// 骨架卡数量。
+  final int cardCount;
+
+  /// 每卡内骨架行数。
+  final int rowsPerCard;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        for (var c = 0; c < cardCount; c++) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: context.zt.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.zt.hairline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ZrSkeletonBlock(width: 120, height: 16),
+                const SizedBox(height: 12),
+                for (var r = 0; r < rowsPerCard; r++) ...[
+                  ZrSkeletonBlock(
+                    width: r == rowsPerCard - 1 ? 180 : double.infinity,
+                    height: 12,
+                  ),
+                  if (r != rowsPerCard - 1) const SizedBox(height: 10),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// 空态（P4-4）：图标 + 标题 + 说明，消除「空白即失败」歧义。
+class ZrEmptyState extends StatelessWidget {
+  const ZrEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: zt.field,
+                border: Border.all(color: zt.hairline, width: 0.8),
+              ),
+              child: Icon(icon, size: 26, color: zt.textLo),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: zt.textHi,
+              ),
+            ),
+            if (message != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12.5, height: 1.5, color: zt.textLo),
+              ),
+            ],
+            if (action != null) ...[const SizedBox(height: 16), action!],
+          ],
+        ),
+      ),
+    );
+  }
 }
