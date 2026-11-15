@@ -47,13 +47,19 @@ class AccountsNotifier extends Notifier<AccountsState> {
   AccountVault get _vault => ref.read(accountVaultOverrideProvider) ?? AccountVault.instance;
 
   Future<void> _load() async {
-    final accounts = await _vault.loadAll();
-    final active = await _vault.loadActiveBindings();
-    state = AccountsState(
-      accounts: accounts,
-      activeByDevice: active,
-      loaded: true,
-    );
+    try {
+      final accounts = await _vault.loadAll();
+      final active = await _vault.loadActiveBindings();
+      state = AccountsState(
+        accounts: accounts,
+        activeByDevice: active,
+        loaded: true,
+      );
+    } catch (e) {
+      // 存储层异常（如平台通道缺失）降级为空库，不炸宿主页面。
+      debugPrint('[zr-vault] accounts load failed: $e');
+      state = state.copyWith(loaded: true);
+    }
   }
 
   /// 外部（登录页/会话页）直接改库后的回读刷新。
