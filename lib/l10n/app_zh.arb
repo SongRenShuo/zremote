@@ -3386,6 +3386,69 @@
   "@gitDetailDiffUnavailable": {
     "description": "P1-7 diff unavailable / binary placeholder"
   },
+  "gitDetailSourceUnstaged": "未暂存",
+  "@gitDetailSourceUnstaged": {
+    "description": "P1 git source segment: unstaged"
+  },
+  "gitDetailSourceStaged": "已暂存",
+  "@gitDetailSourceStaged": {
+    "description": "P1 git source segment: staged"
+  },
+  "gitDetailSourceBranch": "分支对比",
+  "@gitDetailSourceBranch": {
+    "description": "P1 git source segment: branch comparison (upstream...HEAD)"
+  },
+  "gitDetailSourceCount": "{count} 个文件",
+  "@gitDetailSourceCount": {
+    "description": "P1 git source file count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailSectionBranch": "分支对比",
+  "@gitDetailSectionBranch": {
+    "description": "P1 git branch comparison section"
+  },
+  "gitDetailComparisonLabel": "对比 {label}",
+  "@gitDetailComparisonLabel": {
+    "description": "P1 git branch comparison label",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "gitDetailComparisonNoUpstream": "当前分支没有上游，无法对比",
+  "@gitDetailComparisonNoUpstream": {
+    "description": "P1 git branch comparison: no upstream"
+  },
+  "gitDetailComparisonEmpty": "与上游无差异",
+  "@gitDetailComparisonEmpty": {
+    "description": "P1 git branch comparison: no changes"
+  },
+  "gitDetailComparisonUnavailable": "无法获取分支对比",
+  "@gitDetailComparisonUnavailable": {
+    "description": "P1 git branch comparison: load failed"
+  },
+  "gitDiffTooLarge": "文件较大（{count} 行），已显示原始补丁",
+  "@gitDiffTooLarge": {
+    "description": "P1 git diff large-file fallback notice",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDiffCollapseAll": "全部折叠",
+  "@gitDiffCollapseAll": {
+    "description": "P1 git diff: collapse all hunks"
+  },
+  "gitDiffExpandAll": "全部展开",
+  "@gitDiffExpandAll": {
+    "description": "P1 git diff: expand all hunks"
+  },
   "themeOled": "OLED 纯黑",
   "@themeOled": {
     "description": "Theme picker: OLED pure black option"

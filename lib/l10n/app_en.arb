@@ -2638,6 +2638,69 @@
   "@gitDetailDiffUnavailable": {
     "description": "P1-7 diff unavailable / binary placeholder"
   },
+  "gitDetailSourceUnstaged": "Unstaged",
+  "@gitDetailSourceUnstaged": {
+    "description": "P1 git source segment: unstaged"
+  },
+  "gitDetailSourceStaged": "Staged",
+  "@gitDetailSourceStaged": {
+    "description": "P1 git source segment: staged"
+  },
+  "gitDetailSourceBranch": "Branch comparison",
+  "@gitDetailSourceBranch": {
+    "description": "P1 git source segment: branch comparison (upstream...HEAD)"
+  },
+  "gitDetailSourceCount": "{count} files",
+  "@gitDetailSourceCount": {
+    "description": "P1 git source file count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailSectionBranch": "Branch changes",
+  "@gitDetailSectionBranch": {
+    "description": "P1 git branch comparison section"
+  },
+  "gitDetailComparisonLabel": "Comparing {label}",
+  "@gitDetailComparisonLabel": {
+    "description": "P1 git branch comparison label",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "gitDetailComparisonNoUpstream": "Current branch has no upstream to compare",
+  "@gitDetailComparisonNoUpstream": {
+    "description": "P1 git branch comparison: no upstream"
+  },
+  "gitDetailComparisonEmpty": "No changes vs upstream",
+  "@gitDetailComparisonEmpty": {
+    "description": "P1 git branch comparison: no changes"
+  },
+  "gitDetailComparisonUnavailable": "Could not load branch comparison",
+  "@gitDetailComparisonUnavailable": {
+    "description": "P1 git branch comparison: load failed"
+  },
+  "gitDiffTooLarge": "File is large ({count} lines); showing raw patch",
+  "@gitDiffTooLarge": {
+    "description": "P1 git diff large-file fallback notice",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDiffCollapseAll": "Collapse all",
+  "@gitDiffCollapseAll": {
+    "description": "P1 git diff: collapse all hunks"
+  },
+  "gitDiffExpandAll": "Expand all",
+  "@gitDiffExpandAll": {
+    "description": "P1 git diff: expand all hunks"
+  },
   "themeOled": "OLED black",
   "@themeOled": {
     "description": "Theme picker: OLED pure black option"
