@@ -5,10 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device_label.dart';
+import '../services/approval_router.dart';
 import '../services/deep_link.dart';
 import '../services/device_import.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
+import '../services/task_actions.dart';
+import '../state/approval_center.dart';
 import '../state/claim_entry.dart';
 import '../state/event_feed.dart';
 import '../state/keepalive.dart';
@@ -30,6 +33,18 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     NotificationTap.bind((payload) => _jumpToPayload(payload));
+    // P1-4：通知动作按钮（批准/拒绝）路由。
+    NotificationActionTap.bind(
+      (actionId, payload) => _handleApprovalAction(actionId, payload),
+    );
+    // 冷启动由动作按钮拉起时 route 先于 bind 落 pending，这里补发。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pending = NotificationActionTap.consumePending();
+      if (pending != null) {
+        _handleApprovalAction(pending.actionId, pending.payload);
+      }
+    });
     NotifierService.instance.setLockScreenRedact(ref.read(biometricProvider));
     // P4-1 深链导入：热启动推送 + 冷启动 initial（Dart 侧就绪后拉取）。
     DeepLinkService.listen(_handleDeepLink);
@@ -42,6 +57,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void dispose() {
     NotificationTap.bind(null);
+    NotificationActionTap.bind(null);
     super.dispose();
   }
 
@@ -112,6 +128,35 @@ class _AppShellState extends ConsumerState<AppShell> {
       return;
     }
     _jumpTo(payload);
+  }
+
+  /// P1-4 通知动作路由：`perm:<deviceId>:<taskId>` payload +
+  /// actionId（zr-act-approve / zr-act-deny）→ 审批回执；
+  /// 无桥/无待办/RPC 失败 → 静默回退跳设备会话页由用户在页面内操作。
+  /// 决策逻辑在 approval_route（纯函数可测），这里只执行。
+  Future<void> _handleApprovalAction(String actionId, String payload) async {
+    if (!mounted) return;
+    final parsed = TaskActionsClient.parsePermPayload(payload);
+    final client = parsed == null
+        ? null
+        : ref.read(approvalCenterProvider.notifier).clientOf(parsed.deviceId);
+    final pending = parsed == null
+        ? null
+        : ref.read(approvalCenterProvider)[parsed.deviceId]?[parsed.taskId];
+    final route = approvalRouteFor(
+      actionId: actionId,
+      payload: payload,
+      client: client,
+      pending: pending,
+    );
+    if (route is ApprovalJump) {
+      _jumpTo(route.deviceId);
+      return;
+    }
+    final respond = route as ApprovalRespond;
+    final ok = await executeApprovalRoute(respond, client);
+    if (!mounted) return;
+    if (!ok) _jumpTo(respond.deviceId);
   }
 
   void _consumePendingTap() {

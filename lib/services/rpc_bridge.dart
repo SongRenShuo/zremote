@@ -114,6 +114,17 @@ class RpcBridge {
     'provider-settings': ['providerSettingsService', 'modelProviderService'],
     'model-selection': ['modelSelectionService', 'modelService'],
     'setting': ['settingService', 'settingsService'],
+    // V2 P1-4/P1-7/P1-8 追加频道（只追加，不改既有行）。
+    // 全部为单一候选：宿主服务名与开源版 ServiceChannels 注册名一致，
+    // 无别名兜底必要；no-services 直接按原语义抛出。
+    'zcode-task': ['zcodeTaskService'],
+    'git': ['gitService'],
+    'skills': ['skillsService'],
+    'commands': ['commandsService'],
+    'subagents': ['subagentsService'],
+    'mcp': ['mcpSyncService'],
+    'hooks': ['hooksService'],
+    'memory': ['memoryService'],
   };
 
   static final Map<String, String> _serviceByChannel = {

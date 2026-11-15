@@ -2733,5 +2733,208 @@
   "rewardsExternalFail": "无法打开外部链接",
   "@rewardsExternalFail": {
     "description": "Toast when external browser launch fails"
+  },
+"approvalNotifApprove": "批准",
+  "@approvalNotifApprove": {
+    "description": "P1-4 notification action button: approve permission"
+  },
+  "approvalNotifDeny": "拒绝",
+  "@approvalNotifDeny": {
+    "description": "P1-4 notification action button: deny permission"
+  },
+  "approvalStopTooltip": "停止生成",
+  "@approvalStopTooltip": {
+    "description": "P1-4 session row stop button tooltip"
+  },
+  "approvalStopFailed": "停止失败，请在会话页内操作",
+  "@approvalStopFailed": {
+    "description": "P1-4 stop generation failure hint (fallback to session page)"
+  },
+  "desktopSettingsTitle": "桌面设置遥控",
+  "@desktopSettingsTitle": {
+    "description": "P1-6 desktop settings remote page title"
+  },
+  "desktopSettingsHint": "以下开关即时作用于桌面端 {device}",
+  "@desktopSettingsHint": {
+    "description": "P1-6 page hint that toggles affect the desktop host",
+    "placeholders": {
+      "device": {"type": "String"}
+    }
+  },
+  "desktopSettingsShowReasoning": "消息流显示思考过程",
+  "@desktopSettingsShowReasoning": {
+    "description": "P1-6 toggle messageStreamShowReasoning"
+  },
+  "desktopSettingsShowTodos": "消息流显示 TODO",
+  "@desktopSettingsShowTodos": {
+    "description": "P1-6 toggle messageStreamShowTodos"
+  },
+  "desktopSettingsAutoArchive": "任务自动归档",
+  "@desktopSettingsAutoArchive": {
+    "description": "P1-6 toggle taskAutoArchiveEnabled"
+  },
+  "desktopSettingsKeepAwake": "运行时保持唤醒",
+  "@desktopSettingsKeepAwake": {
+    "description": "P1-6 toggle keepAwakeWhileRunning"
+  },
+  "desktopSettingsLocale": "界面语言（只读）",
+  "@desktopSettingsLocale": {
+    "description": "P1-6 readonly locale row"
+  },
+  "desktopSettingsConfirmTitle": "修改桌面端设置",
+  "@desktopSettingsConfirmTitle": {
+    "description": "P1-6 update confirm dialog title"
+  },
+  "desktopSettingsConfirmBody": "将「{name}」改为 {value}？该修改作用于桌面端。",
+  "@desktopSettingsConfirmBody": {
+    "description": "P1-6 update confirm dialog body",
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "String"}
+    }
+  },
+  "desktopSettingsValueOn": "开启",
+  "@desktopSettingsValueOn": {
+    "description": "P1-6 confirm dialog value ON"
+  },
+  "desktopSettingsValueOff": "关闭",
+  "@desktopSettingsValueOff": {
+    "description": "P1-6 confirm dialog value OFF"
+  },
+  "desktopSettingsConfirmAction": "修改",
+  "@desktopSettingsConfirmAction": {
+    "description": "P1-6 confirm dialog action"
+  },
+  "desktopSettingsUpdateFailed": "修改失败：{error}",
+  "@desktopSettingsUpdateFailed": {
+    "description": "P1-6 update failure toast",
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "gitCardTitle": "Git 概览",
+  "@gitCardTitle": {
+    "description": "P1-7 git overview card title"
+  },
+  "gitCardDesc": "分支 · 工作区状态",
+  "@gitCardDesc": {
+    "description": "P1-7 git overview card subtitle"
+  },
+  "gitCardNoSession": "进入会话后显示当前工作区状态",
+  "@gitCardNoSession": {
+    "description": "P1-7 hint when no workspace session yet"
+  },
+  "gitCardNoRepo": "当前工作区不是 Git 仓库",
+  "@gitCardNoRepo": {
+    "description": "P1-7 hint when workspace is not a git repo"
+  },
+  "gitCardBranch": "分支 {branch}",
+  "@gitCardBranch": {
+    "description": "P1-7 branch line",
+    "placeholders": {
+      "branch": {"type": "String"}
+    }
+  },
+  "gitCardAheadBehind": "↑{ahead} ↓{behind}",
+  "@gitCardAheadBehind": {
+    "description": "P1-7 ahead/behind counts",
+    "placeholders": {
+      "ahead": {"type": "int"},
+      "behind": {"type": "int"}
+    }
+  },
+  "gitCardDirty": "{count} 个改动",
+  "@gitCardDirty": {
+    "description": "P1-7 dirty file count badge; count unknown when omitted",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "gitCardClean": "干净",
+  "@gitCardClean": {
+    "description": "P1-7 clean badge"
+  },
+  "assetsTitle": "资产浏览",
+  "@assetsTitle": {
+    "description": "P1-8 assets page title"
+  },
+  "assetsTabSkills": "技能",
+  "@assetsTabSkills": {
+    "description": "P1-8 skills tab"
+  },
+  "assetsTabCommands": "命令",
+  "@assetsTabCommands": {
+    "description": "P1-8 commands tab"
+  },
+  "assetsTabSubagents": "子代理",
+  "@assetsTabSubagents": {
+    "description": "P1-8 subagents tab"
+  },
+  "assetsTabMcp": "MCP",
+  "@assetsTabMcp": {
+    "description": "P1-8 MCP tab"
+  },
+  "assetsTabHooks": "钩子",
+  "@assetsTabHooks": {
+    "description": "P1-8 hooks tab"
+  },
+  "assetsTabMemory": "记忆",
+  "@assetsTabMemory": {
+    "description": "P1-8 memory tab"
+  },
+  "assetsTabUnavailable": "{tab} 服务不可用",
+  "@assetsTabUnavailable": {
+    "description": "P1-8 per-tab service unavailable message",
+    "placeholders": {
+      "tab": {"type": "String"}
+    }
+  },
+  "assetsTabEmpty": "暂无内容",
+  "@assetsTabEmpty": {
+    "description": "P1-8 empty tab message"
+  },
+  "assetsTabDegraded": "响应形状不识别，已按空列表降级",
+  "@assetsTabDegraded": {
+    "description": "P1-8 degraded parse message"
+  },
+  "toolboxGroupSessionOps": "会话操作",
+  "@toolboxGroupSessionOps": {
+    "description": "P1-9 toolbox group: session operations"
+  },
+  "toolboxGroupAccount": "账号与套餐",
+  "@toolboxGroupAccount": {
+    "description": "P1-9 toolbox group: account and plans"
+  },
+  "toolboxGroupAssets": "资产",
+  "@toolboxGroupAssets": {
+    "description": "P1-9 toolbox group: assets"
+  },
+  "toolboxSearchHint": "搜索工具…",
+  "@toolboxSearchHint": {
+    "description": "P1-9 toolbox local search hint"
+  },
+  "toolboxMore": "更多",
+  "@toolboxMore": {
+    "description": "P1-9 expand collapsed entries"
+  },
+  "toolboxPermPending": "审批待办",
+  "@toolboxPermPending": {
+    "description": "P1-9 pending approval badge in toolbox header"
+  },
+  "toolboxDesktopSettings": "桌面设置",
+  "@toolboxDesktopSettings": {
+    "description": "P1-6 desktop settings toolbox entry title"
+  },
+  "toolboxDesktopSettingsDesc": "遥控桌面端行为开关",
+  "@toolboxDesktopSettingsDesc": {
+    "description": "P1-6 desktop settings toolbox entry subtitle"
+  },
+  "toolboxAssetsDesc": "技能 · 命令 · MCP · 钩子",
+  "@toolboxAssetsDesc": {
+    "description": "P1-8 assets toolbox entry subtitle"
+  },
+"gitCardDirtyUnknown": "有改动",
+  "@gitCardDirtyUnknown": {
+    "description": "P1-7 dirty badge when count unknown (isDirty only)"
   }
 }

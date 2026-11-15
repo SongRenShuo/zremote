@@ -4,9 +4,18 @@ import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../models/device_label.dart';
 import 'event_observer.dart';
+import 'task_actions.dart';
 
 /// 领取结果通知类型（P2-7）：成功 / 需人工验证码。
 enum ClaimNotifyKind { success, captchaNeeded }
+
+/// 通知动作按钮（P1-4）：id 回传 onDidReceiveNotificationResponse.actionId。
+class NotificationActionSpec {
+  const NotificationActionSpec({required this.id, required this.title});
+
+  final String id;
+  final String title;
+}
 
 class NotificationSpec {
   const NotificationSpec({
@@ -17,6 +26,7 @@ class NotificationSpec {
     required this.title,
     required this.body,
     required this.payload,
+    this.actions = const [],
   });
 
   final String channelId;
@@ -27,6 +37,9 @@ class NotificationSpec {
   final String body;
 
   final String payload;
+
+  /// Android 通知 action 按钮（批准/拒绝等）；空列表不带按钮。
+  final List<NotificationActionSpec> actions;
 
   static int stableId(RemoteDevice device, ObservedEvent event) =>
       (device.id.hashCode ^
@@ -67,7 +80,19 @@ class NotificationSpec {
           priority: Priority.high,
           title: l.notifPermTitle(label, session),
           body: what ?? l.notifPermBody,
-          payload: device.id,
+          // P1-4：带 taskId 时 payload 用 perm 前缀（通知动作按钮路由用），
+          // 点击通知本体同样落在会话页兜底路径。
+          payload: _permPayload(device, event),
+          actions: [
+            NotificationActionSpec(
+              id: TaskActionsClient.actionApprove,
+              title: l.approvalNotifApprove,
+            ),
+            NotificationActionSpec(
+              id: TaskActionsClient.actionDeny,
+              title: l.approvalNotifDeny,
+            ),
+          ],
         );
       case 'elicitation_request':
         return NotificationSpec(
@@ -77,7 +102,7 @@ class NotificationSpec {
           priority: Priority.high,
           title: l.notifElicitTitle(label, session),
           body: what ?? l.notifElicitBody,
-          payload: device.id,
+          payload: _permPayload(device, event),
         );
       case 'error':
         return NotificationSpec(
@@ -102,6 +127,15 @@ class NotificationSpec {
       default:
         return null;
     }
+  }
+
+  /// taskId 可得时构造 `perm:<deviceId>:<taskId>`；否则回落设备 id
+  /// （老语义：点击跳设备）。
+  static String _permPayload(RemoteDevice device, ObservedEvent event) {
+    final taskId = event.taskId;
+    if (taskId == null || taskId.isEmpty) return device.id;
+    return '${TaskActionsClient.permPayloadPrefix}'
+        '${device.id}:$taskId';
   }
 
   /// 领取结果通知（P2-7）：独立 zr_claim 渠道；payload 带 `claim:` 前缀，
@@ -173,6 +207,33 @@ abstract final class NotificationTap {
   }
 }
 
+/// 通知动作按钮路由（P1-4）：actionId（zr-act-*）+ 通知 payload。
+/// 与 [NotificationTap] 平行；绑定晚于动作到达时落 pending。
+abstract final class NotificationActionTap {
+  static ({String actionId, String payload})? _pending;
+  static void Function(String actionId, String payload)? _onAction;
+
+  static void bind(void Function(String actionId, String payload)? onAction) =>
+      _onAction = onAction;
+
+  static void route(String? actionId, String? payload) {
+    if (actionId == null || actionId.isEmpty) return;
+    final body = payload ?? '';
+    final onAction = _onAction;
+    if (onAction != null) {
+      onAction(actionId, body);
+    } else {
+      _pending = (actionId: actionId, payload: body);
+    }
+  }
+
+  static ({String actionId, String payload})? consumePending() {
+    final pending = _pending;
+    _pending = null;
+    return pending;
+  }
+}
+
 NotificationVisibility lockScreenVisibility({required bool lockEnabled}) =>
     lockEnabled ? NotificationVisibility.private : NotificationVisibility.public;
 
@@ -211,8 +272,16 @@ class NotifierService {
         settings: const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         ),
-        onDidReceiveNotificationResponse: (response) =>
-            NotificationTap.route(response.payload),
+        onDidReceiveNotificationResponse: (response) {
+          // P1-4：动作按钮按下（actionId 非空）走动作路由；
+          // 通知本体点击仍走 NotificationTap（payload 语义路由）。
+          final actionId = response.actionId;
+          if (actionId != null && actionId.isNotEmpty) {
+            NotificationActionTap.route(actionId, response.payload);
+            return;
+          }
+          NotificationTap.route(response.payload);
+        },
       );
       final details = await _plugin.getNotificationAppLaunchDetails();
       if (details?.didNotificationLaunchApp ?? false) {
@@ -243,6 +312,10 @@ class NotifierService {
             importance: spec.importance,
             priority: spec.priority,
             visibility: lockScreenVisibility(lockEnabled: _lockScreenRedact),
+            actions: [
+              for (final action in spec.actions)
+                AndroidNotificationAction(action.id, action.title),
+            ],
           ),
         ),
         payload: spec.payload,

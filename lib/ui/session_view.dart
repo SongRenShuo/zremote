@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../services/approval_extractor.dart';
 import '../services/auth_popup_policy.dart';
 import '../services/event_observer.dart';
+import '../services/git_overview.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
 import '../services/rpc_bridge.dart';
@@ -19,10 +21,12 @@ import '../services/rpc_dispatch.dart';
 import '../services/resume_health.dart';
 import '../services/service_probe.dart';
 import '../services/session_jump.dart';
+import '../services/task_actions.dart';
 import '../services/web_theme.dart';
 import '../services/webview_profile.dart';
 import '../state/active_session.dart';
 import '../state/app_lifecycle.dart';
+import '../state/approval_center.dart';
 import '../state/automation.dart';
 import '../state/claim_config.dart';
 import '../state/claim_entry.dart';
@@ -36,8 +40,10 @@ import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
+import 'assets_page.dart';
 import 'automation_page.dart';
 import 'claim_page.dart';
+import 'desktop_settings_page.dart';
 import 'diagnostics_page.dart';
 import 'model_settings_page.dart';
 import 'quota_page.dart';
@@ -72,6 +78,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
   AutomationNotifier? _automationNotifier;
   ClaimEntryNotifier? _claimEntryNotifier;
   ServiceReadinessNotifier? _readinessNotifier;
+  ApprovalCenterNotifier? _approvalCenterNotifier;
 
   bool _claimEntryProbed = false;
 
@@ -110,6 +117,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _automationNotifier ??= ref.read(automationProvider.notifier);
     _claimEntryNotifier ??= ref.read(claimEntryProvider.notifier);
     _readinessNotifier ??= ref.read(serviceReadinessProvider.notifier);
+    _approvalCenterNotifier ??= ref.read(approvalCenterProvider.notifier);
     _startDispatch();
   }
 
@@ -339,6 +347,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
       ...EventParser.parseRoot(root),
       ..._stateDiffer.apply(states, removed: removed),
     ];
+    // P1-4：审批待办被动喂流（requestId/选项集供通知动作按钮回执）。
+    final approvalSignals = ApprovalExtractor.parseRoot(root);
+    if (approvalSignals.isNotEmpty) {
+      _approvalCenterNotifier?.ingest(widget.device.id, approvalSignals);
+    }
     if (events.isEmpty) return;
     final devices = ref.read(deviceListProvider);
     final active = ref.read(activeTabProvider);
@@ -351,6 +364,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
         final taskId = event.taskId;
         if (taskId != null) {
           NotifierService.instance.cancelPending(widget.device, taskId);
+          _approvalCenterNotifier?.ingest(widget.device.id, [
+            ApprovalSignal.resolved(taskId),
+          ]);
         }
         _feedNotifier?.ingest(widget.device.id, event);
         continue;
@@ -587,6 +603,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                 Navigator.pop(sheetContext);
                 _jumpToSession(sessionId);
               },
+              onStopSession: (sessionId) => _stopGeneration(sessionId),
             );
           },
         );
@@ -605,6 +622,30 @@ class _SessionViewState extends ConsumerState<SessionView> {
         source: SessionJump.jumpScript(sessionId, workspace: workspace),
       );
     } catch (_) {}
+  }
+
+  /// P1-4：会话卡行内「停止」——stopGeneration（zcode-task 频道）。
+  /// 失败提示用户在页面内操作（会话页兜底同款语义）。
+  Future<void> _stopGeneration(String sessionId) async {
+    final bridge = _rpcBridge;
+    final l10n = AppLocalizations.of(context)!;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    final workspace = ref
+        .read(sessionIndexProvider)[widget.device.id]?[sessionId]
+        ?.workspacePath;
+    final ok = await TaskActionsClient(bridge).stopGeneration(
+      taskId: sessionId,
+      workspacePath: workspace,
+    );
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.approvalStopFailed)),
+      );
+    }
   }
 
   Future<bool> _ensureServiceReady() async {
@@ -739,6 +780,48 @@ class _SessionViewState extends ConsumerState<SessionView> {
     );
   }
 
+  /// P1-6：桌面设置遥控。
+  Future<void> _openDesktopSettings() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            DesktopSettingsPage(device: widget.device, bridge: bridge),
+      ),
+    );
+  }
+
+  /// P1-8：资产只读浏览。
+  Future<void> _openAssets() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AssetsPage(device: widget.device, bridge: bridge),
+      ),
+    );
+  }
+
+  /// 当前（活动会话优先）工作区路径：Git 卡 / 资产页共用。
+  String? _activeWorkspacePath() {
+    final sessions = ref.read(sessionIndexProvider)[widget.device.id];
+    if (sessions == null || sessions.isEmpty) return null;
+    final activeId = ref.read(activeSessionProvider)[widget.device.id];
+    return sessions[activeId]?.workspacePath ??
+        sessions.values.map((s) => s.workspacePath).nonNulls.firstOrNull;
+  }
+
   Future<void> _probeClaimEntry() async {
     final bridge = _rpcBridge;
     if (bridge == null) {
@@ -799,6 +882,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
   void dispose() {
     // P2-1：会话销毁（设备移除/页面关闭）→ 自动领取停表。
     ref.read(claimSchedulerHubProvider.notifier).detach(widget.device.id);
+    // P1-4：审批中心解绑。
+    ref.read(approvalCenterProvider.notifier).detach(widget.device.id);
     _statusNotifier?.forget(widget.device.id);
     _feedNotifier?.forget(widget.device.id);
     _sessionIndexNotifier?.forget(widget.device.id);
@@ -949,6 +1034,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
             onDiagnosticsPressed: _openDiagnostics,
             onQuotaPressed: _openQuota,
             onRewardsPressed: _openRewards,
+            onDesktopSettingsPressed: _openDesktopSettings,
+            onAssetsPressed: _openAssets,
+            gitClient: _rpcBridge == null ? null : GitOverviewClient(_rpcBridge!),
+            workspacePath: _activeWorkspacePath(),
           ),
           IconButton(
             icon: const Icon(Icons.article_outlined),
@@ -1111,6 +1200,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
                               .read(claimSchedulerHubProvider.notifier)
                               .attach(widget.device, _rpcBridge!),
                         );
+                        // P1-4：审批动作客户端注册（通知动作按钮回执）。
+                        ref
+                            .read(approvalCenterProvider.notifier)
+                            .attach(widget.device.id, _rpcBridge!);
                         controller.addJavaScriptHandler(
                           handlerName: 'zrEvents',
                           callback: (args) {
@@ -1227,6 +1320,10 @@ class _ToolboxEntryButton extends ConsumerWidget {
     this.onDiagnosticsPressed,
     this.onQuotaPressed,
     this.onRewardsPressed,
+    this.onDesktopSettingsPressed,
+    this.onAssetsPressed,
+    this.gitClient,
+    this.workspacePath,
   });
 
   final RemoteDevice device;
@@ -1237,13 +1334,24 @@ class _ToolboxEntryButton extends ConsumerWidget {
   final VoidCallback? onDiagnosticsPressed;
   final VoidCallback? onQuotaPressed;
   final VoidCallback? onRewardsPressed;
+  final VoidCallback? onDesktopSettingsPressed;
+  final VoidCallback? onAssetsPressed;
+
+  /// P1-7：Git 概览数据源（null 时 Git 卡置灰）。
+  final GitOverviewClient? gitClient;
+
+  /// P1-7：Git 卡的 workspacePath。
+  final String? workspacePath;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final autoBoard = ref.watch(automationProvider)[device.id];
     final claimReady = ref.watch(claimEntryProvider)[device.id] == true;
+    // P1-9：审批待办并入工具箱入口徽标（event_feed 的 permPending）。
+    final permPending =
+        ref.watch(eventFeedProvider)[device.id]?.permPending ?? false;
     final hasActiveNotice =
-        (autoBoard?.queuedCount ?? 0) > 0 || claimReady;
+        (autoBoard?.queuedCount ?? 0) > 0 || claimReady || permPending;
 
     return IconButton(
       icon: Badge(
@@ -1263,6 +1371,10 @@ class _ToolboxEntryButton extends ConsumerWidget {
         onDiagnosticsPressed: onDiagnosticsPressed,
         onQuotaPressed: onQuotaPressed,
         onRewardsPressed: onRewardsPressed,
+        onDesktopSettingsPressed: onDesktopSettingsPressed,
+        onAssetsPressed: onAssetsPressed,
+        gitClient: gitClient,
+        workspacePath: workspacePath,
       ),
     );
   }

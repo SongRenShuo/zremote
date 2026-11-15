@@ -279,4 +279,52 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('会话-0'), findsOneWidget);
   });
+
+  group('P1-4 行内「停止」按钮（stopGeneration 入口）', () {
+    testWidgets('running 会话显示停止钮，点按回传 sessionId', (tester) async {
+      final stopped = <String>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SessionPanelSheet(
+              sessions: [
+                sess('s1', title: '跑着', phase: 'running'),
+                sess('s2', title: '完成', phase: 'completedSuccess'),
+              ],
+              onStopSession: stopped.add,
+            ),
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('session-stop-button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('session-stop-button')));
+      await tester.pumpAndSettle();
+      expect(stopped, ['s1']);
+    });
+
+    testWidgets('非 running / 未接回调不渲染按钮', (tester) async {
+      await pumpPanel(
+        tester,
+        [sess('s2', title: '完成', phase: 'completedSuccess')],
+      );
+      expect(find.byKey(const Key('session-stop-button')), findsNothing);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SessionPanelSheet(
+              sessions: [sess('s1', title: '跑着', phase: 'running')],
+            ),
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('session-stop-button')), findsNothing);
+    });
+  });
 }
