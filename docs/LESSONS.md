@@ -50,6 +50,8 @@
 - **L23 形状归一化要按「RPC 解包后的真实形态」写，别按嵌套直觉**。证据：`memoryService.listProjectMemories()` 返回对象数组，RPC 解包后 `values` **就是顶层数组**（元素是 Map）；本仓 `_memoryOf` 只找「数组里嵌数组」→ 恒 `degraded` → 真机显示「响应形状不识别，已按空列表降级」（`de85332`）。判据：先写一条**真实形态**的用例再写归一化；「空数组」必须与「形状不符」区分（空=无内容，不降级）。**Seen 1× (11-16)**
 - **L24 跨源比较只用「同量纲字段」；展示与真值分离**。证据：额度预警若用 `remaining` 跨源比较会因单位不同（token/分钟/次）失真，统一用 `percentUsed`（`2676cd1`）；反例同轮：自动化表单下拉直接渲染 `workspacePath` 真值 → 满屏路径（`de85332`）。判据：列表/下拉**展示名与 value 分离**（value 存 ID/路径，展示取名称，无名称回落 basename）。**Seen 1× (11-16)**
 - **L25 共享 provider 驱动的定时任务，测试要固定其依赖表**。证据：`QuotaAlertWatcher` 的「无设备」用例依赖真实 `deviceListProvider` 的异步加载时序，全量跑偶发失败（单独跑必过）——用 `overrideWith` 固定空设备表后稳定（`d90db99`）。判据：**测试断言的前提如果是"某个异步 provider 恰好是空的"，就必须 override 它**，否则用例间会互相应响。**Seen 1× (11-16)**
+- **L26 弹层/展开内容必须落在「有界可滚动」容器里，展开后要主动滚入可视区**。证据：自动化计划卡「展开运行」与工具箱「更多」展开后新内容整块停在视口外（复现：800×1200 卡底边 1283>1200），需用户自己找；同型还有 `session_view._showSwitcher` 无界 `Column`（20 台设备溢出 329px、不可滚动）（`da550bd`+`b4e93f3`）。判据：**弹层列表一律 `Flexible/Expanded` + `ListView`/`SingleChildScrollView`；展开状态变化后用 `Scrollable.ensureVisible`（`keepVisibleAtEnd`）只补最小滚动**——用 explicit 滚到顶会让顶部卡片跳页（实测 428px→0）。**Seen 1× (11-16)**
+- **L27 账户能力不得强依赖「已有设备」——入口可达性是硬需求**。证据：`LoginWebPage`/`AccountVaultPage` 构造 `required device`、登录入口只在设备会话页 → **全新安装（0 设备）无法登录**，于是「登录→拉取服务端设备列表→重建设备库」的迁移路径断在第一步（`6dd76c4`+`606dd6f`）。判据：涉及账户/登录的能力要能在**空库态**可达（入口放空态页与设置页，`device` 设可选并显式降级），并把「0 设备可达」写进用例。**Seen 1× (11-16)**
 
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
