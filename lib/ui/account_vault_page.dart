@@ -10,10 +10,14 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../models/device_label.dart';
 import '../services/account_vault.dart';
+import '../services/remote_device_client.dart';
 import '../services/zai_auth_client.dart';
 import '../state/accounts.dart';
+import '../state/session_pool.dart';
 import '../theme.dart';
+import 'account_device_picker_page.dart';
 
 /// 账号库页面（P0-5/P0-6/P0-8）。
 ///
@@ -26,6 +30,7 @@ class AccountVaultPage extends ConsumerStatefulWidget {
     required this.onCaptureCurrent,
     required this.onApply,
     this.client,
+    this.deviceClient,
     this.exportSink,
     this.importSource,
   });
@@ -41,6 +46,9 @@ class AccountVaultPage extends ConsumerStatefulWidget {
   /// 账号资料拉取客户端（测试注入）。
   final ZaiAuthClient? client;
 
+  /// 账号设备列表客户端（测试注入）。
+  final RemoteDeviceClient? deviceClient;
+
   /// .zsb 导出出口（默认写临时文件并调系统分享；测试录音替身）。
   final Future<void> Function(Uint8List bytes, String fileName)? exportSink;
 
@@ -55,6 +63,9 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
   bool _busy = false;
 
   ZaiAuthClient get _client => widget.client ?? ZaiAuthClient();
+
+  RemoteDeviceClient get _deviceLister =>
+      widget.deviceClient ?? RemoteDeviceClient();
 
   void _toast(String message) {
     if (!mounted) return;
@@ -121,6 +132,101 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// 从当前在用账号拉取已注册设备 → 选择 → 写入设备库（账户直连 P1）。
+  ///
+  /// 入口仅在存在在用账号时可点；列表按账号重新拉取，不复用旧列表。
+  Future<void> _addDeviceFromAccount() async {
+    if (_busy) return;
+    final l10n = AppLocalizations.of(context)!;
+    final account = ref.read(accountsProvider).activeAccountOf(widget.device);
+    if (account == null) {
+      _toast(l10n.acctNoActiveAccount);
+      return;
+    }
+    final jwt = account.jwt;
+    if (jwt == null || jwt.isEmpty) {
+      _toast(l10n.devicesNeedRelogin);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final entries = await _deviceLister.listDevices(
+        jwt,
+        deviceMid: account.virtualDeviceMid,
+      );
+      if (!mounted) return;
+      if (entries.isEmpty) {
+        _toast(l10n.devicesPickerEmpty);
+        return;
+      }
+      final result = await Navigator.of(context).push<AccountDevicePickerResult>(
+        MaterialPageRoute<AccountDevicePickerResult>(
+          builder: (_) => AccountDevicePickerPage(
+            accountName: account.name.isNotEmpty ? account.name : account.id,
+            entries: entries,
+            existingDevices: ref.read(deviceListProvider),
+            onAdd: (device, {required open}) => _installAccountDevice(
+              device,
+              account: account,
+              open: open,
+            ),
+          ),
+        ),
+      );
+      if (!mounted || result == null) return;
+      _toast(
+        result.duplicate
+            ? l10n.devicesDuplicateToast(_deviceNameOf(result.deviceId))
+            : l10n.devicesAddedToast(_deviceNameOf(result.deviceId)),
+      );
+      if (result.open) {
+        _openDeviceById(result.deviceId);
+        // 「添加并打开」：回到会话页才能看到新设备（账号库是叠在上层的路由）。
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      }
+    } on RemoteDeviceException catch (e) {
+      if (!mounted) return;
+      _toast(
+        e.isUnauthorized
+            ? l10n.devicesNeedRelogin
+            : l10n.devicesFetchFailed(e.message),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _toast(l10n.devicesFetchFailed('$e'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// 写库走 deviceListProvider 既有添加路径；同时绑定账号，让新设备的
+  /// 原生页面（额度/福利/端点探测）能取到同一账号的供票。
+  Future<bool> _installAccountDevice(
+    RemoteDevice device, {
+    required Account account,
+    required bool open,
+  }) async {
+    await ref.read(deviceListProvider.notifier).add(device);
+    await ref
+        .read(accountsProvider.notifier)
+        .setActiveForDevice(device, account.id);
+    return true;
+  }
+
+  String _deviceNameOf(String id) {
+    for (final d in ref.read(deviceListProvider)) {
+      if (d.id == id) return d.displayName(AppLocalizations.of(context));
+    }
+    return '';
+  }
+
+  void _openDeviceById(String id) {
+    final index = ref
+        .read(deviceListProvider)
+        .indexWhere((d) => d.id == id);
+    if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
   }
 
   Future<void> _deleteAccount(Account account) async {
@@ -425,6 +531,18 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const Key('acct-add-device'),
+                  onPressed: (activeId != null && !_busy)
+                      ? () => unawaited(_addDeviceFromAccount())
+                      : null,
+                  icon: const Icon(Icons.devices_other, size: 18),
+                  label: Text(l10n.devicesAddFromAccount),
+                ),
+              ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

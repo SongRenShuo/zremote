@@ -4065,5 +4065,137 @@
   "diagnosticsEndpointSkipNoToken": "跳过：无 zcode JWT（账号库未接入）",
   "@diagnosticsEndpointSkipNoToken": {
     "description": "P6-1 skip reason shown for billing/balance when no token"
+  },
+  "acctNoActiveAccount": "当前设备没有在用账号，请先应用一个账号",
+  "@acctNoActiveAccount": {
+    "description": "账号库：从账户添加设备入口不可用时的提示"
+  },
+  "devicesAddFromAccount": "从账户添加设备",
+  "@devicesAddFromAccount": {
+    "description": "账号库：从在用账号拉取已注册设备的入口"
+  },
+  "devicesPickerTitle": "选择要添加的设备",
+  "@devicesPickerTitle": {
+    "description": "账号设备选择页标题"
+  },
+  "devicesPickerHint": "在电脑上的 ZCode 登录同一账号并开启「移动端远程控制」后，设备会出现在这里；仅能列出并连接同账号已注册的设备。",
+  "@devicesPickerHint": {
+    "description": "账号设备选择页顶部说明"
+  },
+  "devicesPickerEmpty": "该账号下没有已注册的设备",
+  "@devicesPickerEmpty": {
+    "description": "账号设备列表为空"
+  },
+  "devicesUnnamed": "未命名设备",
+  "@devicesUnnamed": {
+    "description": "设备记录无 meta.name 时的展示名"
+  },
+  "devicesOnline": "在线",
+  "@devicesOnline": {
+    "description": "设备在线状态"
+  },
+  "devicesOffline": "离线",
+  "@devicesOffline": {
+    "description": "设备离线状态"
+  },
+  "devicesPlatformMac": "macOS",
+  "@devicesPlatformMac": {
+    "description": "meta.platform=darwin 的展示名"
+  },
+  "devicesPlatformWin": "Windows",
+  "@devicesPlatformWin": {
+    "description": "meta.platform=win32 的展示名"
+  },
+  "devicesPlatformLinux": "Linux",
+  "@devicesPlatformLinux": {
+    "description": "meta.platform=linux 的展示名"
+  },
+  "devicesAddConfirmTitle": "添加设备",
+  "@devicesAddConfirmTitle": {
+    "description": "选择设备后的添加确认标题"
+  },
+  "devicesAddConfirmBody": "将把「{name}」加入设备库。",
+  "@devicesAddConfirmBody": {
+    "description": "选择设备后的添加确认正文",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesAddOnly": "仅添加",
+  "@devicesAddOnly": {
+    "description": "添加确认：只写设备库不打开会话"
+  },
+  "devicesAddAndOpen": "添加并打开会话",
+  "@devicesAddAndOpen": {
+    "description": "添加确认：写库并切到新设备会话"
+  },
+  "devicesAddFailed": "添加失败",
+  "@devicesAddFailed": {
+    "description": "设备写库失败"
+  },
+  "devicesDuplicateTitle": "设备已存在",
+  "@devicesDuplicateTitle": {
+    "description": "去重命中弹窗标题"
+  },
+  "devicesDuplicateBody": "「{name}」已添加过（{duplicate}），无需重复添加。",
+  "@devicesDuplicateBody": {
+    "description": "去重命中弹窗正文",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "duplicate": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesDuplicateReasonSid": "同一连接",
+  "@devicesDuplicateReasonSid": {
+    "description": "去重理由：同 SID"
+  },
+  "devicesDuplicateReasonMid": "同一设备标识",
+  "@devicesDuplicateReasonMid": {
+    "description": "去重理由：同 MID"
+  },
+  "devicesDuplicateReasonName": "同名设备",
+  "@devicesDuplicateReasonName": {
+    "description": "去重理由：同名"
+  },
+  "devicesDuplicateSwitch": "切换到已添加设备",
+  "@devicesDuplicateSwitch": {
+    "description": "去重命中后可切换到已存在设备"
+  },
+  "devicesAddedToast": "已添加「{name}」",
+  "@devicesAddedToast": {
+    "description": "新设备写库成功提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesDuplicateToast": "「{name}」已添加过，已切换到该设备",
+  "@devicesDuplicateToast": {
+    "description": "去重命中并切换提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesFetchFailed": "设备列表拉取失败：{detail}",
+  "@devicesFetchFailed": {
+    "description": "账号设备列表请求失败提示",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesNeedRelogin": "账号登录已过期，请重新登录后再试",
+  "@devicesNeedRelogin": {
+    "description": "401/无 JWT 时的提示"
   }
 }
