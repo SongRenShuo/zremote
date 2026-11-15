@@ -302,6 +302,60 @@ void main() {
     expect(find.text('暂无运行记录'), findsOneWidget);
   });
 
+  testWidgets('P6-2 轮询合并：计划无变化时第二轮不重拉 runs', (tester) async {
+    final run = {
+      'runId': 'r1',
+      'automationId': 'a1',
+      'outcome': 'succeeded',
+      'scheduledAt': DateTime(2026, 9, 5, 9, 0).millisecondsSinceEpoch,
+    };
+    final bridge = ScriptedBridge(
+      script: [
+        [],            // c1 off-peak
+        [autoJson('a1')], // c1 autos
+        [run],         // c1 runs（首轮全量）
+        [],            // c2 off-peak
+        [autoJson('a1')], // c2 autos（与上轮一致 → 差量跳过 runs）
+      ],
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10)); // 第二轮 tick
+    await tester.pump();
+    expect(bridge.commands, hasLength(5));
+    expect(requestOf(bridge.commands[4]).method, 'listAllAutomations');
+    // 反向：若差量失效多发一条 listAutomationRuns，commands 会是 6 条。
+  });
+
+  testWidgets('P6-2 轮询合并：第 7 轮（60s）强制全量重拉 runs', (tester) async {
+    final run = {
+      'runId': 'r1',
+      'automationId': 'a1',
+      'outcome': 'succeeded',
+      'scheduledAt': DateTime(2026, 9, 5, 9, 0).millisecondsSinceEpoch,
+    };
+    final auto = [autoJson('a1')];
+    final script = <List<Map<String, dynamic>>>[
+      [], auto, [run], // c1: offpeak, autos, runs
+      [], auto, // c2
+      [], auto, // c3
+      [], auto, // c4
+      [], auto, // c5
+      [], auto, // c6
+      [], auto, [run], // c7: 全量兜底 → 重拉 runs
+    ];
+    final bridge2 = ScriptedBridge(script: script);
+    await pumpPage(tester, bridge: bridge2);
+    await tester.pump();
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump();
+    }
+    expect(bridge2.commands, hasLength(16));
+    final last = requestOf(bridge2.commands.last);
+    expect(last.method, 'listAutomationRuns');
+  });
+
   // 注意：同一 testWidgets 里二次 pumpPage 同类型 widget 会走 didUpdateWidget
   // 复用 State（initState 不再执行），全部失败的页面必须独立用例。
   testWidgets('运行历史 tab：全部数据源失败 → 错误横幅 + 重试恢复', (tester) async {

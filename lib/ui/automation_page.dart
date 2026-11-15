@@ -42,6 +42,9 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
   final Set<String> _busy = {};
   AutomationNotifier? _notifier;
 
+  /// P6-2：轮询计数，用于 runs 差量刷新的 60s 全量兜底节拍。
+  int _tick = 0;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +64,7 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
   Future<void> _refresh() async {
     if (_refreshing) return;
     _refreshing = true;
+    _tick++;
     var anyOk = false;
     var failures = <String>[];
     try {
@@ -72,6 +76,13 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
         failures.add('offPeakTask.list: ${_briefOf(e)}');
       }
       var autosOk = false;
+      // P6-2：差量拉取前先留一份旧计划快照（lastRunAt/runCount 比对用）。
+      final prevById = {
+        for (final a
+            in ref.read(automationProvider)[widget.device.id]?.automations ??
+                const <Automation>[])
+          a.automationId: a,
+      };
       try {
         final r = await widget.bridge.call('zcode-agent', 'listAllAutomations');
         _notifier?.replaceAutomations(widget.device.id, _objectsOf(r));
@@ -84,14 +95,27 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
         // 宿主实测（2026-11-14 CDP）：listAutomationRuns 必须带 automationId，
         // 无参调用宿主侧抛 SQLite 绑定错。逐计划拉取后合并；
         // 仅在计划列表拉取成功时才刷新 runs，避免失败路径清掉快照。
-        final ids = (ref.read(automationProvider)[widget.device.id]
-                    ?.automations ??
-                const <Automation>[])
-            .map((a) => a.automationId)
-            .toList();
+        //
+        // P6-2 轮询合并：不再每 10s 全量逐计划拉 runs（计划数增长时 N+1 放大），
+        // 只重拉「新出现或 lastRunAt/runCount 有变化」的计划；每 6 轮（60s）
+        // 强制全量一次兜底，防宿主侧删减记录后差量漏判。
+        final autos = ref
+            .read(automationProvider)[widget.device.id]
+            ?.automations ?? const <Automation>[];
+        final fullRuns = _tick % 6 == 1; // 首轮(_tick=1)即全量
+        final staleIds = <String>{};
+        for (final a in autos.take(20)) {
+          final prev = prevById[a.automationId];
+          if (fullRuns ||
+              prev == null ||
+              prev.lastRunAt != a.lastRunAt ||
+              prev.runCount != a.runCount) {
+            staleIds.add(a.automationId);
+          }
+        }
         final runs = <Map<String, dynamic>>[];
         var runsOk = false;
-        for (final id in ids.take(20)) {
+        for (final id in staleIds) {
           try {
             final r = await widget.bridge.call(
               'zcode-agent',
@@ -101,6 +125,27 @@ class _AutomationPageState extends ConsumerState<AutomationPage> {
             runs.addAll(_runsOf(r));
             runsOk = true;
           } catch (_) {}
+        }
+        if (runsOk) {
+          // 未重拉的计划沿用上一轮 runs（按 runId 去重，新数据优先）。
+          final retainedIds = autos
+              .take(20)
+              .map((a) => a.automationId)
+              .where((id) => !staleIds.contains(id))
+              .toSet();
+          final board = ref.read(automationProvider)[widget.device.id];
+          final seen = runs
+              .map((r) => r['runId'])
+              .whereType<String>()
+              .toSet();
+          for (final run in board?.runs ?? const <AutomationRun>[]) {
+            final rid = run.runId;
+            if (retainedIds.contains(run.automationId) &&
+                !seen.contains(rid)) {
+              runs.add(run.toJson());
+              seen.add(rid);
+            }
+          }
         }
         _notifier?.replaceRuns(widget.device.id, runs);
         if (runsOk) anyOk = true;
