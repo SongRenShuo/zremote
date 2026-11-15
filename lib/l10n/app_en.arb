@@ -1741,6 +1741,31 @@
   "@loginStatusSaving": {
     "description": "Login status: saving credentials"
   },
+  "loginStatusLoading": "Loading the official sign-in page…",
+  "@loginStatusLoading": {
+    "description": "Login status: authorize page loading"
+  },
+  "loginErrorPageLoad": "Page failed to load ({reason}). Retry or use popup sign-in",
+  "@loginErrorPageLoad": {
+    "description": "Login failed: authorize page load error",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loginErrorBlankPage": "The page did not render. Retry or use popup sign-in",
+  "@loginErrorBlankPage": {
+    "description": "Login failed: blank page after load"
+  },
+  "loginErrorTimeoutPopup": "Authorization timed out. Retry or use popup sign-in",
+  "@loginErrorTimeoutPopup": {
+    "description": "Login failed: page load deadline exceeded"
+  },
+  "loginErrorRenderGone": "The page renderer crashed. Retry or use popup sign-in",
+  "@loginErrorRenderGone": {
+    "description": "Login failed: render process gone"
+  },
   "loginErrorTitle": "Sign-in incomplete",
   "@loginErrorTitle": {
     "description": "Login failed state heading"

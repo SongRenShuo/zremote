@@ -2489,6 +2489,31 @@
   "@loginStatusSaving": {
     "description": "Login status: saving credentials"
   },
+  "loginStatusLoading": "正在加载官方登录页…",
+  "@loginStatusLoading": {
+    "description": "Login status: authorize page loading"
+  },
+  "loginErrorPageLoad": "页面加载失败（{reason}），请重试或改用弹窗登录",
+  "@loginErrorPageLoad": {
+    "description": "Login failed: authorize page load error",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loginErrorBlankPage": "页面未渲染，请重试或改用弹窗登录",
+  "@loginErrorBlankPage": {
+    "description": "Login failed: blank page after load"
+  },
+  "loginErrorTimeoutPopup": "授权超时，可重试或改用弹窗登录",
+  "@loginErrorTimeoutPopup": {
+    "description": "Login failed: page load deadline exceeded"
+  },
+  "loginErrorRenderGone": "页面渲染异常，请重试或改用弹窗登录",
+  "@loginErrorRenderGone": {
+    "description": "Login failed: render process gone"
+  },
   "loginErrorTitle": "登录未完成",
   "@loginErrorTitle": {
     "description": "Login failed state heading"
