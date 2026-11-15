@@ -30,6 +30,7 @@
 - **L13 cryptography 包的 PBKDF2 每 2000 迭代 `Future.delayed(1ms)`，testWidgets 假时钟下 await 会自锁**。证据：L1 车道 account_vault 的 .zsb 测试（`fcbf7b0`）首次跑挂——假时钟不前进、delayed 永不完成；解法：setup 阶段 `tester.runAsync` 走真时钟，按钮触发路径用循环 `pump(20ms)` 推进假时钟消化 delay。同族风险：任何内部带 `Future.delayed` 的第三方 crypto/网络库都不能在 testWidgets 直接 await。**Seen 1× (11-15)**
 - **L14 多车道并行改同一 l10n arb：key 按车道前缀隔离可让 git 自动合并，生成产物冲突靠「并集后重跑 gen-l10n」收敛**。证据：V2 五车道（login*/acct*、quota*/rewards*、claimAuto*/claimHist*、settings*/ux*、approval*/assets* 前缀隔离）l10n 全部自动合并零冲突；仅 lib/l10n 生成产物需每轮合并后 `flutter gen-l10n` 重提（L1 合并后 72 个 undefined_getter 全由此来，gen 后归零）；主键冲突（双方同改同 key）用三方 stage 并集脚本兜底。反例：L4×L2 后半在 toolbox_sheet 同区重构（网格 vs 分组 IA）只能语义取舍，git 无解。**Seen 1× (11-15)**
 - **L15 注入 JS 字面量若含任意用户可控值，`/*` 判据连 `\/` 转义都躲不开，须 `\uXXXX` 转义**。证据：rewards 供票注入脚本（`940dba8`）里 token 值含 `/` 与后续 `*` 组合即触发 M0-1 语法测试红；值内 `/`→`\u002f`、`*`→`\u002a` 后对任意凭据值结构性成立（测试含敌对值反例）。**Seen 1× (11-15)**
+- **L16 运行中 debug App 的最强 E2E 驱动是 VM Service evaluate（attach 注册 DDS 后），坐标要乘 dpr；多会话共享模拟器必须串行**。证据：`flutter attach` 后 `evaluate`（isolateId+targetId=库 id）可读 Provider/按 Key 找元素取全局坐标/触发 onPressed；RenderBox localToGlobal 返回逻辑像素需 ×devicePixelRatio（本机 2.625）才是 adb tap 的物理像素；evaluate 输出 valueAsString 截断 128 字符；仅 debug/JIT 可用。反例：本次两个并发会话同时操作同一模拟器，调研会话的 force-stop 两次误杀 E2E 进程（05:17/05:18 ActivityManager 读数）——并行实验必须隔离设备或串行。**Seen 1× (11-15)**
 
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
