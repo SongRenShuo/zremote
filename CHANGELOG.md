@@ -6,7 +6,7 @@
 
 ### 新增
 
-- （待填）
+- Android 包名迁移至 `cn.song.zremote`，与上游 `pjpv/zremote` 正式签名包同机共存、互不覆盖；自定义深链 scheme 改为 `zrsong://import`（解析兼容旧 `zremote://import`）（提交哈希待主控合并后回填）
 
 ### 修复
 
