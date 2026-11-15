@@ -24,7 +24,7 @@ void main() {
           packageInfoChannel,
           (call) async => {
             'appName': 'ZRemote',
-            'packageName': 'com.pjpv.zremote',
+            'packageName': 'cn.song.zremote',
             'version': '1.4.0',
             'buildNumber': '7',
             'buildSignature': '',

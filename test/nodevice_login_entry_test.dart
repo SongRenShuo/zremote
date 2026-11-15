@@ -88,7 +88,7 @@ Future<void> _pumpSettings(WidgetTester tester) async {
   });
   PackageInfo.setMockInitialValues(
     appName: 'ZRemote',
-    packageName: 'com.pjpv.zremote',
+    packageName: 'cn.song.zremote',
     version: '2.0.1',
     buildNumber: '9',
     buildSignature: '',

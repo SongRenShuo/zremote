@@ -8,8 +8,8 @@
 
 ```bash
 # 确保进程冷态（先杀再测，取 3 轮中位数）
-adb shell am force-stop com.pjpv.zremote
-adb shell am start -W -n com.pjpv.zremote/.MainActivity
+adb shell am force-stop cn.song.zremote
+adb shell am start -W -n cn.song.zremote/.MainActivity
 # 读数：ThisTime / TotalTime / WaitTime（ms）
 ```
 
@@ -26,10 +26,10 @@ adb shell am start -W -n com.pjpv.zremote/.MainActivity
 
 ```bash
 # 总览：PSS TOTAL 为主读数
-adb shell dumpsys meminfo com.pjpv.zremote
+adb shell dumpsys meminfo cn.song.zremote
 
 # 只看关键行
-adb shell dumpsys meminfo com.pjpv.zremote | grep -E "TOTAL PSS|Native Heap|Dalvik Heap|Graphics|Views"
+adb shell dumpsys meminfo cn.song.zremote | grep -E "TOTAL PSS|Native Heap|Dalvik Heap|Graphics|Views"
 ```
 
 采集场景（每场景静置 30s 后取读数）：
@@ -52,7 +52,7 @@ adb logcat -v time | grep -E "claim-scheduler|zr-claim"
 adb logcat -d -v time | grep -c "claim-scheduler.*tick"
 
 # 前台服务存活性（保活开启时）
-adb shell dumpsys activity services com.pjpv.zremote
+adb shell dumpsys activity services cn.song.zremote
 ```
 
 | 指标 | 读数 | 判定 |
