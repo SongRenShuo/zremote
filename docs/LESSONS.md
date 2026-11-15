@@ -23,6 +23,14 @@
 - **L12 行内横向滑动区的触摸区必须整行高，细条手势域会被外层滚动列表抢走**。证据：模型设置页名称列 18px 高的横向 SingleChildScrollView，真机（`b5aa5fd` APK）拖不动——手指稍偏即落进外层竖向 ListView 的手势域；改整行高（32px + 垂直 padding 居中）后可拖（`13b2418`）。同族风险：任何「行内水平滚动」都把触摸面做到与同行控件等高。**Seen 1× (11-15)**
 - **L11 错误消息本体就是诊断入口：裸版本号 = 环境/兼容问题**。证据：`* What went wrong: 25.0.4`（无上下文）——曾误判为 NDK 缺失并装了 2.2GB NDK（NDK 确实缺但不是这报错的因）；真因是 JavaVersion.parse。判据：消息只有版本号 → 查「谁在解析什么版本」；InstallFailedException → SDK 组件损坏。**Seen 1× (11-14)**
 
+## 2026-11-15 V2.0 大版本（五车道并行实施）
+
+**数据**：主控 + 5 车道 worktree（feat/v2-l1..l5 → integ/v2）；合并 4 轮全绿读数 720/851/910→986 例；真机 E2E 与收口见验收文档。
+
+- **L13 cryptography 包的 PBKDF2 每 2000 迭代 `Future.delayed(1ms)`，testWidgets 假时钟下 await 会自锁**。证据：L1 车道 account_vault 的 .zsb 测试（`fcbf7b0`）首次跑挂——假时钟不前进、delayed 永不完成；解法：setup 阶段 `tester.runAsync` 走真时钟，按钮触发路径用循环 `pump(20ms)` 推进假时钟消化 delay。同族风险：任何内部带 `Future.delayed` 的第三方 crypto/网络库都不能在 testWidgets 直接 await。**Seen 1× (11-15)**
+- **L14 多车道并行改同一 l10n arb：key 按车道前缀隔离可让 git 自动合并，生成产物冲突靠「并集后重跑 gen-l10n」收敛**。证据：V2 五车道（login*/acct*、quota*/rewards*、claimAuto*/claimHist*、settings*/ux*、approval*/assets* 前缀隔离）l10n 全部自动合并零冲突；仅 lib/l10n 生成产物需每轮合并后 `flutter gen-l10n` 重提（L1 合并后 72 个 undefined_getter 全由此来，gen 后归零）；主键冲突（双方同改同 key）用三方 stage 并集脚本兜底。反例：L4×L2 后半在 toolbox_sheet 同区重构（网格 vs 分组 IA）只能语义取舍，git 无解。**Seen 1× (11-15)**
+- **L15 注入 JS 字面量若含任意用户可控值，`/*` 判据连 `\/` 转义都躲不开，须 `\uXXXX` 转义**。证据：rewards 供票注入脚本（`940dba8`）里 token 值含 `/` 与后续 `*` 组合即触发 M0-1 语法测试红；值内 `/`→`\u002f`、`*`→`\u002a` 后对任意凭据值结构性成立（测试含敌对值反例）。**Seen 1× (11-15)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
