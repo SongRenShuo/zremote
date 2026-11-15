@@ -5,26 +5,34 @@ import '../models/device.dart';
 import '../services/account_credentials.dart';
 import '../services/account_vault.dart';
 
-/// 账号库 UI 状态：账号列表 + 设备在用绑定。
+/// 账号库 UI 状态：账号列表 + 设备在用绑定 + 全局活跃账号。
 @immutable
 class AccountsState {
   const AccountsState({
     this.accounts = const [],
     this.activeByDevice = const {},
+    this.globalActiveAccountId,
     this.loaded = false,
   });
 
   final List<Account> accounts;
   final Map<String, String> activeByDevice;
+
+  /// 用户在账号库显式切换的「全局活跃账号」（会话内有效，不持久化）。
+  /// null = 未显式指定，按 [globalActiveAccount] 的自动规则选取。
+  final String? globalActiveAccountId;
+
   final bool loaded;
 
   AccountsState copyWith({
     List<Account>? accounts,
     Map<String, String>? activeByDevice,
+    String? globalActiveAccountId,
     bool? loaded,
   }) => AccountsState(
     accounts: accounts ?? this.accounts,
     activeByDevice: activeByDevice ?? this.activeByDevice,
+    globalActiveAccountId: globalActiveAccountId ?? this.globalActiveAccountId,
     loaded: loaded ?? this.loaded,
   );
 
@@ -35,6 +43,36 @@ class AccountsState {
       if (a.id == id) return a;
     }
     return null;
+  }
+
+  /// 全局活跃账号（不依赖具体设备）——「从账户添加设备」的唯一账号来源。
+  ///
+  /// 选取规则（确定性，可测）：
+  /// 1. 显式切换过（[globalActiveAccountId]）且该账号仍存在 → 用之；
+  /// 2. 账号唯一 → 直接用；
+  /// 3. 多账号 → 取**最近使用**（`updatedAt` 最大，凭据最近一次刷新/使用），
+  ///    并列取**最近添加**（`createdAt` 最大），仍并列取列表中靠前者。
+  Account? globalActiveAccount() {
+    final explicit = globalActiveAccountId;
+    if (explicit != null) {
+      for (final a in accounts) {
+        if (a.id == explicit) return a;
+      }
+      // 显式选择已被删除 → 回落自动规则。
+    }
+    if (accounts.isEmpty) return null;
+    if (accounts.length == 1) return accounts.first;
+    var best = accounts.first;
+    for (var i = 1; i < accounts.length; i++) {
+      final a = accounts[i];
+      if (a.updatedAt.isAfter(best.updatedAt)) {
+        best = a;
+      } else if (a.updatedAt.isAtSameMomentAs(best.updatedAt) &&
+          a.createdAt.isAfter(best.createdAt)) {
+        best = a;
+      }
+    }
+    return best;
   }
 }
 
@@ -97,6 +135,17 @@ class AccountsNotifier extends Notifier<AccountsState> {
     await _load();
   }
 
+  /// 显式切换全局活跃账号（账号库 UI 的「当前账号」选择器）。
+  /// 传 null 恢复自动规则；仅改内存态，不落盘（重启后按自动规则重算）。
+  void setGlobalActiveAccount(String? accountId) {
+    state = AccountsState(
+      accounts: state.accounts,
+      activeByDevice: state.activeByDevice,
+      globalActiveAccountId: accountId,
+      loaded: state.loaded,
+    );
+  }
+
   Future<Uint8List> exportBundle(String password, List<Account> accounts) =>
       _vault.exportBundle(password, accounts);
 
@@ -114,6 +163,10 @@ class AccountsNotifier extends Notifier<AccountsState> {
 /// 未绑定/未加载/未登录时返回空集合，各页自行降级。
 AccountTickets ticketsOfActiveAccount(AccountsState state, RemoteDevice device) =>
     accountTicketsOf(state.activeAccountOf(device));
+
+/// 全局活跃账号的供票（账户设备导入等不依赖设备的入口用）。
+AccountTickets ticketsOfGlobalActiveAccount(AccountsState state) =>
+    accountTicketsOf(state.globalActiveAccount());
 
 /// 单测注入位（生产为 null，走 [AccountVault.instance]）。
 final accountVaultOverrideProvider = Provider<AccountVault?>((ref) => null);

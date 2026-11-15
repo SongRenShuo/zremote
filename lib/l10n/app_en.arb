@@ -3496,5 +3496,26 @@
   "devicesNeedRelogin": "The account session has expired. Sign in again and retry.",
   "@devicesNeedRelogin": {
     "description": "401/无 JWT 时的提示"
+  },
+  "devicesAccountUsing": "Current account: {name}",
+  "@devicesAccountUsing": {
+    "description": "账号库：从账户添加设备使用的全局活跃账号",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesAccountAuto": "Auto",
+  "@devicesAccountAuto": {
+    "description": "账号库：恢复按规则自动选取全局活跃账号"
+  },
+  "devicesAccountSwitch": "Switch account",
+  "@devicesAccountSwitch": {
+    "description": "账号库：切换全局活跃账号的菜单提示"
+  },
+  "devicesNoAccount": "No accounts yet. Sign in and save an account first.",
+  "@devicesNoAccount": {
+    "description": "从账户添加设备时账号库为空"
   }
 }

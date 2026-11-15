@@ -9,17 +9,22 @@ import '../theme.dart';
 ///
 /// 只负责「选一台 → 去重判定 → 回调添加」，真正的写库/切会话由宿主
 /// （账号库页）注入 [onAdd]：写库走 `deviceListProvider` 既有添加路径。
+///
+/// 不依赖任何当前设备：0 设备入口（账号库 `device: null`）同样可打开，
+/// 系统返回键/关闭按钮走 `Navigator.pop(null)`，宿主按 null 视为取消。
 class AccountDevicePickerPage extends StatelessWidget {
   const AccountDevicePickerPage({
     super.key,
     required this.accountName,
     required this.entries,
-    required this.existingDevices,
+    this.existingDevices = const [],
     required this.onAdd,
   });
 
   final String accountName;
   final List<RemoteDeviceEntry> entries;
+
+  /// 已存在设备（去重判定用）；0 设备入口传空表即可。
   final List<RemoteDevice> existingDevices;
 
   /// 写库回调；返回是否成功。[open] 为「添加并打开会话」。

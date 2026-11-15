@@ -4247,5 +4247,26 @@
   "devicesNeedRelogin": "账号登录已过期，请重新登录后再试",
   "@devicesNeedRelogin": {
     "description": "401/无 JWT 时的提示"
+  },
+  "devicesAccountUsing": "当前账号：{name}",
+  "@devicesAccountUsing": {
+    "description": "账号库：从账户添加设备使用的全局活跃账号",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "devicesAccountAuto": "自动选择",
+  "@devicesAccountAuto": {
+    "description": "账号库：恢复按规则自动选取全局活跃账号"
+  },
+  "devicesAccountSwitch": "切换账号",
+  "@devicesAccountSwitch": {
+    "description": "账号库：切换全局活跃账号的菜单提示"
+  },
+  "devicesNoAccount": "账号库为空，请先登录并保存账号",
+  "@devicesNoAccount": {
+    "description": "从账户添加设备时账号库为空"
   }
 }
