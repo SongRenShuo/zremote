@@ -106,7 +106,7 @@ void main() {
     tallViewport(tester);
     final bridge = ScriptedBridge(script: const [
       [
-        {'keys': const <String>[], 'checks': const <String, dynamic>{}},
+        {'keys': <String>[], 'checks': <String, dynamic>{}},
       ],
       [],
       [],
