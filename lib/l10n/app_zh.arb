@@ -3187,6 +3187,10 @@
   "@assetsTabDegraded": {
     "description": "P1-8 degraded parse message"
   },
+  "assetsTabNeedsWorkspace": "进入会话后可用",
+  "@assetsTabNeedsWorkspace": {
+    "description": "P1-8 placeholder when a workspace-required tab has no session"
+  },
   "toolboxGroupSessionOps": "会话操作",
   "@toolboxGroupSessionOps": {
     "description": "P1-9 toolbox group: session operations"
@@ -3226,6 +3230,108 @@
   "gitCardDirtyUnknown": "有改动",
   "@gitCardDirtyUnknown": {
     "description": "P1-7 dirty badge when count unknown (isDirty only)"
+  },
+  "gitCardLoadFailed": "加载失败，点击重试",
+  "@gitCardLoadFailed": {
+    "description": "P1-7 git card subtitle when overview fetch failed"
+  },
+  "gitDetailTitle": "Git 详情",
+  "@gitDetailTitle": {
+    "description": "P1-7 git detail page title"
+  },
+  "gitDetailNoWorkspace": "进入会话后可用",
+  "@gitDetailNoWorkspace": {
+    "description": "P1-7 git detail placeholder when no workspace session"
+  },
+  "gitDetailLoadFailed": "加载失败：{error}",
+  "@gitDetailLoadFailed": {
+    "description": "P1-7 git detail load failure message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gitDetailNotRepo": "当前工作区不是 Git 仓库",
+  "@gitDetailNotRepo": {
+    "description": "P1-7 git detail placeholder when not a repo"
+  },
+  "gitDetailClean": "干净",
+  "@gitDetailClean": {
+    "description": "P1-7 git detail clean badge"
+  },
+  "gitDetailDirtyCount": "{count} 个改动",
+  "@gitDetailDirtyCount": {
+    "description": "P1-7 git detail dirty file count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailBranches": "本地分支",
+  "@gitDetailBranches": {
+    "description": "P1-7 git detail local branches section"
+  },
+  "gitDetailCurrent": "当前",
+  "@gitDetailCurrent": {
+    "description": "P1-7 current branch marker"
+  },
+  "gitDetailNoChanges": "暂无改动",
+  "@gitDetailNoChanges": {
+    "description": "P1-7 git detail empty changes"
+  },
+  "gitDetailSectionStaged": "已暂存",
+  "@gitDetailSectionStaged": {
+    "description": "P1-7 staged changes section"
+  },
+  "gitDetailSectionUnstaged": "未暂存",
+  "@gitDetailSectionUnstaged": {
+    "description": "P1-7 unstaged changes section"
+  },
+  "gitDetailSectionUntracked": "未跟踪",
+  "@gitDetailSectionUntracked": {
+    "description": "P1-7 untracked changes section"
+  },
+  "gitDetailSectionConflicted": "冲突",
+  "@gitDetailSectionConflicted": {
+    "description": "P1-7 conflicted changes section"
+  },
+  "gitDetailKindModified": "修改",
+  "@gitDetailKindModified": {
+    "description": "P1-7 change kind modified"
+  },
+  "gitDetailKindAdded": "新增",
+  "@gitDetailKindAdded": {
+    "description": "P1-7 change kind added"
+  },
+  "gitDetailKindDeleted": "删除",
+  "@gitDetailKindDeleted": {
+    "description": "P1-7 change kind deleted"
+  },
+  "gitDetailKindRenamed": "重命名",
+  "@gitDetailKindRenamed": {
+    "description": "P1-7 change kind renamed"
+  },
+  "gitDetailLineStats": "+{added} −{removed}",
+  "@gitDetailLineStats": {
+    "description": "P1-7 per-file added/removed line counts",
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "gitDetailDiffTitle": "文件差异",
+  "@gitDetailDiffTitle": {
+    "description": "P1-7 diff bottom sheet title"
+  },
+  "gitDetailDiffUnavailable": "无法获取差异",
+  "@gitDetailDiffUnavailable": {
+    "description": "P1-7 diff unavailable / binary placeholder"
   },
   "themeOled": "OLED 纯黑",
   "@themeOled": {

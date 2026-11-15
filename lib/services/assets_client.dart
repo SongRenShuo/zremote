@@ -32,12 +32,20 @@ class AssetEntry {
 }
 
 class AssetsTabResult {
-  const AssetsTabResult({required this.entries, required this.degraded});
+  const AssetsTabResult({
+    required this.entries,
+    required this.degraded,
+    this.needsWorkspace = false,
+  });
 
   final List<AssetEntry> entries;
 
   /// 响应可解析但形状对不上（空列表降级）时为 true，UI 展示降级提示。
   final bool degraded;
+
+  /// 宿主签名要求 workspacePath 必填（skills/subagents/mcp/hooks），
+  /// 空参时客户端不发包，UI 走「进入会话后可用」占位而非报错。
+  final bool needsWorkspace;
 }
 
 class AssetsFetchException implements Exception {
@@ -59,6 +67,19 @@ abstract final class AssetsTabSpec {
     AssetsTabKind.hooks: (channel: 'hooks', method: 'loadHooks'),
     AssetsTabKind.memory: (channel: 'memory', method: 'listProjectMemories'),
   };
+
+  /// 宿主签名中 workspacePath **必填**的频道：空参直接抛错，客户端须不发包。
+  /// commands 的 workspacePath 可选（缺则回用户级数据）、memory 无参，
+  /// 二者按各自签名照常调用。
+  static const Set<AssetsTabKind> _workspaceRequired = {
+    AssetsTabKind.skills,
+    AssetsTabKind.subagents,
+    AssetsTabKind.mcp,
+    AssetsTabKind.hooks,
+  };
+
+  static bool requiresWorkspace(AssetsTabKind tab) =>
+      _workspaceRequired.contains(tab);
 }
 
 class AssetsClient {
@@ -66,25 +87,42 @@ class AssetsClient {
 
   final RpcBridge bridge;
 
+  /// 错误文案最长保留字符数（超出截断，保证错误态可读不撑爆布局）。
+  static const int maxErrorChars = 160;
+
   Future<AssetsTabResult> fetchTab(
     AssetsTabKind tab, {
     String? workspacePath,
   }) async {
     final call = AssetsTabSpec.calls[tab]!;
+    final ws = workspacePath?.trim() ?? '';
+    // 必填 workspace 的四频道：空参时宿主直接抛错，这里不发包，返回可识别的
+    // 「需要 workspace」结果，UI 走占位（与官方手机 UI 的空 workspace 守卫一致）。
+    if (ws.isEmpty && AssetsTabSpec.requiresWorkspace(tab)) {
+      return const AssetsTabResult(
+        entries: [],
+        degraded: false,
+        needsWorkspace: true,
+      );
+    }
     final params = <String, dynamic>{
-      if (workspacePath != null && workspacePath.isNotEmpty)
-        'workspacePath': workspacePath,
+      if (ws.isNotEmpty) 'workspacePath': ws,
     };
     try {
       final r = await bridge.call(call.channel, call.method, params: params);
       return normalizeTab(tab, r.values);
     } on RpcRemoteException catch (e) {
-      throw AssetsFetchException(tab, e.message);
+      throw AssetsFetchException(tab, _clip(e.message));
     } on RpcTimeoutException catch (e) {
-      throw AssetsFetchException(tab, '$e');
+      throw AssetsFetchException(tab, _clip('$e'));
     } catch (e) {
-      throw AssetsFetchException(tab, '$e');
+      throw AssetsFetchException(tab, _clip('$e'));
     }
+  }
+
+  static String _clip(String message) {
+    final flat = message.replaceAll('\n', ' ').trim();
+    return flat.length <= maxErrorChars ? flat : '${flat.substring(0, maxErrorChars)}…';
   }
 
   // ---- 归一化（形状容错）----------------------------------------------
