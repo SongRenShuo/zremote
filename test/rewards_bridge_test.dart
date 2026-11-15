@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zremote/services/account_credentials.dart';
+import 'package:zremote/services/account_vault.dart';
 import 'package:zremote/services/rewards_bridge.dart';
+
+Account _account(String provider, Map<String, String> credentials) => Account(
+  id: 'a1',
+  name: provider,
+  provider: provider,
+  credentials: credentials,
+  hash: 'h',
+  virtualDeviceMid: 'mid',
+  createdAt: DateTime(2026, 1, 1),
+  updatedAt: DateTime(2026, 1, 1),
+);
 
 void main() {
   group('URL 构造与主题映射', () {
@@ -160,6 +173,76 @@ void main() {
       expect(const RewardsCredentials().isEmpty, isTrue);
       expect(full.isEmpty, isFalse);
       expect(const RewardsCredentials(zaiAccessToken: 'x').isEmpty, isFalse);
+    });
+
+    test('window.zcodeBridge 最小就绪态：getAuthState → ready + provider + revision', () {
+      final script = rewardsTokenInjectionScript(full);
+      expect(script, contains('zcodeBridge'));
+      expect(script, contains('getAuthState'));
+      expect(script, contains('"ready"'));
+      expect(script, contains('provider:'));
+      expect(script, contains('revision:1'));
+      expect(script.contains('//'), isFalse, reason: 'bridge 定义不得引入注释序列');
+    });
+
+    test('无 active_provider 时不写 provider 键', () {
+      final script = rewardsTokenInjectionScript(
+        const RewardsCredentials(zcodeJwtToken: 'jwt-only'),
+      );
+      expect(script, contains('zcodejwttoken'));
+      expect(script.contains('provider:'), isFalse);
+    });
+  });
+
+  group('账号 → 福利页供票（account_credentials 接线，登录门控键）', () {
+    test('zai 账号：注入含 zcodejwttoken + zai access_token + active_provider', () {
+      final tickets = accountTicketsOf(_account('zai', {
+        'zcodejwttoken': 'jwt.abc.def',
+        'oauth:zai:access_token': 'zai-tok',
+        'oauth:active_provider': 'zai',
+      }));
+      final script = rewardsTokenInjectionScript(tickets.rewardsCredentials);
+      expect(script, contains('zcodejwttoken'), reason: '官方登录门控键');
+      expect(script, contains('jwt.abc.def'));
+      expect(script, contains('oauth:zai:access_token'));
+      expect(script, contains('zai-tok'));
+      expect(script, contains('oauth:active_provider'));
+    });
+
+    test('zai_cn / bigmodel 各自落对应键（provider 组装矩阵）', () {
+      final cn = rewardsTokenInjectionScript(
+        accountTicketsOf(_account('zai_cn', {
+          'oauth:active_provider': 'zai_cn',
+          'oauth:zai_cn:access_token': 'cn-tok',
+        })).rewardsCredentials,
+      );
+      expect(cn, contains('oauth:zai_cn:access_token'));
+      expect(cn, contains('cn-tok'));
+
+      final bm = rewardsTokenInjectionScript(
+        accountTicketsOf(_account('bigmodel', {
+          'oauth:active_provider': 'bigmodel',
+          'oauth:bigmodel:access_token': 'bm-tok',
+        })).rewardsCredentials,
+      );
+      expect(bm, contains('oauth:bigmodel:access_token'));
+      expect(bm, contains('bm-tok'));
+    });
+
+    test('无 zcodejwttoken 的账号：脚本不含该键（页面自展示登录态）', () {
+      final script = rewardsTokenInjectionScript(
+        accountTicketsOf(_account('zai_cn', {
+          'oauth:zai_cn:access_token': 'cn-tok',
+        })).rewardsCredentials,
+      );
+      expect(script.contains('zcodejwttoken'), isFalse);
+      expect(script, isNotEmpty, reason: '仍有 access_token 可注入');
+    });
+
+    test('空账号 → 空集合 → 空脚本（跳过注入）', () {
+      final tickets = accountTicketsOf(null);
+      expect(tickets.rewardsCredentials.isEmpty, isTrue);
+      expect(rewardsTokenInjectionScript(tickets.rewardsCredentials), isEmpty);
     });
   });
 }

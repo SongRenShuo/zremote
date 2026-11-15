@@ -1986,6 +1986,10 @@
   "@modelPlanLoadFailed": {
     "description": "Model settings plan panel"
   },
+  "modelPlanLoginRequired": "登录后查看套餐信息",
+  "@modelPlanLoginRequired": {
+    "description": "Model settings plan panel: host not logged in / not configured"
+  },
   "modelQuotaFiveHour": "5 小时额度",
   "@modelQuotaFiveHour": {
     "description": "Model settings plan panel"
@@ -2769,6 +2773,14 @@
   "quotaLoadFailed": "额度数据加载失败",
   "@quotaLoadFailed": {
     "description": "Quota load failure title"
+  },
+  "quotaLoginRequired": "登录后查看额度",
+  "@quotaLoginRequired": {
+    "description": "Quota empty state: host not logged in / not configured"
+  },
+  "quotaLoginHint": "当前设备尚未登录 Z Code，额度与福利需登录后查看。",
+  "@quotaLoginHint": {
+    "description": "Quota empty state hint under the login-required line"
   },
   "quotaValidityRange": "有效期 {range}",
   "@quotaValidityRange": {

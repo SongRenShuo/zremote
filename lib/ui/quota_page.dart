@@ -69,7 +69,10 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
     _refreshing = true;
     if (mounted) setState(() {});
     try {
-      final overview = await _client.fetch();
+      // 带上 providerSettings 的 preferredProviderId + accountAccess，
+      // 否则宿主对无 entitle provider 的账号返回 not_configured（P0-5 实测）。
+      final entitlementParams = await _client.loadEntitlementParams();
+      final overview = await _client.fetch(entitlementParams: entitlementParams);
       if (!mounted) return;
       setState(() {
         _overview = overview;
@@ -239,7 +242,7 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
             children: [
               _summaryCard(l10n),
               const SizedBox(height: 8),
-              _sourceRow(l10n),
+              if (!_overview!.notConfigured) _sourceRow(l10n),
               const SizedBox(height: 12),
               for (var i = 0; i < _overview!.plans.length; i++) ...[
                 if (i > 0) const SizedBox(height: 12),
@@ -308,6 +311,43 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
   Widget _summaryCard(AppLocalizations l10n) {
     final overview = _overview!;
     final zt = context.zt;
+    if (overview.notConfigured) {
+      // 宿主未登录/未配置：引导登录，不算加载失败（account 车道修复）。
+      return BevelCard(
+        key: const Key('quota-summary-card'),
+        radius: 18,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.account_circle_outlined,
+                    size: 22,
+                    color: zt.textTertiary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.quotaLoginRequired,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: zt.textLo,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(l10n.quotaLoginHint, style: TextStyle(fontSize: 11.5, color: zt.textTertiary)),
+            ],
+          ),
+        ),
+      );
+    }
     if (overview.noPlan || overview.plans.isEmpty) {
       return BevelCard(
         key: const Key('quota-summary-card'),
