@@ -213,7 +213,7 @@ void main() {
     testWidgets('版本/许可/链接/隐私段渲染', (tester) async {
       PackageInfo.setMockInitialValues(
         appName: 'zremote',
-        packageName: 'com.pjpv.zremote',
+        packageName: 'cn.song.zremote',
         version: '2.0.0',
         buildNumber: '9',
         buildSignature: '',
