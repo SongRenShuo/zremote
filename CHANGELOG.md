@@ -10,6 +10,14 @@
 
 ### 修复
 
+- **登录页一直"加载中"**：授权页 URL 在 WebView 创建前就被 `load()`，被空安全调用静默丢弃（页面从未加载）。新增「待载 URL 队列 + attach 后补载」，并补齐加载失败/超时（`expires_at`，缺省 120s）/渲染消亡/停载 5s 空白探测的失败呈现与「改用弹窗登录」出口（`576ba6b`）
+- **额度中心"额度数据加载失败"**：宿主未配置时返回 `unavailableReason:"not_configured"` + `quota:null`（调用本身成功），被误判为加载失败。现映射为「未配置」空态 + 登录引导；额度页改带 `preferredProviderId + accountAccess`（原先只传 `includeSubscription`），并接线设备在用账号供票（`4bfb1ce`）
+- **模型设置页"套餐信息获取失败"**：`accountAccess` 按「字段为 null 就省略」构造，与宿主 strict 契约不符；现按三字段齐全才发、缺字段降级，并把未配置与真实错误分别文案（`4bfb1ce`）
+- **福利中心不认登录态**：接线 `credentialsProvider`（原先零注入，五键脚本因空凭据返回空串），并在注入脚本补最小 `window.zcodeBridge.getAuthState()`；已核实官方生产页登录门控为 `localStorage.zcodejwttoken`，无需派发事件（`4bfb1ce`）
+- **权益中心点击一次就变灰**：工具箱卡把「无券可领（业务态）」回写成「服务不可用（能力态）」，且能力探针只跑一次。现拆分 `claimServiceProvider` 三态（unknown/available/unavailable + 原因码），卡片可点性只由能力决定，并在转 live / 开箱 / 错误恢复时重跑（`228a9b3` + `03cb8fa`）
+- **资产浏览基本不可用**：`sessionIndexProvider` 的 `workspacePath` 实测全为 null，而 skills/subagents/mcp/hooks 四频道空参必抛错。现改为 watch 会话索引 + 由空变有自动重拉、必填空参零发包 + 「进入会话后可用」占位，并回退到宿主 `zcode-workspace-expansion`（`7e79574` + `03cb8fa`）
+- **Git 概览点击无反应**：新增只读 Git 详情页（分支/ahead-behind/脏文件分组/本地分支 + `getDiff` 补丁），失败原因三分（无会话/非仓库/加载失败）并显示在卡片副标题（`7e79574`）
+
 - （待填）
 
 ## [2.0.0] - 2026-11-15

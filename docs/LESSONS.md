@@ -32,6 +32,15 @@
 - **L15 注入 JS 字面量若含任意用户可控值，`/*` 判据连 `\/` 转义都躲不开，须 `\uXXXX` 转义**。证据：rewards 供票注入脚本（`940dba8`）里 token 值含 `/` 与后续 `*` 组合即触发 M0-1 语法测试红；值内 `/`→`\u002f`、`*`→`\u002a` 后对任意凭据值结构性成立（测试含敌对值反例）。**Seen 1× (11-15)**
 - **L16 运行中 debug App 的最强 E2E 驱动是 VM Service evaluate（attach 注册 DDS 后），坐标要乘 dpr；多会话共享模拟器必须串行**。证据：`flutter attach` 后 `evaluate`（isolateId+targetId=库 id）可读 Provider/按 Key 找元素取全局坐标/触发 onPressed；RenderBox localToGlobal 返回逻辑像素需 ×devicePixelRatio（本机 2.625）才是 adb tap 的物理像素；evaluate 输出 valueAsString 截断 128 字符；仅 debug/JIT 可用。反例：本次两个并发会话同时操作同一模拟器，调研会话的 force-stop 两次误杀 E2E 进程（05:17/05:18 ActivityManager 读数）——并行实验必须隔离设备或串行。**Seen 1× (11-15)**
 
+## 2026-11-15 功能问题修复轮（四车道并行，P0 实测先行）
+
+**数据**：主控 + 4 车道 worktree（fix/v2-{account,claim,assets,login} → fix/v2-integ）；P0 实测 1 个（独占模拟器）+ 契约核查 2 个（开源/官方 asar）；合并 4 轮，integ 全量 **1072 例全绿** + analyze 零问题；提交 `7e79574`/`228a9b3`/`4bfb1ce`/`576ba6b` + 主控接线 `03cb8fa`；读数见 `~/.zremote-e2e/P0-report.md`、`P0-static-contract.md`、`P0-official-contract.md`。
+
+- **L17 WebView 网关的 `load()` 必须缓存「控制器未就绪」时的待载 URL，禁止用 `?.` 静默丢弃**。证据：登录页 `_start` 在 `setState(authorizing)` 后同步 `load()`，此刻 `InAppWebView` 尚未 build、`onWebViewCreated` 未触发，`_controller?.loadUrl(...)` 空安全调用直接吞掉 → CDP `Page.getNavigationHistory` 仅 1 条空记录、VM 采样 `phase=authorizing ctrl=ctrl injected=false`、5 分钟后才「等待授权超时」（`576ba6b` 修复：待载队列 + attach 后补载）。同族风险：任何「先调用、后挂载」的桥接 API（controller/gateway/portal）都要问一句「对象还没创建时会怎样」。**Seen 1× (11-15)**
+- **L18 能力态与业务态禁止共用一个状态位；一次性探针不得由页面回写**。证据：工具箱权益卡 `enabled` 绑在 `claimEntryProvider` 上，而该 provider 同时承载「无券可领」，`ClaimPage` 一次空结果 `report(false)` 后卡片永灰，只有 reload 才复位（实测 `true→false→点不动→reload→true` 循环）；且探针 `_claimEntryProbed` 只跑一次（`228a9b3`+`03cb8fa` 修复：新增 `claimServiceProvider` 三态，能力探针只在转 live/开箱/错误恢复时重跑）。判据：**入口可点性 = 能力；计数/徽标 = 业务**，两者永不互相写。**Seen 1× (11-15)**
+- **L19 宿主 RPC 的「缺字段」多数不报校验错、只回退业务态——schema 阅读不能替代实调用读数**。证据：`getEntitlementSnapshot` 的 `accountAccess` 在开源 schema 里是 strict 四字段全必填，但实测缺 `entitled` 仍返回完整快照，缺 `type`/`accountType`/`mode` 只是回 `unavailableReason:"not_configured"` 而不抛错（`P0-report.md` P0-5 九组读数）；本仓旧实现「字段为 null 就省略」→ 一律落 `not_configured` → 被上层当「加载失败」（`4bfb1ce` 修复：三字段齐全才发，缺则降级并不再混同错误态）。同族风险：把「业务回退值」当「调用失败」是同一类误判。**Seen 1× (11-15)**
+- **L20 会话索引的 `workspacePath` 不可靠，工作区真值要回退宿主 localStorage**。证据：实测 `sessionIndexProvider` 内 HQZC-01 约 100 条会话 `workspacePath` **全为 null**，而 skills/subagents/mcp/hooks 四频道空参必抛错（`The "path" argument must be of type string`）→ 资产页全灭；真实值在宿主 `localStorage['zcode-workspace-expansion']`（`Record<path,boolean>`，取首个 key）（`03cb8fa` 修复：新增 `_readHostWorkspacePath()` 带缓存，资产页/Git 卡回退）。判据：跨端状态（RPC 索引）与页面本地状态（localStorage）不一致时，以**宿主页面**为准并显式回退。**Seen 1× (11-15)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
