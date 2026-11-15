@@ -3590,6 +3590,57 @@
   "@settingsUpdateOpenRelease": {
     "description": "Check for update: open release page"
   },
+  "settingsUpdateUpToDate": "已是最新（v{version}）",
+  "@settingsUpdateUpToDate": {
+    "description": "Check for update: already latest",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateFailed": "检查失败：{reason}，请稍后重试",
+  "@settingsUpdateFailed": {
+    "description": "Check for update: failed with reason",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateRetry": "重试",
+  "@settingsUpdateRetry": {
+    "description": "Check for update: retry action"
+  },
+  "settingsUpdateReasonTimeout": "网络超时",
+  "@settingsUpdateReasonTimeout": {
+    "description": "Check for update: failure reason timeout"
+  },
+  "settingsUpdateReasonNetwork": "网络连接失败",
+  "@settingsUpdateReasonNetwork": {
+    "description": "Check for update: failure reason network"
+  },
+  "settingsUpdateReasonRateLimited": "请求被限流（HTTP 403）",
+  "@settingsUpdateReasonRateLimited": {
+    "description": "Check for update: failure reason rate limited"
+  },
+  "settingsUpdateReasonHttpError": "服务器响应异常（HTTP {code}）",
+  "@settingsUpdateReasonHttpError": {
+    "description": "Check for update: failure reason bad HTTP status",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateReasonBadJson": "响应格式异常",
+  "@settingsUpdateReasonBadJson": {
+    "description": "Check for update: failure reason bad JSON"
+  },
+  "settingsUpdateReasonBadVersion": "版本号无法解析",
+  "@settingsUpdateReasonBadVersion": {
+    "description": "Check for update: failure reason unparsable version"
+  },
   "settingsAbout": "关于",
   "@settingsAbout": {
     "description": "About entry in settings"

@@ -11,8 +11,8 @@ import 'section_label.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  static const _repoUrl = 'https://github.com/pjpv/zremote';
-  static const _issuesUrl = 'https://github.com/pjpv/zremote/issues';
+  static const _repoUrl = 'https://github.com/SongRenShuo/zremote';
+  static const _issuesUrl = 'https://github.com/SongRenShuo/zremote/issues';
 
   Future<void> _open(String url) async {
     try {
@@ -93,14 +93,14 @@ class AboutPage extends StatelessWidget {
               key: const Key('about-github-link'),
               icon: Icons.code_rounded,
               label: l10n.aboutGitHub,
-              sub: 'github.com/pjpv/zremote',
+              sub: 'github.com/SongRenShuo/zremote',
               onTap: () => _open(_repoUrl),
             ),
             _LinkTile(
               key: const Key('about-issues-link'),
               icon: Icons.bug_report_outlined,
               label: l10n.aboutIssues,
-              sub: 'github.com/pjpv/zremote/issues',
+              sub: 'github.com/SongRenShuo/zremote/issues',
               onTap: () => _open(_issuesUrl),
             ),
             const SizedBox(height: 12),

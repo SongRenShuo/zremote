@@ -2842,6 +2842,57 @@
   "@settingsUpdateOpenRelease": {
     "description": "Check for update: open release page"
   },
+  "settingsUpdateUpToDate": "Up to date (v{version})",
+  "@settingsUpdateUpToDate": {
+    "description": "Check for update: already latest",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateFailed": "Check failed: {reason}. Please try again later.",
+  "@settingsUpdateFailed": {
+    "description": "Check for update: failed with reason",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateRetry": "Retry",
+  "@settingsUpdateRetry": {
+    "description": "Check for update: retry action"
+  },
+  "settingsUpdateReasonTimeout": "network timeout",
+  "@settingsUpdateReasonTimeout": {
+    "description": "Check for update: failure reason timeout"
+  },
+  "settingsUpdateReasonNetwork": "network unreachable",
+  "@settingsUpdateReasonNetwork": {
+    "description": "Check for update: failure reason network"
+  },
+  "settingsUpdateReasonRateLimited": "rate limited by GitHub (HTTP 403)",
+  "@settingsUpdateReasonRateLimited": {
+    "description": "Check for update: failure reason rate limited"
+  },
+  "settingsUpdateReasonHttpError": "unexpected server response (HTTP {code})",
+  "@settingsUpdateReasonHttpError": {
+    "description": "Check for update: failure reason bad HTTP status",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateReasonBadJson": "malformed response",
+  "@settingsUpdateReasonBadJson": {
+    "description": "Check for update: failure reason bad JSON"
+  },
+  "settingsUpdateReasonBadVersion": "unparsable version",
+  "@settingsUpdateReasonBadVersion": {
+    "description": "Check for update: failure reason unparsable version"
+  },
   "settingsAbout": "About",
   "@settingsAbout": {
     "description": "About entry in settings"
