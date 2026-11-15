@@ -411,6 +411,22 @@
   "@claimServiceUnavailable": {
     "description": "Claim page error when session is live but page fiber services are still reloading (e.g. right after a successful claim)"
   },
+  "claimServiceNoMethod": "The remote host does not provide the claim service — upgrade the host and try again",
+  "@claimServiceNoMethod": {
+    "description": "Claim entry unavailable reason: host service exists but lacks getManualClaimPlanPreviews"
+  },
+  "claimServiceNoServices": "The remote claim service is not ready — connect and enter a session first",
+  "@claimServiceNoServices": {
+    "description": "Claim entry unavailable reason: host has no codingPlanSubscriptionService"
+  },
+  "claimServiceProbeFailed": "Could not confirm the claim service state — try again shortly",
+  "@claimServiceProbeFailed": {
+    "description": "Claim entry unavailable reason: the capability probe itself failed"
+  },
+  "claimServiceUnavailableHint": "Open \"Toolbox → Diagnostics\" to see which service is missing, then retry.",
+  "@claimServiceUnavailableHint": {
+    "description": "Claim page hint under the service-unavailable reason, pointing to diagnostics"
+  },
   "claimAutoTitle": "Auto Claim",
   "@claimAutoTitle": {
     "description": "Auto-claim switch card title (P2)"

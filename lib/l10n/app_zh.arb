@@ -1136,6 +1136,22 @@
   "@claimServiceUnavailable": {
     "description": "Claim page error when session is live but page fiber services are still reloading (e.g. right after a successful claim)"
   },
+  "claimServiceNoMethod": "远端未提供领券服务，请升级远端后重试",
+  "@claimServiceNoMethod": {
+    "description": "Claim entry unavailable reason: host service exists but lacks getManualClaimPlanPreviews"
+  },
+  "claimServiceNoServices": "远端领券服务未就绪，请确认已连接并进入会话",
+  "@claimServiceNoServices": {
+    "description": "Claim entry unavailable reason: host has no codingPlanSubscriptionService"
+  },
+  "claimServiceProbeFailed": "领券服务状态未能确认，可稍候重试",
+  "@claimServiceProbeFailed": {
+    "description": "Claim entry unavailable reason: the capability probe itself failed"
+  },
+  "claimServiceUnavailableHint": "可在「功能工具箱 → 连接诊断」中查看缺失的服务后重试。",
+  "@claimServiceUnavailableHint": {
+    "description": "Claim page hint under the service-unavailable reason, pointing to diagnostics"
+  },
   "claimAutoTitle": "自动领取",
   "@claimAutoTitle": {
     "description": "Auto-claim switch card title (P2)"

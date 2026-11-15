@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zremote/models/claim.dart';
+import 'package:zremote/state/claim_entry.dart';
 import 'package:zremote/ui/claim_ticket_dialog.dart';
 
 void main() {
@@ -173,6 +175,76 @@ void main() {
       expect(
         const ClaimOutcome(success: true, code: 1, message: 'm'),
         const ClaimOutcome(success: true, code: 1, message: 'm'),
+      );
+    });
+  });
+
+  group('领券入口两态：能力（服务可用） × 业务（有可领）', () {
+    test('ClaimServiceState 状态机矩阵', () {
+      const unknown = ClaimServiceState();
+      expect(unknown.status, ClaimServiceStatus.unknown);
+      expect(unknown.available, isFalse, reason: '未探测不等于不可用');
+      expect(unknown.diagnosable, isFalse);
+
+      const available = ClaimServiceState(status: ClaimServiceStatus.available);
+      expect(available.available, isTrue);
+      expect(available.reason, isNull);
+      expect(available.diagnosable, isFalse);
+
+      const noMethod = ClaimServiceState(
+        status: ClaimServiceStatus.unavailable,
+        reason: 'no-method',
+      );
+      expect(noMethod.available, isFalse);
+      expect(noMethod.diagnosable, isTrue);
+
+      // 「无券可领」不是能力态：不得构造出 unavailable。
+      const emptyPlans = ClaimServiceState(status: ClaimServiceStatus.available);
+      expect(emptyPlans.available, isTrue);
+      expect(
+        noMethod,
+        isNot(equals(emptyPlans)),
+        reason: '空数组不得降级成服务不可用',
+      );
+    });
+
+    test('ClaimServiceNotifier：mark/report/reset/forget 幂等且 forget 干净', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(claimServiceProvider.notifier);
+
+      expect(container.read(claimServiceProvider)['d1'], isNull);
+      notifier.mark('d1', false, reason: 'no-method');
+      expect(container.read(claimServiceProvider)['d1']?.reason, 'no-method');
+      notifier.mark('d1', false, reason: 'no-method');
+      expect(container.read(claimServiceProvider), hasLength(1));
+
+      notifier.mark('d1', true);
+      final state = container.read(claimServiceProvider)['d1'];
+      expect(state?.available, isTrue);
+      expect(state?.reason, isNull, reason: '恢复可用时清空原因码');
+
+      notifier.reset('d1');
+      expect(
+        container.read(claimServiceProvider)['d1'],
+        const ClaimServiceState(),
+      );
+      notifier.forget('d1');
+      expect(container.read(claimServiceProvider), isEmpty);
+    });
+
+    test('report(false)（无券可领）不锁死服务可用态', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(claimServiceProvider.notifier).mark('d1', true);
+      final entry = container.read(claimEntryProvider.notifier);
+
+      entry.report('d1', false);
+      expect(container.read(claimEntryProvider)['d1'], isFalse);
+      expect(
+        container.read(claimServiceProvider)['d1']?.available,
+        isTrue,
+        reason: '「有可领」徽标回写不得影响服务可用（缺陷根因回归锁）',
       );
     });
   });

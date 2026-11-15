@@ -340,4 +340,126 @@ void main() {
       expect(await ServiceProbe.checkToolbox(bridge.bridge), isNull);
     });
   });
+
+  group('checkClaimService 定点检查（能力探测，带原因码）', () {
+    Future<ClaimServiceProbe> probe(
+      ScriptedBridge bridge, {
+      Duration timeout = const Duration(seconds: 4),
+    }) => ServiceProbe.checkClaimService(bridge.bridge, timeout: timeout);
+
+    test('方法存在 → available，无原因码', () async {
+      final bridge = ScriptedBridge(
+        script: [
+          [
+            dumpPayload(
+              checks: {
+                'codingPlanSubscriptionService.getManualClaimPlanPreviews':
+                    true,
+              },
+            ),
+          ],
+        ],
+      );
+      final result = await probe(bridge);
+      expect(result.available, isTrue);
+      expect(result.reason, isNull);
+      // 复用 toolboxChecks 的领券条目，只发一条 dump。
+      expect(bridge.commands, hasLength(1));
+      expect(bridge.commands.single['s'], '__zrProbe');
+      final checklist = argsOf(bridge.commands.single).first as List;
+      expect(checklist.single, {
+        's': 'codingPlanSubscriptionService',
+        'm': ServiceProbe.toolboxChecks['codingPlanSubscriptionService'],
+      });
+    });
+
+    test('服务在但方法缺失 → no-method（版本过旧/被裁）', () async {
+      final bridge = ScriptedBridge(
+        script: [
+          [
+            dumpPayload(
+              checks: {
+                'codingPlanSubscriptionService.getManualClaimPlanPreviews':
+                    false,
+              },
+            ),
+          ],
+        ],
+      );
+      final result = await probe(bridge);
+      expect(result.available, isFalse);
+      expect(result.reason, ClaimServiceProbe.reasonNoMethod);
+    });
+
+    test('服务未挂载（no-svc / 无该服务条目）→ no-services', () async {
+      final noSvc = ScriptedBridge(
+        script: [
+          [
+            dumpPayload(
+              checks: {
+                'codingPlanSubscriptionService.getManualClaimPlanPreviews':
+                    'no-svc',
+              },
+            ),
+          ],
+        ],
+      );
+      expect((await probe(noSvc)).reason, ClaimServiceProbe.reasonNoServices);
+
+      final absent = ScriptedBridge(
+        script: [
+          [dumpPayload(checks: {'usageStatsService.getAppUsageSnapshot': true})],
+        ],
+      );
+      final result = await probe(absent);
+      expect(result.available, isFalse);
+      expect(result.reason, ClaimServiceProbe.reasonNoServices);
+    });
+
+    test('dump 形状异常 → probe-failed（无法确认，不当成服务缺失）', () async {
+      final bridge = ScriptedBridge(
+        script: [
+          [
+            {'keys': <String>[]},
+          ],
+        ],
+      );
+      final result = await probe(bridge);
+      expect(result.available, isFalse);
+      expect(result.reason, ClaimServiceProbe.reasonProbeFailed);
+    });
+
+    test('远端错误分流：no-services / no-method / 其它', () async {
+      Future<ClaimServiceProbe> run(String error) async {
+        final bridge = ScriptedBridge(script: const [], errors: {0: error});
+        return probe(bridge);
+      }
+
+      expect(
+        (await run('no-services')).reason,
+        ClaimServiceProbe.reasonNoServices,
+      );
+      expect(
+        (await run('no-method')).reason,
+        ClaimServiceProbe.reasonNoMethod,
+      );
+      expect(
+        (await run('boom')).reason,
+        ClaimServiceProbe.reasonProbeFailed,
+      );
+    });
+
+    test('探测超时（脚本耗尽不回喂）→ probe-failed，不抛不卡', () async {
+      final bridge = ScriptedBridge(
+        script: const [],
+        respondEmptyOnExhausted: false,
+      );
+      final result = await probe(
+        bridge,
+        timeout: const Duration(milliseconds: 30),
+      );
+      expect(result.available, isFalse);
+      expect(result.reason, ClaimServiceProbe.reasonProbeFailed);
+    });
+  });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/claim.dart';
 import 'package:zremote/models/device.dart';
+import 'package:zremote/services/service_probe.dart';
 import 'package:zremote/state/claim_entry.dart';
 import 'package:zremote/state/session_status.dart';
 import 'package:zremote/ui/claim_page.dart';
@@ -66,6 +67,7 @@ void main() {
     WidgetTester tester, {
     required ScriptedBridge bridge,
     SessionStatus status = SessionStatus.live,
+    VoidCallback? onDiagnosticsPressed,
   }) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -77,7 +79,11 @@ void main() {
           locale: const Locale('zh'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: ClaimPage(device: device, bridge: bridge.bridge),
+          home: ClaimPage(
+            device: device,
+            bridge: bridge.bridge,
+            onDiagnosticsPressed: onDiagnosticsPressed,
+          ),
         ),
       ),
     );
@@ -523,5 +529,105 @@ void main() {
 
     expect(find.text('暂无可领活动'), findsOneWidget);
     expect(find.text('加载失败'), findsNothing);
+  });
+
+  group('状态机矩阵：服务可用 × 有可领 × 无券 × 异常', () {
+    testWidgets('空 plans：服务可用保持 true，只有「有可领」徽标变 false（不锁死入口）',
+        (tester) async {
+      final bridge = ScriptedBridge(script: [
+        [previewsResponse([])],
+      ]);
+      final container = await pumpPage(tester, bridge: bridge);
+      await tester.pump();
+
+      expect(find.text('暂无可领活动'), findsOneWidget);
+      expect(container.read(claimEntryProvider)['d1'], isFalse);
+      expect(
+        container.read(claimServiceProvider)['d1']?.available,
+        isTrue,
+        reason: '空数组是业务态，不得把服务可用置为不可用（缺陷根因回归锁）',
+      );
+      expect(container.read(claimServiceProvider)['d1']?.reason, isNull);
+    });
+
+    testWidgets('manual_claim_preview_missing_data：服务可用保持 true（不是服务故障）',
+        (tester) async {
+      final bridge = ScriptedBridge(
+        script: const [[]],
+        errors: {0: 'manual_claim_preview_missing_data'},
+      );
+      final container = await pumpPage(tester, bridge: bridge);
+      await tester.pump();
+
+      expect(container.read(claimServiceProvider)['d1']?.available, isTrue);
+      expect(container.read(claimEntryProvider)['d1'], isFalse);
+    });
+
+    testWidgets('no-method：一次性结论不重试 + 服务不可用 + 原因文案 + 诊断入口',
+        (tester) async {
+      final bridge = ScriptedBridge(
+        script: const [[]],
+        errors: {0: 'no-method'},
+      );
+      var diagnostics = 0;
+      final container = await pumpPage(
+        tester,
+        bridge: bridge,
+        onDiagnosticsPressed: () => diagnostics++,
+      );
+      await tester.pump();
+
+      expect(bridge.commands, hasLength(1), reason: 'no-method 不重试');
+      expect(
+        container.read(claimServiceProvider)['d1']?.available,
+        isFalse,
+      );
+      expect(
+        container.read(claimServiceProvider)['d1']?.reason,
+        ClaimServiceProbe.reasonNoMethod,
+      );
+      // 服务不可用不回写「有可领」徽标。
+      expect(container.read(claimEntryProvider)['d1'], isNull);
+      expect(find.text('远端未提供领券服务，请升级远端后重试'), findsOneWidget);
+      expect(find.byKey(const Key('claim-service-diagnostics')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('claim-service-diagnostics')));
+      await tester.pump();
+      expect(diagnostics, 1);
+    });
+
+    testWidgets('no-services 重试耗尽 → 服务不可用 + no-services 原因', (tester) async {
+      final bridge = ScriptedBridge(
+        script: const [],
+        // 3 服务候选 × 3 次尝试，逐条喂 no-services。
+        errors: {for (var i = 0; i < 9; i++) i: 'no-services'},
+      );
+      final container = await pumpPage(tester, bridge: bridge);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+
+      // M2/L7：候选数 × 重试次数 = 3 服务候选 × 3 次尝试。
+      expect(bridge.commands, hasLength(9), reason: 'no-services 仍按候选重试');
+      expect(
+        container.read(claimServiceProvider)['d1']?.reason,
+        ClaimServiceProbe.reasonNoServices,
+      );
+      expect(find.text('远端领券服务未就绪，请确认已连接并进入会话'),
+          findsOneWidget);
+    });
+
+    testWidgets('其它远端业务错：展示错误页但不污染服务可用态', (tester) async {
+      final bridge = ScriptedBridge(
+        script: const [[]],
+        errors: {0: 'manual_claim_preview_denied'},
+      );
+      final container = await pumpPage(tester, bridge: bridge);
+      await tester.pump();
+
+      expect(container.read(claimServiceProvider)['d1'], isNull);
+      expect(find.text('领取失败，请稍后重试'), findsOneWidget);
+      expect(find.textContaining('连接诊断'), findsNothing);
+    });
   });
 }

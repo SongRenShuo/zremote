@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../services/git_overview.dart';
+import '../services/service_probe.dart';
 import '../state/automation.dart';
 import '../state/claim_entry.dart';
 import '../state/claim_history.dart';
@@ -104,6 +105,10 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
     final l10n = AppLocalizations.of(context)!;
     final autoBoard = ref.watch(automationProvider)[widget.device.id];
     final claimReady = ref.watch(claimEntryProvider)[widget.device.id] == true;
+    // 「服务可用（能力）」与「有可领（业务）」分离：卡片 enabled 只由能力决定，
+    // 未探测（unknown）按可用处理——不重蹈"探针锁死 → 卡片永灰"的覆辙。
+    final claimService = ref.watch(claimServiceProvider)[widget.device.id];
+    final claimServiceAvailable = claimService?.available ?? true;
     // P2-7：徽标扩展「今日已领 N」（读 claim_history 当日成功计数）；
     // claimReady 判定沿用现有（可领时优先展示可领徽标）。
     final todayClaimed =
@@ -180,9 +185,9 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
         group: _ToolGroup.account,
         icon: Icons.card_giftcard_rounded,
         title: l10n.toolboxClaim,
-        subtitle: l10n.toolboxClaimDesc,
+        subtitle: _claimSubtitle(l10n, claimServiceAvailable, claimService?.reason),
         onTap: widget.onClaimPressed,
-        enabled: claimReady,
+        enabled: claimServiceAvailable,
         badgeText: claimReady
             ? l10n.toolboxClaimReady
             : (todayClaimed > 0 ? l10n.claimHistTodayCount(todayClaimed) : null),
@@ -461,6 +466,21 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
         ),
       if (entries.isEmpty) const SizedBox.shrink(),
     ];
+  }
+
+  /// 权益中心副标题：服务不可用时把「为什么灰」直接写在卡片上，
+  /// 不再只给一个 45% 透明度的灰卡。
+  String _claimSubtitle(
+    AppLocalizations l10n,
+    bool available,
+    String? reason,
+  ) {
+    if (available || reason == null) return l10n.toolboxClaimDesc;
+    return switch (reason) {
+      ClaimServiceProbe.reasonNoMethod => l10n.claimServiceNoMethod,
+      ClaimServiceProbe.reasonNoServices => l10n.claimServiceNoServices,
+      _ => l10n.claimServiceProbeFailed,
+    };
   }
 
   bool _matches(_ToolEntry entry) =>
