@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/state/automation.dart';
+import 'package:zremote/services/service_probe.dart';
 import 'package:zremote/state/claim_entry.dart';
 import 'package:zremote/theme.dart';
 import 'package:zremote/ui/side_panel_drawer.dart';
@@ -92,7 +93,9 @@ void main() {
     expect(autoTriggered, isTrue);
   });
 
-  testWidgets('权益卡未就绪（无 previews 命中）仍禁用点击', (tester) async {
+  // 修复回归锁（原断言「无 previews 命中仍禁用」编码的正是本缺陷：
+  // 把「有可领（业务）」当成「服务可用（能力）」回写，导致卡片永灰。
+  testWidgets('权益卡：无 previews 命中（业务态）不锁死点击', (tester) async {
     bool claimTriggered = false;
 
     tester.view.physicalSize = const Size(800, 1600);
@@ -106,7 +109,32 @@ void main() {
 
     await tester.tap(find.text('权益中心'));
     await tester.pumpAndSettle();
+    expect(claimTriggered, isTrue);
+  });
+
+  testWidgets('权益卡：服务不可用（能力态）才禁用点击 + 给原因', (tester) async {
+    bool claimTriggered = false;
+
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      buildHost(onAuto: () {}, onClaim: () => claimTriggered = true),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(SidePanelDrawer));
+    final container = ProviderScope.containerOf(element);
+    container
+        .read(claimServiceProvider.notifier)
+        .mark(device.id, false, reason: ClaimServiceProbe.reasonNoMethod);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('权益中心'));
+    await tester.pumpAndSettle();
     expect(claimTriggered, isFalse);
+    expect(find.text('远端未提供领券服务，请升级远端后重试'), findsOneWidget);
   });
 
   testWidgets('排队任务点亮「N 条排队」徽标，自动化卡可点', (tester) async {
