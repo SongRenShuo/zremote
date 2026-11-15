@@ -130,4 +130,48 @@ void main() {
       );
     });
   });
+
+  group('P5-1 双平台通知细节组装（notificationDetailsFor）', () {
+    test('Android：channel/importance/锁屏可见性/actions 既有语义不变', () {
+      final spec = NotificationSpec.from(
+        _device('dev-1'),
+        const ObservedEvent(type: 'permission_request', taskId: 'task-9'),
+      )!;
+      final details = notificationDetailsFor(spec, lockEnabled: true);
+      final android = details.android!;
+      expect(android.channelId, 'zr_perm');
+      expect(android.channelName, isNotNull);
+      expect(android.importance, Importance.high);
+      expect(android.priority, Priority.high);
+      expect(android.visibility, NotificationVisibility.private);
+      expect(android.actions, hasLength(2));
+      expect(android.actions!.first.id, TaskActionsClient.actionApprove);
+      expect(android.actions!.last.id, TaskActionsClient.actionDeny);
+    });
+
+    test('iOS：携带 DarwinNotificationDetails 且不注册 category/action（iOS 侧按钮不出现）', () {
+      final spec = NotificationSpec.from(
+        _device('dev-1'),
+        const ObservedEvent(type: 'permission_request', taskId: 'task-9'),
+      )!;
+      final details = notificationDetailsFor(spec, lockEnabled: false);
+      expect(details.iOS, isA<DarwinNotificationDetails>());
+      // iOS 无 channel 概念：不映射打断级别、不注册通知类别；
+      // 展示交由初始化 defaultPresent*（banner/list）接管。
+      expect(details.iOS!.categoryIdentifier, isNull);
+      expect(details.iOS!.interruptionLevel, isNull);
+    });
+
+    test('claim 通知同样走双平台细节（zr_claim 渠道 Android 语义保持）', () {
+      final spec = NotificationSpec.claimResult(
+        device: _device('dev-2'),
+        kind: ClaimNotifyKind.success,
+        planName: 'GLM Coding Max',
+      );
+      final details = notificationDetailsFor(spec, lockEnabled: false);
+      expect(details.android!.channelId, 'zr_claim');
+      expect(details.android!.actions ?? const [], isEmpty);
+      expect(details.iOS, isA<DarwinNotificationDetails>());
+    });
+  });
 }
