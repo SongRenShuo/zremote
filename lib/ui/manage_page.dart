@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ import '../services/notifier.dart' show NotificationGatePolicy, ZrNotifyOverride
 import '../services/link_builder.dart';
 import '../state/app_lifecycle.dart';
 import '../state/behavior.dart';
+import '../state/accounts.dart';
 import '../state/claim_history.dart';
 import '../state/session_pool.dart';
 import '../state/keepalive.dart';
@@ -19,6 +22,7 @@ import '../state/session_status.dart';
 import '../state/event_feed.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
+import 'account_vault_page.dart';
 import 'bevel_card.dart';
 import 'haptics.dart';
 import 'hw_chip.dart';
@@ -85,6 +89,7 @@ class ManagePage extends ConsumerWidget {
                     _EmptyHint(
                       onScan: () => _openScanner(context, ref),
                       onPaste: () => _showPasteDialog(context, ref),
+                      onAccountVault: () => _openAccountVault(context, ref),
                     )
                   else ...[
                     _TelemetryBanner(devices: devices),
@@ -139,6 +144,19 @@ class ManagePage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// 0 设备入口：打开账号库（device: null），可从全局活跃账号导入已注册设备。
+  Future<void> _openAccountVault(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AccountVaultPage()),
+    );
+    if (!context.mounted) return;
+    unawaited(
+      ref.read(accountsProvider.notifier).reload().catchError((Object e) {
+        debugPrint('[zr-vault] reload failed: $e');
+      }),
     );
   }
 
@@ -763,10 +781,15 @@ IconData _devicePlatformIcon(String displayName) {
 }
 
 class _EmptyHint extends StatelessWidget {
-  const _EmptyHint({required this.onScan, required this.onPaste});
+  const _EmptyHint({
+    required this.onScan,
+    required this.onPaste,
+    required this.onAccountVault,
+  });
 
   final VoidCallback onScan;
   final VoidCallback onPaste;
+  final VoidCallback onAccountVault;
 
   @override
   Widget build(BuildContext context) {
@@ -837,6 +860,52 @@ class _EmptyHint extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       l10n.settingsEntrySubtitle,
+                      style: TextStyle(fontSize: 11, color: zt.textLo),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 20, color: zt.textLo),
+            ],
+          ),
+        ),
+        BevelCard(
+          radius: 16,
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          onTap: onAccountVault,
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: zt.accentSubtle,
+                  border: Border.all(color: zt.accentBorder, width: 0.8),
+                ),
+                child: Icon(
+                  Icons.account_circle_outlined,
+                  size: 16,
+                  color: zt.accent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.acctVaultEntry,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: zt.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.devicesAddFromAccount,
                       style: TextStyle(fontSize: 11, color: zt.textLo),
                     ),
                   ],

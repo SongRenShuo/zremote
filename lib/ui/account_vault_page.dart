@@ -23,25 +23,30 @@ import 'account_device_picker_page.dart';
 ///
 /// WebView 依赖经回调注入：`onCaptureCurrent` 回读当前设备 localStorage，
 /// `onApply` 注入并刷新（由会话页提供 controller 通道）。
+///
+/// `device` 可选：0 设备入口（管理页空态）以 `device: null` 打开时，
+/// 隐藏依赖 WebView controller 的「保存当前登录 / 应用到此设备」，
+/// 保留账号列表、导入导出、删除与「从账户添加设备」（走全局活跃账号）。
 class AccountVaultPage extends ConsumerStatefulWidget {
   const AccountVaultPage({
     super.key,
-    required this.device,
-    required this.onCaptureCurrent,
-    required this.onApply,
+    this.device,
+    this.onCaptureCurrent,
+    this.onApply,
     this.client,
     this.deviceClient,
     this.exportSink,
     this.importSource,
   });
 
-  final RemoteDevice device;
+  /// 当前设备；null = 无设备入口（纯账号管理 + 全局账号设备导入）。
+  final RemoteDevice? device;
 
   /// 回读当前设备登录键值（防丢号保全与「保存当前登录」共用）。
-  final Future<Map<String, String>> Function() onCaptureCurrent;
+  final Future<Map<String, String>> Function()? onCaptureCurrent;
 
   /// 注入账号到设备 WebView 并 reload；返回是否成功。
-  final Future<bool> Function(Account account) onApply;
+  final Future<bool> Function(Account account)? onApply;
 
   /// 账号资料拉取客户端（测试注入）。
   final ZaiAuthClient? client;
@@ -76,10 +81,12 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
 
   Future<void> _saveCurrent() async {
     if (_busy) return;
+    final capture = widget.onCaptureCurrent;
+    if (capture == null) return;
     final l10n = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
-      final entries = await widget.onCaptureCurrent();
+      final entries = await capture();
       if (!mounted) return;
       if (entries['zcodejwttoken'] == null ||
           (entries['zcodejwttoken'] ?? '').isEmpty) {
@@ -97,6 +104,10 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
   }
 
   Future<void> _applyAccount(Account account) async {
+    final device = widget.device;
+    final capture = widget.onCaptureCurrent;
+    final apply = widget.onApply;
+    if (device == null || capture == null || apply == null) return;
     final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
@@ -121,12 +132,12 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
     setState(() => _busy = true);
     try {
       // 防丢号：应用前先保全当前登录。
-      final entries = await widget.onCaptureCurrent();
+      final entries = await capture();
       await ref.read(accountsProvider.notifier).preserveRawEntries(entries);
       await ref
           .read(accountsProvider.notifier)
-          .setActiveForDevice(widget.device, account.id);
-      final applied = await widget.onApply(account);
+          .setActiveForDevice(device, account.id);
+      final applied = await apply(account);
       if (!mounted) return;
       _toast(applied ? l10n.acctApplyDone : l10n.acctApplyFailed);
     } finally {
@@ -134,15 +145,17 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
     }
   }
 
-  /// 从当前在用账号拉取已注册设备 → 选择 → 写入设备库（账户直连 P1）。
+  /// 从**全局活跃账号**拉取已注册设备 → 选择 → 写入设备库（账户直连 P1）。
   ///
-  /// 入口仅在存在在用账号时可点；列表按账号重新拉取，不复用旧列表。
+  /// 不依赖 `widget.device`：0 设备入口同样可用。账号选取规则见
+  /// [AccountsState.globalActiveAccount]（唯一账号直接用；多账号取最近使用，
+  /// 并列取最近添加；用户可在页面切换）。列表按账号重新拉取，不复用旧列表。
   Future<void> _addDeviceFromAccount() async {
     if (_busy) return;
     final l10n = AppLocalizations.of(context)!;
-    final account = ref.read(accountsProvider).activeAccountOf(widget.device);
+    final account = ref.read(accountsProvider).globalActiveAccount();
     if (account == null) {
-      _toast(l10n.acctNoActiveAccount);
+      _toast(l10n.devicesNoAccount);
       return;
     }
     final jwt = account.jwt;
@@ -477,7 +490,15 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
     final zt = context.zt;
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(accountsProvider);
-    final activeId = state.activeByDevice[widget.device.id];
+    final device = widget.device;
+    final activeId =
+        device == null ? null : state.activeByDevice[device.id];
+    final globalAccount = state.globalActiveAccount();
+    final globalAccountName = globalAccount == null
+        ? ''
+        : (globalAccount.name.isNotEmpty
+              ? globalAccount.name
+              : _fallbackIdentity(globalAccount));
     return Scaffold(
       backgroundColor: zt.bg,
       appBar: AppBar(
@@ -518,6 +539,7 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
                     providerLabel: _providerLabel(l10n, account.provider),
                     fallbackName: _fallbackIdentity(account),
                     busy: _busy,
+                    showApply: device != null,
                     onTap: () => unawaited(_showDetail(account)),
                     onApply: () => unawaited(_applyAccount(account)),
                     onDelete: () => unawaited(_deleteAccount(account)),
@@ -531,27 +553,118 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (state.accounts.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: PopupMenuButton<String>(
+                    key: const Key('acct-switch-account'),
+                    tooltip: l10n.devicesAccountSwitch,
+                    onSelected: (value) => ref
+                        .read(accountsProvider.notifier)
+                        .setGlobalActiveAccount(
+                          value.isEmpty ? null : value,
+                        ),
+                    itemBuilder: (menuContext) => [
+                      PopupMenuItem<String>(
+                        key: const Key('acct-account-auto'),
+                        value: '',
+                        child: Row(
+                          children: [
+                            if (state.globalActiveAccountId == null)
+                              Icon(Icons.check, size: 16, color: zt.accent)
+                            else
+                              const SizedBox(width: 16),
+                            const SizedBox(width: 8),
+                            Text(l10n.devicesAccountAuto),
+                          ],
+                        ),
+                      ),
+                      for (final a in state.accounts)
+                        PopupMenuItem<String>(
+                          key: Key('acct-account-item-${a.id}'),
+                          value: a.id,
+                          child: Row(
+                            children: [
+                              if (a.id == globalAccount?.id)
+                                Icon(Icons.check, size: 16, color: zt.accent)
+                              else
+                                const SizedBox(width: 16),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  a.name.isNotEmpty
+                                      ? a.name
+                                      : _fallbackIdentity(a),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                    child: Container(
+                      key: const Key('acct-using-account'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: zt.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: zt.hairline),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.account_circle_outlined,
+                            size: 18,
+                            color: zt.textLo,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.devicesAccountUsing(globalAccountName),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: zt.textHi,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.expand_more,
+                            size: 18,
+                            color: zt.textLo,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   key: const Key('acct-add-device'),
-                  onPressed: (activeId != null && !_busy)
+                  onPressed: (globalAccount != null && !_busy)
                       ? () => unawaited(_addDeviceFromAccount())
                       : null,
                   icon: const Icon(Icons.devices_other, size: 18),
                   label: Text(l10n.devicesAddFromAccount),
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  key: const Key('acct-save-current'),
-                  onPressed: _busy ? null : () => unawaited(_saveCurrent()),
-                  icon: const Icon(Icons.save_outlined, size: 18),
-                  label: Text(l10n.acctSaveCurrent),
+              if (device != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const Key('acct-save-current'),
+                    onPressed: _busy ? null : () => unawaited(_saveCurrent()),
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: Text(l10n.acctSaveCurrent),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -625,6 +738,7 @@ class _AccountTile extends StatelessWidget {
     required this.providerLabel,
     required this.fallbackName,
     required this.busy,
+    required this.showApply,
     required this.onTap,
     required this.onApply,
     required this.onDelete,
@@ -635,6 +749,9 @@ class _AccountTile extends StatelessWidget {
   final String providerLabel;
   final String fallbackName;
   final bool busy;
+
+  /// 无设备入口不展示「应用到此设备」（依赖 WebView controller）。
+  final bool showApply;
   final VoidCallback onTap;
   final VoidCallback onApply;
   final VoidCallback onDelete;
@@ -711,11 +828,12 @@ class _AccountTile extends StatelessWidget {
               if (action == 'delete') onDelete();
             },
             itemBuilder: (menuContext) => [
-              PopupMenuItem(
-                key: const Key('acct-menu-apply'),
-                value: 'apply',
-                child: Text(l10n.acctApply),
-              ),
+              if (showApply)
+                PopupMenuItem(
+                  key: const Key('acct-menu-apply'),
+                  value: 'apply',
+                  child: Text(l10n.acctApply),
+                ),
               PopupMenuItem(
                 key: const Key('acct-menu-delete'),
                 value: 'delete',
