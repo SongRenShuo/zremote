@@ -2936,5 +2936,37 @@
 "gitCardDirtyUnknown": "有改动",
   "@gitCardDirtyUnknown": {
     "description": "P1-7 dirty badge when count unknown (isDirty only)"
+  },
+  "platformLimitsTitle": "iOS 平台限制说明",
+  "@platformLimitsTitle": {
+    "description": "P5-2 iOS limits section label in settings page"
+  },
+  "platformLimitsIntro": "以下能力受 iOS 系统限制，与 Android 版表现不同，如实说明：",
+  "@platformLimitsIntro": {
+    "description": "P5-2 intro line of the iOS limits card"
+  },
+  "platformLimitsKeepaliveTitle": "保活前台服务",
+  "@platformLimitsKeepaliveTitle": {
+    "description": "P5-2 keepalive limit row title"
+  },
+  "platformLimitsKeepaliveBody": "iOS 无常驻后台服务：后台保活与自动领取的后台续跑不适用，切后台会暂停、回到前台后自动恢复。",
+  "@platformLimitsKeepaliveBody": {
+    "description": "P5-2 keepalive limit row body"
+  },
+  "platformLimitsIsolationTitle": "多账号 Cookie 隔离",
+  "@platformLimitsIsolationTitle": {
+    "description": "P5-2 webview profile isolation limit row title"
+  },
+  "platformLimitsIsolationBody": "iOS 系统 WebView 暂不支持多 Profile：多账号将共用同一登录态，切换账号需重新登录。",
+  "@platformLimitsIsolationBody": {
+    "description": "P5-2 webview profile isolation limit row body"
+  },
+  "platformLimitsNotifyTitle": "通知部分能力",
+  "@platformLimitsNotifyTitle": {
+    "description": "P5-2 notification capability limit row title"
+  },
+  "platformLimitsNotifyBody": "基础提醒（审批/完成/失败/领取结果）可用；审批通知的「批准/拒绝」动作按钮为 Android 专属，iOS 上请点进会话页操作；后台投递时机受系统调度。",
+  "@platformLimitsNotifyBody": {
+    "description": "P5-2 notification capability limit row body"
   }
 }

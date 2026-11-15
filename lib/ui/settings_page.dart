@@ -13,6 +13,7 @@ import '../state/keepalive.dart';
 import '../state/session_pool.dart';
 import '../state/theme_mode.dart';
 import '../theme.dart';
+import 'ios_limits_section.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
 
@@ -130,6 +131,10 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 16),
             SectionLabel(l10n.sectionNotifications),
             const _NotificationCard(),
+            // P5-2：iOS 平台限制说明卡（仅 iOS 设备渲染，非 iOS 零占位）。
+            // 本文件与 L4 车道共写，改动压到最小单 section。
+            const SizedBox(height: 16),
+            const IosLimitsSection(),
             const _VersionFooter(),
           ],
         ),
