@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/webview_profile.dart';
@@ -97,6 +100,47 @@ void main() {
       expect(WebViewFeature.values, contains(WebViewFeature.MULTI_PROFILE));
       expect(WebViewFeature.fromNativeValue('MULTI_PROFILE'),
           WebViewFeature.MULTI_PROFILE);
+    });
+  });
+
+  group('multiProfileSupportedProvider（P5-2 iOS 横幅抑制分支）', () {
+    test('iOS：返回 true（语义=抑制会话页降级警示，非实际支持）', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final container = ProviderContainer();
+      addTearDown(() {
+        container.dispose();
+        debugDefaultTargetPlatformOverride = null;
+      });
+      expect(
+        await container.read(multiProfileSupportedProvider.future),
+        isTrue,
+      );
+    });
+
+    test('iOS 分支不再触发恒显警示链（shouldShowIsolationFallback 判 false）', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      // 会话页横幅判定用 provider 值：iOS → true → 不显示。
+      expect(
+        shouldShowIsolationFallback(
+          kind: DeviceKind.v2,
+          multiProfileSupported: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('Android 探测失败（测试环境无平台通道）→ false 语义保持', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final container = ProviderContainer();
+      addTearDown(() {
+        container.dispose();
+        debugDefaultTargetPlatformOverride = null;
+      });
+      expect(
+        await container.read(multiProfileSupportedProvider.future),
+        isFalse,
+      );
     });
   });
 }

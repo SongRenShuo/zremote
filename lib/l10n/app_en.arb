@@ -1689,7 +1689,7 @@
   "@modelFullNameCopied": {
     "description": "Toast after copying model name"
   },
-"loginTitle": "Sign in to ZCode",
+  "loginTitle": "Sign in to ZCode",
   "@loginTitle": {
     "description": "Login web page title"
   },
@@ -2900,5 +2900,53 @@
   "uxBadgePermPending": "Approval",
   "@uxBadgePermPending": {
     "description": "Device badge: approval pending"
+  },
+  "platformLimitsTitle": "iOS Platform Limitations",
+  "@platformLimitsTitle": {
+    "description": "P5-2 iOS limits section label in settings page"
+  },
+  "platformLimitsIntro": "The following capabilities are limited by iOS and differ from the Android build:",
+  "@platformLimitsIntro": {
+    "description": "P5-2 intro line of the iOS limits card"
+  },
+  "platformLimitsKeepaliveTitle": "Keep-alive foreground service",
+  "@platformLimitsKeepaliveTitle": {
+    "description": "P5-2 keepalive limit row title"
+  },
+  "platformLimitsKeepaliveBody": "iOS has no persistent background service: background keep-alive and auto-claim continuation in the background are unavailable; they pause when backgrounded and resume on return.",
+  "@platformLimitsKeepaliveBody": {
+    "description": "P5-2 keepalive limit row body"
+  },
+  "platformLimitsIsolationTitle": "Multi-account cookie isolation",
+  "@platformLimitsIsolationTitle": {
+    "description": "P5-2 webview profile isolation limit row title"
+  },
+  "platformLimitsIsolationBody": "The iOS system WebView does not support multiple profiles: accounts share the same login state; switching accounts requires signing in again.",
+  "@platformLimitsIsolationBody": {
+    "description": "P5-2 webview profile isolation limit row body"
+  },
+  "platformLimitsNotifyTitle": "Partial notification capabilities",
+  "@platformLimitsNotifyTitle": {
+    "description": "P5-2 notification capability limit row title"
+  },
+  "platformLimitsNotifyBody": "Basic alerts (approval/completion/failure/claim results) work; the Approve/Deny action buttons on approval notifications are Android-only — open the session page to act on iOS; background delivery timing follows system scheduling.",
+  "@platformLimitsNotifyBody": {
+    "description": "P5-2 notification capability limit row body"
+  },
+  "diagnosticsEndpointsTitle": "Endpoint Health",
+  "@diagnosticsEndpointsTitle": {
+    "description": "P6-1 endpoint health section title in diagnostics page"
+  },
+  "diagnosticsEndpointsRun": "Probe endpoints",
+  "@diagnosticsEndpointsRun": {
+    "description": "P6-1 endpoint probe run button label"
+  },
+  "diagnosticsEndpointsRunning": "Probing…",
+  "@diagnosticsEndpointsRunning": {
+    "description": "P6-1 endpoint probe running button label"
+  },
+  "diagnosticsEndpointSkipNoToken": "Skipped: no zcode JWT (account vault not wired)",
+  "@diagnosticsEndpointSkipNoToken": {
+    "description": "P6-1 skip reason shown for billing/balance when no token"
   }
 }

@@ -138,6 +138,10 @@ class NotificationSpec {
     this.actions = const [],
   });
 
+  /// 平台语义说明（P5-1）：[channelId]/[channelName]/[importance]/[priority]
+  /// 均为 Android 渠道路由概念——iOS 无 channel，四字段不参与 iOS 投递；
+  /// iOS 展示策略见 [notificationDetailsFor] 注释（未验证，真机回归）。
+
   final String channelId;
   final String channelName;
   final Importance importance;
@@ -352,6 +356,39 @@ abstract final class NotificationActionTap {
 NotificationVisibility lockScreenVisibility({required bool lockEnabled}) =>
     lockEnabled ? NotificationVisibility.private : NotificationVisibility.public;
 
+/// 组装双平台通知细节（P5-1）。
+///
+/// - Android：channel / importance / priority / 锁屏可见性 / action 按钮语义
+///   全部保持既有行为不变。
+/// - iOS 无 channel 概念：[NotificationSpec.channelId]/[channelName] 仅喂
+///   Android 渠道路由；importance/priority 也是 Android 语义，iOS 侧**不映射**
+///   打断级别（timeSensitive 需在 Xcode 声明 Time Sensitive Notifications
+///   能力，本仓未配置，未声明时系统按 active 处理），前台展示与否由初始化时
+///   的 defaultPresent*（banner/list/sound/badge）决定，落库细节传
+///   `const DarwinNotificationDetails()` 交由初始化默认值接管。
+/// - 通知 action 按钮（批准/拒绝）为 Android 专属；iOS 侧未注册
+///   DarwinNotificationCategory，按钮不出现，点击通知本体仍走 payload 路由。
+///
+/// 未验证：本机无 macOS，iOS 分支随版本真机回归（验收清单 S3 条款）。
+NotificationDetails notificationDetailsFor(
+  NotificationSpec spec, {
+  required bool lockEnabled,
+}) =>
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        spec.channelId,
+        spec.channelName,
+        importance: spec.importance,
+        priority: spec.priority,
+        visibility: lockScreenVisibility(lockEnabled: lockEnabled),
+        actions: [
+          for (final action in spec.actions)
+            AndroidNotificationAction(action.id, action.title),
+        ],
+      ),
+      iOS: const DarwinNotificationDetails(),
+    );
+
 class NotifierService {
   NotifierService._();
 
@@ -377,11 +414,21 @@ class NotifierService {
     if (_permissionAsked) return;
     _permissionAsked = true;
     try {
+      // Android 现状保留（13+ POST_NOTIFICATIONS 运行时请求）。
       await _plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.requestNotificationsPermission();
+      // iOS（P5-1）：alert/badge/sound 三项一次性请求；与 init 时
+      // DarwinInitializationSettings 的 request* 双保险，已授权后重复调用
+      // 不再弹窗（系统幂等，直接回当前状态）。
+      // 未验证：本机无 macOS，随版本真机回归（验收清单 S3 条款）。
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
     } catch (_) {
     }
   }
@@ -391,8 +438,21 @@ class NotifierService {
     _inited = true;
     try {
       await _plugin.initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        settings: InitializationSettings(
+          android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+          // iOS（P5-1）：初始化时请求 alert/sound/badge 权限（插件 README
+          // 默认形态）；前台展示选项走 defaultPresent*——iOS 14+ 即
+          // banner + list（对照插件旧 API setForegroundNotificationsPresent
+          // ationOptions 的 alert:true 映射）。原生侧还需 AppDelegate 指派
+          // UNUserNotificationCenter delegate（ios/Runner/AppDelegate.swift）。
+          // 未验证：本机无 macOS，随版本真机回归（验收清单 S3 条款）。
+          iOS: DarwinInitializationSettings(
+            requestAlertPermission: true,
+            requestSoundPermission: true,
+            requestBadgePermission: true,
+            defaultPresentBanner: true,
+            defaultPresentList: true,
+          ),
         ),
         onDidReceiveNotificationResponse: (response) {
           // P1-4：动作按钮按下（actionId 非空）走动作路由；
@@ -431,18 +491,9 @@ class NotifierService {
         id: id,
         title: spec.title,
         body: spec.body,
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            spec.channelId,
-            spec.channelName,
-            importance: spec.importance,
-            priority: spec.priority,
-            visibility: lockScreenVisibility(lockEnabled: _lockScreenRedact),
-            actions: [
-              for (final action in spec.actions)
-                AndroidNotificationAction(action.id, action.title),
-            ],
-          ),
+        notificationDetails: notificationDetailsFor(
+          spec,
+          lockEnabled: _lockScreenRedact,
         ),
         payload: spec.payload,
       );
@@ -474,14 +525,9 @@ class NotifierService {
         id: id,
         title: spec.title,
         body: spec.body,
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            spec.channelId,
-            spec.channelName,
-            importance: spec.importance,
-            priority: spec.priority,
-            visibility: lockScreenVisibility(lockEnabled: _lockScreenRedact),
-          ),
+        notificationDetails: notificationDetailsFor(
+          spec,
+          lockEnabled: _lockScreenRedact,
         ),
         payload: spec.payload,
       );

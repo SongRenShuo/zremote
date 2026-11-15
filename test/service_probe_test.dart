@@ -45,6 +45,36 @@ void main() {
     expect(ServiceProbe.methodChecks['settingService'], contains('get'));
   });
 
+  test('P6-1 候选服务清单：24 个无重复，L2 后半八频道主名逐一在册且带方法面', () {
+    expect(ServiceProbe.candidateServices, hasLength(24));
+    expect(ServiceProbe.candidateServices.toSet(), hasLength(24));
+    // L2 后半（P1-4/7/8）八频道为单候选，主名与 rpc_bridge 频道表追加行
+    // 一一对应（L7 纪律：候选清单改动按数核对）。
+    const l2SecondHalfPrimaries = [
+      'zcodeTaskService',
+      'gitService',
+      'skillsService',
+      'commandsService',
+      'subagentsService',
+      'mcpSyncService',
+      'hooksService',
+      'memoryService',
+    ];
+    for (final svc in l2SecondHalfPrimaries) {
+      expect(ServiceProbe.candidateServices, contains(svc));
+      expect(ServiceProbe.methodChecks.containsKey(svc), isTrue,
+          reason: '$svc 应有方法面检查');
+    }
+    // 既有别名组不被增补破坏（抽三组代表）。
+    expect(ServiceProbe.candidateServices, containsAll(<String>[
+      'offPeakTaskService',
+      'offPeakQueueService',
+      'codingPlanSubscriptionService',
+      'settingService',
+      'settingsService',
+    ]));
+  });
+
   test('dump 成功 + 双实调 ok：命令形态与报告齐整', () async {
     final bridge = ScriptedBridge(
       script: [

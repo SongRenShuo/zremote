@@ -102,6 +102,9 @@ abstract final class ServiceProbe {
 
   /// channel 别名机制里所有可能的服务名（含主名）。
   /// 诊断报告用它对齐"宿主注册表里缺了哪些候选服务"。
+  /// P6-1 增补 L2 后半八频道主名（zcode-task/git/skills/commands/
+  /// subagents/mcp/hooks/memory——均为单候选无别名，与
+  /// rpc_bridge `_serviceCandidatesByChannel` 追加行一一对应）。
   static const List<String> candidateServices = [
     'offPeakTaskService',
     'offPeakQueueService',
@@ -119,6 +122,14 @@ abstract final class ServiceProbe {
     'modelService',
     'settingService',
     'settingsService',
+    'zcodeTaskService',
+    'gitService',
+    'skillsService',
+    'commandsService',
+    'subagentsService',
+    'mcpSyncService',
+    'hooksService',
+    'memoryService',
   ];
 
   /// 功能工具箱四个入口的最小定点检查集：
