@@ -71,6 +71,10 @@ bool shouldOpenRewardsUrlExternally(Uri uri) =>
 /// 注意：值文本里的 `/` 与 `*` 一律转义为 `\u002f` / `\u002a`
 /// （JSON/JS 合法转义，语义不变），保证任何凭据值都不会让脚本体内
 /// 出现 `//` 或 `/*` 序列（M0-1 判据结构性成立）。
+///
+/// 额外补最小 `window.zcodeBridge.getAuthState()`（仅在该全局不存在时），
+/// 返回 `{status:"ready", provider, revision:1}`——官方福利页唯一使用
+/// bridge 的位置，缺它页面会走未就绪分支；不派发任何事件（页面不监听）。
 String rewardsTokenInjectionScript(RewardsCredentials credentials) {
   final entries = <List<String>>[
     if (credentials.zcodeJwtToken != null)
@@ -88,9 +92,15 @@ String rewardsTokenInjectionScript(RewardsCredentials credentials) {
   final pairs = entries
       .map((e) => '[${_jsString(e[0])},${_jsString(e[1])}]')
       .join(',');
+  final provider = credentials.activeProvider == null
+      ? ''
+      : ',provider:${_jsString(credentials.activeProvider!)}';
   return '(function(){var m=[$pairs];'
       'try{for(var i=0;i<m.length;i++){'
-      'window.localStorage.setItem(m[i][0],m[i][1]);}}catch(e){}})();';
+      'window.localStorage.setItem(m[i][0],m[i][1]);}}catch(e){}'
+      'try{if(typeof window.zcodeBridge==="undefined"){'
+      'window.zcodeBridge={getAuthState:function(){'
+      'return {status:"ready"$provider,revision:1};}};}}catch(e){}})();';
 }
 
 String _jsString(String value) =>

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../services/account_credentials.dart';
 import '../services/account_vault.dart';
 
 /// 账号库 UI 状态：账号列表 + 设备在用绑定。
@@ -105,6 +106,14 @@ class AccountsNotifier extends Notifier<AccountsState> {
     return report;
   }
 }
+
+/// 设备在用账号的供票（quota 中心 / 福利中心 / 端点探测共用入口）。
+///
+/// 集成方（会话页）一行接线：
+/// `ticketsOfActiveAccount(ref.read(accountsProvider), widget.device)`，
+/// 未绑定/未加载/未登录时返回空集合，各页自行降级。
+AccountTickets ticketsOfActiveAccount(AccountsState state, RemoteDevice device) =>
+    accountTicketsOf(state.activeAccountOf(device));
 
 /// 单测注入位（生产为 null，走 [AccountVault.instance]）。
 final accountVaultOverrideProvider = Provider<AccountVault?>((ref) => null);

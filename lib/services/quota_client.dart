@@ -5,7 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/claim.dart' show parseSecOrMs;
-import '../models/provider_settings.dart' show UsageEntitlement;
+import '../models/provider_settings.dart'
+    show
+        EntitlementSemantic,
+        ProviderSettingsView,
+        UsageEntitlement,
+        classifyEntitlement,
+        entitlementParamsFor,
+        pickEntitlementProvider;
 import 'rpc_bridge.dart';
 
 /// 额度中心客户端（开发计划 20261115-0901 P1-2 / P1-5）。
@@ -269,6 +276,7 @@ class QuotaOverview {
     this.planTierCode,
     this.planExpireAt,
     this.noPlan = false,
+    this.notConfigured = false,
   });
 
   /// 数据源码：host-snapshot / zai-billing / bigmodel-monitor。
@@ -287,6 +295,10 @@ class QuotaOverview {
 
   /// 账号无生效套餐（通路 A no_plan 或直连「不存在 coding plan」族消息）。
   final bool noPlan;
+
+  /// 宿主未登录 / 未配置（not_configured / not_authenticated / quota 缺失）。
+  /// 与 [noPlan] 分开：这是「登录后查看」引导态，不是加载失败。
+  final bool notConfigured;
 
   bool get isEmpty => plans.isEmpty && items.isEmpty;
   bool get hasDirectSource =>
@@ -1121,26 +1133,58 @@ class QuotaClient {
     'x-request-id': _uuid.v4(),
   };
 
+  /// 额度页通路 A 参数装载：取 `providerSettings.getView` 挑 entitle
+  /// provider，带 `preferredProviderId + accountAccess`（P0-5 实测：仅
+  /// `includeSubscription` 时宿主返回 `not_configured`）。
+  ///
+  /// 视图不可用 / 无 entitle provider → null（调用方降级为仅
+  /// `includeSubscription`）。异常一律吞掉降级，不阻断额度拉取。
+  Future<Map<String, dynamic>?> loadEntitlementParams() async {
+    try {
+      final r = await bridge.call(
+        'provider-settings',
+        'getView',
+        timeout: const Duration(seconds: 15),
+      );
+      final view = ProviderSettingsView.fromJson(r.firstObjectDeep ?? const {});
+      final provider = pickEntitlementProvider(view, null);
+      if (provider == null) return null;
+      return entitlementParamsFor(provider);
+    } catch (e) {
+      debugPrint('[quota] provider view degraded: $e');
+      return null;
+    }
+  }
+
   /// 汇总拉取：通路 A（宿主快照）+ 通路 B（无 token 时优雅降级）。
-  Future<QuotaOverview> fetch() async {
+  ///
+  /// [entitlementParams] 由 [loadEntitlementParams] 提供；null 时仅带
+  /// `includeSubscription`（无 providerSettings 的宿主/降级路径）。
+  Future<QuotaOverview> fetch({Map<String, dynamic>? entitlementParams}) async {
     final parts = <QuotaOverview>[];
     final errors = <String>[];
     var sawNoPlan = false;
+    var sawNotConfigured = false;
 
     try {
       final r = await bridge.call(
         'usage-stats',
         'getEntitlementSnapshot',
-        params: const {'includeSubscription': true},
+        params: entitlementParams ?? const {'includeSubscription': true},
       );
-      final ent = UsageEntitlement.fromJson(r.firstObjectDeep ?? const {});
-      if (ent == null) {
-        errors.add('host snapshot unparseable: ${r.debugText()}');
-      } else if (ent.noPlan) {
-        sawNoPlan = true;
-      } else {
-        final part = normalizeHostSnapshot(ent);
-        if (part != null) parts.add(part);
+      final raw = r.firstObjectDeep ?? const <String, dynamic>{};
+      final ent = UsageEntitlement.fromJson(raw);
+      switch (classifyEntitlement(ent, raw: raw)) {
+        case EntitlementSemantic.ok:
+          final part = normalizeHostSnapshot(ent!);
+          if (part != null) parts.add(part);
+        case EntitlementSemantic.noPlan:
+          sawNoPlan = true;
+        case EntitlementSemantic.notConfigured:
+          // 宿主未登录/未配置：成功回执但 quota 为 null，不算加载失败。
+          sawNotConfigured = true;
+        case EntitlementSemantic.unparseable:
+          errors.add('host snapshot unparseable: ${r.debugText()}');
       }
     } on RpcRemoteException catch (e) {
       if (_isNoPlanMessage(e.message)) {
@@ -1210,6 +1254,16 @@ class QuotaClient {
           refreshedAt: DateTime.now(),
           sources: const [],
           noPlan: true,
+        );
+      }
+      if (sawNotConfigured) {
+        // 未配置/未登录空态：页面展示「登录后查看」引导，而非加载失败。
+        return QuotaOverview(
+          plans: const [],
+          items: const [],
+          refreshedAt: DateTime.now(),
+          sources: const [],
+          notConfigured: true,
         );
       }
       throw QuotaFetchException(

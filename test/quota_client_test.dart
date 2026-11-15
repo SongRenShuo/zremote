@@ -4,7 +4,18 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/models/provider_settings.dart'
-    show UsageEntitlement;
+    show
+        EntitlementSemantic,
+        UsageEntitlement,
+        ZrEffectiveConfig,
+        ProviderSettingsView,
+        ZrProvider,
+        ZrProviderAccess,
+        classifyEntitlement,
+        entitlementParamsFor,
+        pickEntitlementProvider;
+import 'package:zremote/services/account_credentials.dart';
+import 'package:zremote/services/account_vault.dart';
 import 'package:zremote/services/quota_client.dart';
 
 import 'scripted_bridge.dart';
@@ -514,6 +525,267 @@ void main() {
       expect(ov.plans, isEmpty);
     });
 
+    test('通路 A not_configured（authenticated:true + quota:null）→ 未配置空态，不抛',
+        () async {
+      final scripted = ScriptedBridge(script: [
+        [
+          {
+            'generatedAt': 1762300000000,
+            'authenticated': true,
+            'unavailableReason': 'not_configured',
+            'context': {'scope': 'personal'},
+            'provider': null,
+            'subscription': null,
+            'quota': null,
+            'mcpQuota': null,
+          },
+        ],
+      ]);
+      final client = QuotaClient(bridge: scripted.bridge);
+      final ov = await client.fetch();
+      expect(ov.notConfigured, isTrue);
+      expect(ov.noPlan, isFalse);
+      expect(ov.plans, isEmpty);
+    });
+
+    test('通路 A not_authenticated / quota 缺失 → 未配置空态', () async {
+      for (final body in [
+        {'generatedAt': 1, 'unavailableReason': 'not_authenticated'},
+        {'generatedAt': 1, 'quota': null},
+      ]) {
+        final scripted = ScriptedBridge(script: [
+          [body],
+        ]);
+        final ov = await QuotaClient(bridge: scripted.bridge).fetch();
+        expect(ov.notConfigured, isTrue, reason: '$body');
+      }
+    });
+
+    test('回执完全不可解析（空对象）且无直连 → 仍抛 QuotaFetchException', () async {
+      final scripted = ScriptedBridge(script: const [
+        [{}],
+      ]);
+      final client = QuotaClient(bridge: scripted.bridge);
+      await expectLater(
+        client.fetch(),
+        throwsA(isA<QuotaFetchException>()),
+      );
+    });
+
+    test('fetch(entitlementParams)：带 accountAccess 时原样下发宿主', () async {
+      final scripted = ScriptedBridge(script: [
+        [_hostSnapshot()],
+      ]);
+      final client = QuotaClient(bridge: scripted.bridge);
+      const params = {
+        'includeSubscription': true,
+        'preferredProviderId': 'p1',
+        'accountAccess': {
+          'type': 'zhipu-account',
+          'accountType': 'zai',
+          'mode': 'individual-coding-plan',
+        },
+      };
+      await client.fetch(entitlementParams: params);
+      expect(requestOf(scripted.commands.single).params, params);
+    });
+
+    group('loadEntitlementParams（providerSettings.getView → accountAccess）', () {
+    test('entitle provider → 带 preferredProviderId + 完整 accountAccess', () async {
+      final scripted = ScriptedBridge(script: [
+        [_providerViewJson([
+          _providerJson('builtin:zai-coding-plan', mode: 'individual-coding-plan'),
+        ])],
+      ]);
+      final client = QuotaClient(bridge: scripted.bridge);
+      final params = await client.loadEntitlementParams();
+      expect(params, isNotNull);
+      expect(params!['preferredProviderId'], 'builtin:zai-coding-plan');
+      expect(params['accountAccess'], {
+        'type': 'zhipu-account',
+        'accountType': 'zai',
+        'mode': 'individual-coding-plan',
+        'entitled': true,
+      });
+      expect(params['requirePreferredProvider'], isTrue);
+      expect(requestOf(scripted.commands.single).method, 'getView');
+    });
+
+    test('access 缺 mode/accountType → 不发 accountAccess，也不附带 requirePreferredProvider',
+        () async {
+      final scripted = ScriptedBridge(script: [
+        [_providerViewJson([
+          _providerJson('p-missing', accountType: null, mode: null),
+        ])],
+      ]);
+      final params = await QuotaClient(bridge: scripted.bridge)
+          .loadEntitlementParams();
+      expect(params, isNotNull);
+      expect(params!.containsKey('accountAccess'), isFalse);
+      expect(params.containsKey('requirePreferredProvider'), isFalse);
+      expect(params['preferredProviderId'], 'p-missing');
+    });
+
+    test('无 entitle provider → null（降级为仅 includeSubscription）', () async {
+      final scripted = ScriptedBridge(script: [
+        [_providerViewJson([
+          _providerJson('p-no', entitled: false),
+        ])],
+      ]);
+      expect(
+        await QuotaClient(bridge: scripted.bridge).loadEntitlementParams(),
+        isNull,
+      );
+    });
+
+    test('getView 失败 → null 降级，不抛（不阻断额度拉取）', () async {
+      final scripted = ScriptedBridge(script: const [], errors: {0: 'no-services'});
+      expect(
+        await QuotaClient(bridge: scripted.bridge).loadEntitlementParams(),
+        isNull,
+      );
+    });
+  });
+
+  group('classifyEntitlement / entitlementParamsFor（共用语义）', () {
+    test('classifyEntitlement：ok / noPlan / notConfigured / unparseable', () {
+      expect(
+        classifyEntitlement(UsageEntitlement.fromJson(_hostSnapshot())),
+        EntitlementSemantic.ok,
+      );
+      expect(
+        classifyEntitlement(
+          UsageEntitlement.fromJson({'unavailableReason': 'no_plan'}),
+        ),
+        EntitlementSemantic.noPlan,
+      );
+      expect(
+        classifyEntitlement(
+          UsageEntitlement.fromJson({
+            'authenticated': true,
+            'unavailableReason': 'not_configured',
+            'quota': null,
+          }),
+        ),
+        EntitlementSemantic.notConfigured,
+      );
+      expect(
+        classifyEntitlement(null, raw: {'authenticated': true}),
+        EntitlementSemantic.notConfigured,
+        reason: 'quota 缺失但宿主已作答 → 未配置，不是解析失败',
+      );
+      expect(classifyEntitlement(null, raw: const {}), EntitlementSemantic.unparseable);
+      expect(classifyEntitlement(null), EntitlementSemantic.unparseable);
+    });
+
+    test('pickEntitlementProvider：entitled 视图命中，空视图 null', () {
+      final view = ProviderSettingsView.fromJson(_providerViewJson([
+        _providerJson('p1', mode: 'individual-coding-plan'),
+      ]))!;
+      expect(pickEntitlementProvider(view, null)!.providerId, 'p1');
+      expect(pickEntitlementProvider(null, null), isNull);
+      expect(
+        pickEntitlementProvider(
+          ProviderSettingsView.fromJson(_providerViewJson([
+            _providerJson('p-no', entitled: false),
+          ])),
+          null,
+        ),
+        isNull,
+      );
+    });
+
+    test('entitlementParamsFor：三字段齐全才发 accountAccess', () {
+      final full = entitlementParamsFor(
+        _providerOf('p1', mode: 'start-plan'),
+      );
+      expect(full['accountAccess'], {
+        'type': 'zhipu-account',
+        'accountType': 'zai',
+        'mode': 'start-plan',
+        'entitled': true,
+      });
+      expect(full['requirePreferredProvider'], isTrue);
+
+      final degraded = entitlementParamsFor(
+        _providerOf('p2', accountType: null, mode: null),
+      );
+      expect(degraded.containsKey('accountAccess'), isFalse);
+      expect(degraded.containsKey('requirePreferredProvider'), isFalse);
+      expect(degraded['preferredProviderId'], 'p2');
+    });
+  });
+
+  group('accountTicketsOf：账号 → 直连/福利供票矩阵（zai/zai_cn/bigmodel）', () {
+    test('zai：jwt + zai access_token + active_provider', () {
+      final tickets = accountTicketsOf(_account('zai', {
+        'zcodejwttoken': 'jwt.z',
+        'oauth:zai:access_token': 'zai-tok',
+      }));
+      expect(tickets.quotaTokens!.zaiJwt, 'jwt.z');
+      expect(tickets.quotaTokens!.bigmodelApiKey, isNull);
+      expect(tickets.rewardsCredentials.zcodeJwtToken, 'jwt.z');
+      expect(tickets.rewardsCredentials.zaiAccessToken, 'zai-tok');
+      expect(tickets.rewardsCredentials.activeProvider, 'zai');
+      expect(tickets.isEmpty, isFalse);
+    });
+
+    test('zai_cn：access_token 落 zai_cn 槽，active_provider 跟随', () {
+      final tickets = accountTicketsOf(_account('zai_cn', {
+        'oauth:active_provider': 'zai_cn',
+        'oauth:zai_cn:access_token': 'cn-tok',
+      }));
+      expect(tickets.quotaTokens, isNull, reason: '无 jwt 且无 bigmodel key');
+      expect(tickets.rewardsCredentials.zaiCnAccessToken, 'cn-tok');
+      expect(tickets.rewardsCredentials.activeProvider, 'zai_cn');
+    });
+
+    test('bigmodel：access_token 同时充当直连 API key', () {
+      final tickets = accountTicketsOf(_account('bigmodel', {
+        'oauth:bigmodel:access_token': 'bm-key',
+      }));
+      expect(tickets.quotaTokens!.bigmodelApiKey, 'bm-key');
+      expect(tickets.quotaTokens!.zaiJwt, isNull);
+      expect(tickets.rewardsCredentials.bigmodelAccessToken, 'bm-key');
+      expect(tickets.rewardsCredentials.activeProvider, 'bigmodel');
+    });
+
+    test('active_provider 不受支持时回落账号 provider；未知账号 provider → null', () {
+      final fallback = accountTicketsOf(_account('zai', {
+        'oauth:active_provider': 'weird',
+        'oauth:zai:access_token': 't',
+      }));
+      expect(fallback.rewardsCredentials.activeProvider, 'zai');
+
+      final unknown = accountTicketsOf(_account('unknown', {
+        'oauth:unknown:access_token': 't',
+      }));
+      expect(unknown.rewardsCredentials.activeProvider, isNull);
+      expect(unknown.rewardsCredentials.isEmpty, isTrue);
+    });
+
+    test('空账号 → 空集合（各页降级）', () {
+      expect(accountTicketsOf(null).isEmpty, isTrue);
+      expect(accountTicketsOf(null).quotaTokens, isNull);
+    });
+
+    test('provider 键名矩阵：accessTokenOf 只认受支持 provider', () {
+      final account = _account('zai', {
+        'oauth:zai:access_token': 'a',
+        'oauth:zai_cn:access_token': 'b',
+        'oauth:bigmodel:access_token': 'c',
+      });
+      expect(accessTokenOf(account, 'zai'), 'a');
+      expect(accessTokenOf(account, 'zai_cn'), 'b');
+      expect(accessTokenOf(account, 'bigmodel'), 'c');
+      expect(accessTokenOf(account, 'nope'), isNull);
+      expect(accessTokenOf(account, null), isNull);
+      expect(bigmodelApiKeyOf(account), 'c');
+      expect(isSupportedAccountProvider('zai'), isTrue);
+      expect(isSupportedAccountProvider('nope'), isFalse);
+    });
+  });
+
     test('通路 A 失败 + 通路 B 业务码失败 → QuotaFetchException 汇总', () async {
       final scripted = ScriptedBridge(script: const [
         [],
@@ -729,3 +1001,60 @@ void main() {
 /// 通路 A fixture → UsageEntitlement（复用生产模型入口）。
 UsageEntitlement hostEntitlementOf(Map<String, dynamic> snapshot) =>
     UsageEntitlement.fromJson(snapshot)!;
+
+Map<String, dynamic> _providerViewJson(List<Map<String, dynamic>> providers) => {
+  'revision': 1,
+  'providers': providers,
+};
+
+Map<String, dynamic> _providerJson(
+  String id, {
+  String type = 'zhipu-account',
+  String? accountType = 'zai',
+  String? mode = 'individual-coding-plan',
+  bool? entitled = true,
+}) {
+  final access = <String, dynamic>{'type': type};
+  if (accountType != null) access['accountType'] = accountType;
+  if (mode != null) access['mode'] = mode;
+  if (entitled != null) access['entitled'] = entitled;
+  return {
+    'providerId': id,
+    'providerName': id,
+    'executable': true,
+    'enabled': true,
+    'effectiveConfig': {'group': 'zai-family', 'access': access},
+    'models': const [],
+  };
+}
+
+ZrProvider _providerOf(
+  String id, {
+  String? accountType = 'zai',
+  String? mode = 'individual-coding-plan',
+}) => ZrProvider(
+  providerId: id,
+  enabled: true,
+  executable: true,
+  models: const [],
+  effectiveConfig: ZrEffectiveConfig(
+    group: 'zai-family',
+    access: ZrProviderAccess(
+      type: 'zhipu-account',
+      accountType: accountType,
+      mode: mode,
+      entitled: true,
+    ),
+  ),
+);
+
+Account _account(String provider, Map<String, String> credentials) => Account(
+  id: 'a1',
+  name: provider,
+  provider: provider,
+  credentials: credentials,
+  hash: 'h',
+  virtualDeviceMid: 'mid',
+  createdAt: DateTime(2026, 1, 1),
+  updatedAt: DateTime(2026, 1, 1),
+);

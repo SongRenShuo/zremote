@@ -1222,6 +1222,10 @@
   "@modelPlanLoadFailed": {
     "description": "Model settings plan panel"
   },
+  "modelPlanLoginRequired": "Sign in to view plan details",
+  "@modelPlanLoginRequired": {
+    "description": "Model settings plan panel: host not logged in / not configured"
+  },
   "modelQuotaFiveHour": "5-hour quota",
   "@modelQuotaFiveHour": {
     "description": "Model settings plan panel"
@@ -2005,6 +2009,14 @@
   "quotaLoadFailed": "Failed to load quota data",
   "@quotaLoadFailed": {
     "description": "Quota load failure title"
+  },
+  "quotaLoginRequired": "Sign in to view your quota",
+  "@quotaLoginRequired": {
+    "description": "Quota empty state: host not logged in / not configured"
+  },
+  "quotaLoginHint": "This device is not signed in to Z Code. Sign in to view quota and rewards.",
+  "@quotaLoginHint": {
+    "description": "Quota empty state hint under the login-required line"
   },
   "quotaValidityRange": "Valid {range}",
   "@quotaValidityRange": {

@@ -54,6 +54,8 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
   bool _settingsFailed = false;
   UsageEntitlement? _entitlement;
   bool _entitlementFailed = false;
+  bool _entitlementNotConfigured = false;
+  String _entitlementErrorMessage = '';
 
   @override
   void initState() {
@@ -199,61 +201,50 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
     final provider = _pickEntitlementProvider();
     if (provider == null) {
       if (mounted && epoch == _loadEpoch) {
-        setState(() { _entitlement = null; _entitlementFailed = false; });
+        setState(() {
+          _entitlement = null;
+          _entitlementFailed = false;
+          _entitlementNotConfigured = false;
+          _entitlementErrorMessage = '';
+        });
       }
       return;
     }
-    final access = provider.effectiveConfig!.access!;
-    final params = {
-      'includeSubscription': true,
-      'preferredProviderId': provider.providerId,
-      'accountAccess': <String, dynamic>{
-        'type': access.type,
-        if (access.accountType != null) 'accountType': access.accountType,
-        if (access.mode != null) 'mode': access.mode,
-        if (access.entitled != null) 'entitled': access.entitled,
-      },
-      'allowDisabledPreferredProvider': true,
-      'requirePreferredProvider': true,
-      'allowEnvApiKey': false,
-    };
+    // 参数构造与额度页共用（缺 type/accountType/mode 时不发 accountAccess）。
+    final params = entitlementParamsFor(provider);
     try {
       final r = await _callWithRetry('usage-stats', 'getEntitlementSnapshot', params: params);
-      final ent = UsageEntitlement.fromJson(r.firstObjectDeep ?? const {});
+      final raw = r.firstObjectDeep ?? const <String, dynamic>{};
+      final ent = UsageEntitlement.fromJson(raw);
+      final semantic = classifyEntitlement(ent, raw: raw);
       if (!mounted || epoch != _loadEpoch) return;
       setState(() {
         _entitlement = ent;
-        _entitlementFailed = ent == null;
+        _entitlementNotConfigured =
+            semantic == EntitlementSemantic.notConfigured;
+        _entitlementFailed = semantic == EntitlementSemantic.unparseable;
+        _entitlementErrorMessage = '';
       });
       debugPrint(
         '[model] entitlement '
-        '${ent != null ? 'ok (${ent.limits.length} limits, plan=${ent.planName ?? "?"})' : 'empty'}',
+        '${ent != null ? 'ok (${ent.limits.length} limits, plan=${ent.planName ?? "?"})' : semantic.name}',
       );
     } catch (e) {
       debugPrint('[model] entitlement degraded: $e');
       if (mounted && epoch == _loadEpoch) {
-        setState(() { _entitlement = null; _entitlementFailed = true; });
+        setState(() {
+          _entitlement = null;
+          _entitlementNotConfigured = isNotConfiguredErrorText('$e');
+          // 真实错误带原文（不再一律「套餐信息获取失败」）。
+          _entitlementFailed = !_entitlementNotConfigured;
+          _entitlementErrorMessage = '$e';
+        });
       }
     }
   }
 
-  ZrProvider? _pickEntitlementProvider() {
-    final view = _view;
-    if (view == null) return null;
-    final entitled = view.entitledAccountProviders;
-    if (entitled.isEmpty) return null;
-    for (final family in _connFamilies()) {
-      final current = _currentKind(family.family);
-      if (current == null) continue;
-      for (final opt in family.options) {
-        if (opt.kind == current &&
-            opt.provider.effectiveConfig?.access?.entitled == true) {
-          return opt.provider;
-        }
-      }
-    }
-    return entitled.first;
-  }
+  ZrProvider? _pickEntitlementProvider() =>
+      pickEntitlementProvider(_view, _settings);
 
   void _toNotReady(int epoch) {
     if (!mounted || epoch != _loadEpoch) return;
@@ -411,17 +402,39 @@ class _ModelSettingsPageState extends ConsumerState<ModelSettingsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionLabel(l10n.modelConnSectionTitle),
-        if (_entitlement != null && !_entitlement!.noPlan)
+        if (_entitlement != null &&
+            !_entitlement!.noPlan &&
+            _entitlement!.limits.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: _planCard(l10n),
           )
-        else if (_entitlementFailed)
+        else if (_entitlementNotConfigured)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              l10n.modelPlanLoadFailed,
+              l10n.modelPlanLoginRequired,
               style: TextStyle(fontSize: 11, color: zt.textTertiary),
+            ),
+          )
+        else if (_entitlementFailed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.modelPlanLoadFailed,
+                  style: TextStyle(fontSize: 11, color: zt.textTertiary),
+                ),
+                if (_entitlementErrorMessage.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _entitlementErrorMessage,
+                    style: TextStyle(fontSize: 10.5, color: zt.danger),
+                  ),
+                ],
+              ],
             ),
           ),
         BevelCard(
