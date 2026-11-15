@@ -1680,6 +1680,10 @@
   "@repoPrefix": {
     "description": "Settings repo footer prefix"
   },
+  "currentRepoPrefix": "当前仓库",
+  "@currentRepoPrefix": {
+    "description": "Settings repo footer prefix for this fork's repo"
+  },
   "automationCronWeekdays": "工作日",
   "@automationCronWeekdays": {
     "description": "Cron preset segment: weekdays"

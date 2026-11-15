@@ -952,6 +952,10 @@
   "@repoPrefix": {
     "description": "Settings repo footer prefix"
   },
+  "currentRepoPrefix": "Current repo",
+  "@currentRepoPrefix": {
+    "description": "Settings repo footer prefix for this fork's repo"
+  },
   "automationCronWeekdays": "Weekdays",
   "@automationCronWeekdays": {
     "description": "Cron preset segment: weekdays"

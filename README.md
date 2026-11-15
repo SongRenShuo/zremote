@@ -29,9 +29,14 @@ ZCode 桌面端远程控制的手机伴侣 App。电脑端出示二维码，手�
 - **中英双语** —— 应用内一键切换 中文 / English，或跟随系统语言
 - **设置页** —— 外观（语言、主题）、安全与保活、通知偏好集中管理，设备列表回归纯操作
 
+## 项目地址
+
+- **官方开源仓库（上游）**：[pjpv/zremote](https://github.com/pjpv/zremote) —— 本项目在其基础上二次开发，感谢原作者与上游贡献者
+- **当前仓库（本分支）**：[SongRenShuo/zremote](https://github.com/SongRenShuo/zremote) —— 本版本的发布与源码
+
 ## 下载与安装
 
-到 [Releases](https://github.com/pjpv/zremote/releases) 页获取最新版：
+到 [Releases](https://github.com/SongRenShuo/zremote/releases) 页获取最新版：
 
 - **Android** —— `app-release.apk`，下载后直接安装
 - **iOS** —— `zremote-ios-unsigned.ipa`，**未签名包，无法直接安装**：请使用 [AltStore](https://altstore.io)、[Sideloadly](https://sideloadly.io) 或 TrollStore 等工具，用自己的 Apple ID 签名后侧载（免费账号签名有效期 7 天，到期需重新签名）
@@ -65,6 +70,8 @@ flutter build ios --release --no-codesign
 ## 声明
 
 ZRemote 是社区开发的开源项目，非官方工具，与 Z.ai 无关联。ZCode 及相关名称与商标归其各自所有者。
+
+本项目是 [pjpv/zremote](https://github.com/pjpv/zremote) 的**二次开发分支**：上游原版由其作者与贡献者维护，本分支在其基础上做功能增强与问题修复，**上游代码与署名权归原作者所有**；如与上游行为不一致，请先向上游反馈。
 
 ## License
 

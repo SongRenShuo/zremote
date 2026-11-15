@@ -1323,14 +1323,16 @@ class _VersionFooter extends StatelessWidget {
   const _VersionFooter();
 
   static final _info = PackageInfo.fromPlatform();
-  static const _repoUrl = 'https://github.com/SongRenShuo/zremote';
 
-  Future<void> _openRepo() async {
+  /// 官方（上游）开源仓库：尊重原作者，入口与文案都指向上游。
+  static const _officialRepoUrl = 'https://github.com/pjpv/zremote';
+
+  /// 当前仓库（本 Fork）：二次构建的发布与源码地址。
+  static const _currentRepoUrl = 'https://github.com/SongRenShuo/zremote';
+
+  Future<void> _open(String url) async {
     try {
-      await launchUrl(
-        Uri.parse(_repoUrl),
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (_) {}
   }
 
@@ -1374,7 +1376,7 @@ class _VersionFooter extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 InkWell(
-                  onTap: _openRepo,
+                  onTap: () => _open(_officialRepoUrl),
                   customBorder: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1393,7 +1395,8 @@ class _VersionFooter extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          '${AppLocalizations.of(context)!.repoPrefix}: github.com/SongRenShuo/zremote',
+                          '${AppLocalizations.of(context)!.repoPrefix}: '
+                          'github.com/pjpv/zremote',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
@@ -1406,6 +1409,46 @@ class _VersionFooter extends StatelessWidget {
                           Icons.open_in_new_outlined,
                           size: 12,
                           color: context.zt.accent,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                InkWell(
+                  onTap: () => _open(_currentRepoUrl),
+                  customBorder: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fork_right_outlined,
+                          size: 13,
+                          color: context.zt.textLo,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${AppLocalizations.of(context)!.currentRepoPrefix}: '
+                          'github.com/SongRenShuo/zremote',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                            color: context.zt.textLo,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Icon(
+                          Icons.open_in_new_outlined,
+                          size: 12,
+                          color: context.zt.textLo,
                         ),
                       ],
                     ),

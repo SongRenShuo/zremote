@@ -29,9 +29,14 @@ A mobile companion app for ZCode desktop remote control. The desktop shows a QR 
 - **Chinese / English** — switch languages in-app, or follow the system language
 - **Settings page** — Appearance (language, theme), Security & keep-alive, and Notification preferences in one place; the device list stays purely operational
 
+## Project Repositories
+
+- **Official open-source repository (upstream)**: [pjpv/zremote](https://github.com/pjpv/zremote) — this project is developed on top of it; thanks to the original author and upstream contributors
+- **Current repository (this fork)**: [SongRenShuo/zremote](https://github.com/SongRenShuo/zremote) — releases and source of this build
+
 ## Download & Install
 
-Get the latest build from the [Releases](https://github.com/pjpv/zremote/releases) page:
+Get the latest build from the [Releases](https://github.com/SongRenShuo/zremote/releases) page:
 
 - **Android** — `app-release.apk`, install directly after downloading
 - **iOS** — `zremote-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
@@ -65,6 +70,8 @@ flutter build ios --release --no-codesign
 ## Disclaimer
 
 ZRemote is a community-driven open-source project and is not an official tool; it is not affiliated with Z.ai. ZCode and related names and trademarks belong to their respective owners.
+
+This project is a **fork with additional development** of [pjpv/zremote](https://github.com/pjpv/zremote): the original upstream is maintained by its author and contributors, and this fork only adds features and fixes on top. **Upstream code and its attribution remain with the original author.** If something behaves differently from upstream, please report it upstream first.
 
 ## License
 
