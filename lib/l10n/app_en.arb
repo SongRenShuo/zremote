@@ -1519,5 +1519,298 @@
   "modelActionCopy": "Copy",
   "@modelActionCopy": {
     "description": "Copy action button"
+  },
+  "quotaToolboxTitle": "Quota Center",
+  "@quotaToolboxTitle": {
+    "description": "Toolbox entry: quota center title"
+  },
+  "quotaToolboxDesc": "Plan quota · Reset cards",
+  "@quotaToolboxDesc": {
+    "description": "Toolbox entry: quota center subtitle"
+  },
+  "quotaTitle": "Quota Center",
+  "@quotaTitle": {
+    "description": "Quota page title"
+  },
+  "quotaRefresh": "Refresh",
+  "@quotaRefresh": {
+    "description": "Quota page refresh action"
+  },
+  "quotaSourceHost": "Host snapshot",
+  "@quotaSourceHost": {
+    "description": "Quota data source label: host RPC snapshot"
+  },
+  "quotaSourceDirect": "Direct",
+  "@quotaSourceDirect": {
+    "description": "Quota data source label: direct HTTP"
+  },
+  "quotaLastSync": "Last sync {time}",
+  "@quotaLastSync": {
+    "description": "Quota last sync timestamp row",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaNoPlan": "No active plan for this account",
+  "@quotaNoPlan": {
+    "description": "Quota empty state: no active plan"
+  },
+  "quotaLoadFailed": "Failed to load quota data",
+  "@quotaLoadFailed": {
+    "description": "Quota load failure title"
+  },
+  "quotaValidityRange": "Valid {range}",
+  "@quotaValidityRange": {
+    "description": "Plan validity range (start ~ end)",
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaValidityUntil": "Valid until {date}",
+  "@quotaValidityUntil": {
+    "description": "Plan validity single endpoint",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaRemainingPercent": "{percent}% left",
+  "@quotaRemainingPercent": {
+    "description": "Main metric remaining percentage",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowPromptCount": "Prompts ({period})",
+  "@quotaWindowPromptCount": {
+    "description": "Window item label: prompt count with period",
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowDuration": "Usage time ({period})",
+  "@quotaWindowDuration": {
+    "description": "Window item label: usage duration with period",
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaWindowRaw": "{type} ({period})",
+  "@quotaWindowRaw": {
+    "description": "Window item label: raw type with period",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaPeriodHours": "Every {n} hours",
+  "@quotaPeriodHours": {
+    "description": "Period label: every N hours (unit=3)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaPeriodDaily": "Daily",
+  "@quotaPeriodDaily": {
+    "description": "Period label: daily (unit=4)"
+  },
+  "quotaPeriodMonthly": "Monthly",
+  "@quotaPeriodMonthly": {
+    "description": "Period label: monthly (unit=5)"
+  },
+  "quotaPeriodWeekly": "Weekly",
+  "@quotaPeriodWeekly": {
+    "description": "Period label: weekly (unit=6)"
+  },
+  "quotaPeriodCycle": "Per cycle",
+  "@quotaPeriodCycle": {
+    "description": "Period label: unknown unit fallback"
+  },
+  "quotaUnitCount": "times",
+  "@quotaUnitCount": {
+    "description": "Unit label for prompt count"
+  },
+  "quotaUnitMinutes": "min",
+  "@quotaUnitMinutes": {
+    "description": "Unit label for duration minutes"
+  },
+  "quotaResetsAt": "Resets at {time}",
+  "@quotaResetsAt": {
+    "description": "Window reset timestamp",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetInHm": "Resets in {hours}h {minutes}m",
+  "@quotaResetInHm": {
+    "description": "Reset countdown with hours and minutes",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaResetInM": "Resets in {minutes}m",
+  "@quotaResetInM": {
+    "description": "Reset countdown with minutes only",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaTierOther": "Other quota",
+  "@quotaTierOther": {
+    "description": "Slot name for orphan balances"
+  },
+  "quotaModelBalanceTitle": "Model balances",
+  "@quotaModelBalanceTitle": {
+    "description": "Section label above model balance rows"
+  },
+  "quotaResetCardTitle": "Reset cards",
+  "@quotaResetCardTitle": {
+    "description": "Reset card block title"
+  },
+  "quotaResetCardFiveHour": "5-hour reset card",
+  "@quotaResetCardFiveHour": {
+    "description": "Reset card kind: 5-hour"
+  },
+  "quotaResetCardWeekly": "Weekly reset card",
+  "@quotaResetCardWeekly": {
+    "description": "Reset card kind: weekly"
+  },
+  "quotaResetCardGeneric": "Reset card",
+  "@quotaResetCardGeneric": {
+    "description": "Reset card kind: unknown type fallback"
+  },
+  "quotaResetCardAvailable": "{count} available",
+  "@quotaResetCardAvailable": {
+    "description": "Reset card available count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quotaResetCardNone": "None available",
+  "@quotaResetCardNone": {
+    "description": "Reset card none available"
+  },
+  "quotaResetCardExpires": "Expires {time}",
+  "@quotaResetCardExpires": {
+    "description": "Reset card expiry time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardHistory": "Recent uses",
+  "@quotaResetCardHistory": {
+    "description": "Reset card recent usage section label"
+  },
+  "quotaResetCardUnread": "New records",
+  "@quotaResetCardUnread": {
+    "description": "Reset card unread history badge"
+  },
+  "quotaResetCardUse": "Use",
+  "@quotaResetCardUse": {
+    "description": "Reset card use action"
+  },
+  "quotaResetCardUseBusy": "Using…",
+  "@quotaResetCardUseBusy": {
+    "description": "Reset card use in-progress label"
+  },
+  "quotaResetCardConfirmTitle": "Use reset card",
+  "@quotaResetCardConfirmTitle": {
+    "description": "Reset card confirm dialog title"
+  },
+  "quotaResetCardConfirmBody": "Use one \"{name}\" now to reset the matching quota window. Continue?",
+  "@quotaResetCardConfirmBody": {
+    "description": "Reset card confirm dialog body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardConfirmAction": "Use now",
+  "@quotaResetCardConfirmAction": {
+    "description": "Reset card confirm dialog confirm button"
+  },
+  "quotaResetCardUsed": "Reset card used",
+  "@quotaResetCardUsed": {
+    "description": "Reset card used success toast"
+  },
+  "quotaResetCardUseFailed": "Failed to use reset card",
+  "@quotaResetCardUseFailed": {
+    "description": "Reset card use failure toast"
+  },
+  "quotaResetCardRateLimited": "Too many attempts",
+  "@quotaResetCardRateLimited": {
+    "description": "Reset card rate limit (code 3301) title"
+  },
+  "quotaResetCardRetryAt": "Try again after {time}",
+  "@quotaResetCardRetryAt": {
+    "description": "Reset card rate limit retry hint",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetCardStatusFailed": "Failed to load reset cards",
+  "@quotaResetCardStatusFailed": {
+    "description": "Reset card status load failure hint"
+  },
+  "rewardsToolboxTitle": "Rewards",
+  "@rewardsToolboxTitle": {
+    "description": "Toolbox entry: rewards center title"
+  },
+  "rewardsToolboxDesc": "Check-in · Events",
+  "@rewardsToolboxDesc": {
+    "description": "Toolbox entry: rewards center subtitle"
+  },
+  "rewardsTitle": "Rewards",
+  "@rewardsTitle": {
+    "description": "Rewards page title"
+  },
+  "rewardsOpenExternal": "Open in browser",
+  "@rewardsOpenExternal": {
+    "description": "Open current rewards page in external browser"
+  },
+  "rewardsLoadFailed": "Failed to load rewards page",
+  "@rewardsLoadFailed": {
+    "description": "Rewards page load failure title"
+  },
+  "rewardsRetry": "Retry",
+  "@rewardsRetry": {
+    "description": "Rewards page retry action"
+  },
+  "rewardsExternalFail": "Cannot open external link",
+  "@rewardsExternalFail": {
+    "description": "Toast when external browser launch fails"
   }
 }

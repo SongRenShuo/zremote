@@ -82,6 +82,7 @@ abstract final class ServiceProbe {
     'modelSelectionService': ['getView'],
     'codingPlanSubscriptionService': [
       'getManualClaimPlanPreviews',
+      'claimManualPlan',
       'getCaptchaConfig',
     ],
     'skillsService': ['list', 'setEnabled'],

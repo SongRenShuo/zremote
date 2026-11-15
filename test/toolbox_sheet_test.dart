@@ -80,4 +80,50 @@ void main() {
     expect(inkFor('自动化调度').onTap, isNotNull);
     expect(inkFor('权益中心').onTap, isNull);
   });
+
+  testWidgets('P1-2/P1-3：额度中心与福利中心入口卡（回调缺省置灰）', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await pumpSheet(tester, container);
+
+    // 未接线（回调 null）时渲染但置灰
+    final quotaCard = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const Key('quota-toolbox-entry')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(quotaCard.onTap, isNull);
+    expect(find.text('额度中心'), findsOneWidget);
+    expect(find.text('福利中心'), findsOneWidget);
+
+    // 接线后可点，点按先关面板再触发回调
+    var quotaTaps = 0;
+    var rewardsTaps = 0;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ToolboxSheet(
+              device: device,
+              onAutomationPressed: () {},
+              onClaimPressed: () {},
+              onUsagePressed: () {},
+              onModelSettingsPressed: () {},
+              onQuotaPressed: () => quotaTaps++,
+              onRewardsPressed: () => rewardsTaps++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('quota-toolbox-entry')));
+    await tester.pumpAndSettle();
+    expect(quotaTaps, 1);
+    expect(rewardsTaps, 0);
+  });
 }
