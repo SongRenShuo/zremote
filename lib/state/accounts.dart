@@ -56,6 +56,9 @@ class AccountsNotifier extends Notifier<AccountsState> {
     );
   }
 
+  /// 外部（登录页/会话页）直接改库后的回读刷新。
+  Future<void> reload() => _load();
+
   Future<Account?> saveFromCredentials({
     required String provider,
     required Map<String, String> credentials,
