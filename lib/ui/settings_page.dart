@@ -1017,7 +1017,37 @@ class _AboutTile extends StatelessWidget {
   }
 }
 
+/// 更新检查的测试注入点（生产为 null，走 [UpdateChecker] 默认实现）。
+/// 仅测试赋值，用于替换 Releases API 地址与 Dio 客户端。
+@visibleForTesting
+UpdateChecker Function({required String currentVersion})? updateCheckerFactory;
+
+/// 失败原因 → 可读文案（枚举映射，文案在 l10n）。
+String _updateFailureLabel(
+  AppLocalizations l10n,
+  UpdateFailureReason reason,
+  int? statusCode,
+) {
+  switch (reason) {
+    case UpdateFailureReason.timeout:
+      return l10n.settingsUpdateReasonTimeout;
+    case UpdateFailureReason.network:
+      return l10n.settingsUpdateReasonNetwork;
+    case UpdateFailureReason.rateLimited:
+      return l10n.settingsUpdateReasonRateLimited;
+    case UpdateFailureReason.httpError:
+      return l10n.settingsUpdateReasonHttpError(
+        statusCode?.toString() ?? '',
+      );
+    case UpdateFailureReason.badJson:
+      return l10n.settingsUpdateReasonBadJson;
+    case UpdateFailureReason.badVersion:
+      return l10n.settingsUpdateReasonBadVersion;
+  }
+}
+
 /// 更新检查（P3-5 接 UI）：GitHub Releases latest 比对，只提示不强更。
+/// 四态：idle / checking / 已是最新 / 有新版本 / 检查失败。
 class _UpdateTile extends ConsumerStatefulWidget {
   const _UpdateTile();
 
@@ -1027,33 +1057,82 @@ class _UpdateTile extends ConsumerStatefulWidget {
 
 class _UpdateTileState extends ConsumerState<_UpdateTile> {
   bool _checking = false;
-  UpdateInfo? _update;
+  UpdateCheckResult? _result;
 
   Future<void> _check() async {
     if (_checking) return;
     setState(() => _checking = true);
     try {
       final info = await PackageInfo.fromPlatform();
-      final update = await UpdateChecker(currentVersion: info.version)
-          .checkLatest();
+      final factory = updateCheckerFactory;
+      final checker = factory != null
+          ? factory(currentVersion: info.version)
+          : UpdateChecker(currentVersion: info.version);
+      final result = await checker.checkLatest();
       if (!mounted) return;
-      setState(() => _update = update);
+      setState(() => _result = result);
+      _announce(context, result);
     } catch (_) {
-      if (mounted) setState(() => _update = null);
+      if (!mounted) return;
+      const result = UpdateCheckResult.failed(UpdateFailureReason.network);
+      setState(() => _result = result);
+      _announce(context, result);
     } finally {
       if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  /// 已是最新 / 检查失败给 SnackBar 明示结果（无更新与失败不再同句回落）。
+  void _announce(BuildContext context, UpdateCheckResult result) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    if (result.isUpToDate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsUpdateUpToDate(result.currentVersion ?? ''),
+          ),
+        ),
+      );
+      return;
+    }
+    if (result.isFailed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsUpdateFailed(
+              _updateFailureLabel(l10n, result.reason!, result.statusCode),
+            ),
+          ),
+          action: SnackBarAction(
+            key: const Key('update-retry-snack'),
+            label: l10n.settingsUpdateRetry,
+            onPressed: _check,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final update = _update;
-    final subtitle = _checking
-        ? l10n.settingsUpdateChecking
-        : (update == null
-            ? l10n.settingsUpdateCheckSub
-            : l10n.settingsUpdateAvailable(update.latestVersion));
+    final result = _result;
+    final info = result?.update;
+    final String subtitle;
+    if (_checking) {
+      subtitle = l10n.settingsUpdateChecking;
+    } else if (info != null) {
+      subtitle = l10n.settingsUpdateAvailable(info.latestVersion);
+    } else if (result != null && result.isUpToDate) {
+      subtitle = l10n.settingsUpdateUpToDate(result.currentVersion ?? '');
+    } else if (result != null && result.isFailed) {
+      subtitle = l10n.settingsUpdateFailed(
+        _updateFailureLabel(l10n, result.reason!, result.statusCode),
+      );
+    } else {
+      subtitle = l10n.settingsUpdateCheckSub;
+    }
     return _TileRow(
       title: l10n.settingsUpdateCheck,
       subtitle: subtitle,
@@ -1062,14 +1141,30 @@ class _UpdateTileState extends ConsumerState<_UpdateTile> {
           ? const SizedBox(
               width: 16,
               height: 16,
+              key: Key('update-checking'),
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : (update == null
-              ? Icon(Icons.chevron_right, color: context.zt.textLo)
-              : TextButton(
-                  onPressed: () => _openRelease(update.releaseUrl),
-                  child: Text(l10n.settingsUpdateOpenRelease),
-                )),
+          : (info != null
+                ? TextButton(
+                    onPressed: () => _openRelease(info.releaseUrl),
+                    child: Text(l10n.settingsUpdateOpenRelease),
+                  )
+                : (result != null && result.isFailed
+                      ? TextButton(
+                          key: const Key('update-retry'),
+                          onPressed: _check,
+                          child: Text(l10n.settingsUpdateRetry),
+                        )
+                      : (result != null && result.isUpToDate
+                            ? Icon(
+                                Icons.check_circle_outline,
+                                size: 18,
+                                color: context.zt.accent,
+                              )
+                            : Icon(
+                                Icons.chevron_right,
+                                color: context.zt.textLo,
+                              )))),
       onTap: _checking ? null : _check,
     );
   }
@@ -1109,7 +1204,7 @@ class _VersionFooter extends StatelessWidget {
   const _VersionFooter();
 
   static final _info = PackageInfo.fromPlatform();
-  static const _repoUrl = 'https://github.com/pjpv/zremote';
+  static const _repoUrl = 'https://github.com/SongRenShuo/zremote';
 
   Future<void> _openRepo() async {
     try {
@@ -1179,7 +1274,7 @@ class _VersionFooter extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          '${AppLocalizations.of(context)!.repoPrefix}: github.com/pjpv/zremote',
+                          '${AppLocalizations.of(context)!.repoPrefix}: github.com/SongRenShuo/zremote',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
