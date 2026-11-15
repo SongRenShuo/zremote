@@ -1245,8 +1245,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
       _jumpToSession(next.sessionId);
     });
     // P3-7：设置页「连接诊断」入口 → 打开本设备诊断页。
+    // 命中即 consume：请求残留会让设置页的「无消费者」提示误报。
     ref.listen(diagnosticsOpenRequestProvider, (prev, next) {
       if (next == null || next.deviceId != widget.device.id) return;
+      ref.read(diagnosticsOpenRequestProvider.notifier).consume();
       _openDiagnostics();
     });
     if (!_claimEntryProbed &&
