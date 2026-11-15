@@ -14,10 +14,20 @@ import 'bevel_card.dart';
 /// Skills / Commands / Subagents / MCP / Hooks / Memory 六 Tab；
 /// 每频道独立候选独立拉取，单服务失败只红本 Tab（P1 教训：不拖垮整页）。
 class AssetsPage extends ConsumerStatefulWidget {
-  const AssetsPage({super.key, required this.device, required this.bridge});
+  const AssetsPage({
+    super.key,
+    required this.device,
+    required this.bridge,
+    this.hostWorkspacePath,
+  });
 
   final RemoteDevice device;
   final RpcBridge bridge;
+
+  /// 主控回退源：宿主当前工作区（sessionIndex 的 workspacePath 可能全为 null，
+  /// 真实值在宿主 localStorage `zcode-workspace-expansion`）。非空时优先于
+  /// sessionIndex 派生值。由 session_view 在打开页面前读取并传入。
+  final String? hostWorkspacePath;
 
   @override
   ConsumerState<AssetsPage> createState() => _AssetsPageState();
@@ -30,26 +40,24 @@ class _AssetsPageState extends ConsumerState<AssetsPage>
     vsync: this,
   );
 
-  /// 当前会话 workspacePath（skills/commands/subagents/mcp/hooks 需要）。
-  String? _workspacePath;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_workspacePath != null) return;
-    final sessions = ref.read(sessionIndexProvider)[widget.device.id];
-    final activeId = ref.read(activeSessionProvider)[widget.device.id];
-    _workspacePath = sessions?[activeId]?.workspacePath ??
-        sessions?.values
-            .map((s) => s.workspacePath)
-            .nonNulls
-            .firstOrNull;
-  }
+  /// 单一 client 实例（bridge 不变，避免每次 build 重建）。
+  late final AssetsClient _client = AssetsClient(widget.bridge);
 
   @override
   void dispose() {
     _tabs.dispose();
     super.dispose();
+  }
+
+  /// 当前会话 workspacePath（skills/subagents/mcp/hooks 必填）。
+  /// watch 而非 read：workspace 由空变有时页面重建，各 Tab 自动重拉。
+  String? _workspacePath(WidgetRef ref) {
+    final host = widget.hostWorkspacePath;
+    if (host != null && host.trim().isNotEmpty) return host;
+    final sessions = ref.watch(sessionIndexProvider)[widget.device.id];
+    final activeId = ref.watch(activeSessionProvider)[widget.device.id];
+    return sessions?[activeId]?.workspacePath ??
+        sessions?.values.map((s) => s.workspacePath).nonNulls.firstOrNull;
   }
 
   String _tabLabel(AppLocalizations l10n, AssetsTabKind tab) => switch (tab) {
@@ -64,6 +72,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final workspacePath = _workspacePath(ref);
     return Scaffold(
       appBar: AppBar(
         leading: const CloseButton(),
@@ -88,8 +97,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage>
             _AssetsTabView(
               key: Key('assets-tab-${tab.name}'),
               tab: tab,
-              client: AssetsClient(widget.bridge),
-              workspacePath: _workspacePath,
+              client: _client,
+              workspacePath: workspacePath,
               tabLabel: _tabLabel(l10n, tab),
             ),
         ],
@@ -128,12 +137,27 @@ class _AssetsTabViewState extends State<_AssetsTabView>
   @override
   bool get wantKeepAlive => true;
 
+  bool get _needsWorkspace =>
+      (widget.workspacePath == null || widget.workspacePath!.trim().isEmpty) &&
+      AssetsTabSpec.requiresWorkspace(widget.tab);
+
+  static String _wsKey(String? ws) => ws?.trim() ?? '';
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_fetchStarted) return;
     _fetchStarted = true;
     _refresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AssetsTabView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // workspace 由空变有（或切换会话）→ 自动重拉本 Tab。
+    if (_wsKey(oldWidget.workspacePath) != _wsKey(widget.workspacePath)) {
+      _refresh();
+    }
   }
 
   Future<void> _refresh() async {
@@ -168,6 +192,22 @@ class _AssetsTabViewState extends State<_AssetsTabView>
     super.build(context);
     final l10n = AppLocalizations.of(context)!;
     final zt = context.zt;
+    // 必填 workspace 的频道在未进会话时占位（不显示「服务不可用」）。
+    if (_needsWorkspace) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.account_circle_outlined, size: 36, color: zt.textTertiary),
+            const SizedBox(height: 10),
+            Text(
+              l10n.assetsTabNeedsWorkspace,
+              style: TextStyle(fontSize: 13, color: zt.textLo),
+            ),
+          ],
+        ),
+      );
+    }
     if (_phase == _TabPhase.loading) {
       return const Center(child: CircularProgressIndicator());
     }

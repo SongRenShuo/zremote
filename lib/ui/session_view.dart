@@ -85,10 +85,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
   ActiveSessionNotifier? _activeSessionNotifier;
   AutomationNotifier? _automationNotifier;
   ClaimEntryNotifier? _claimEntryNotifier;
+  ClaimServiceNotifier? _claimServiceNotifier;
   ServiceReadinessNotifier? _readinessNotifier;
   ApprovalCenterNotifier? _approvalCenterNotifier;
 
   bool _claimEntryProbed = false;
+
+  /// 宿主当前工作区缓存（sessionIndex 的 workspacePath 实测全 null 时的回退）。
+  String? _hostWorkspacePath;
 
   int _readinessEpoch = 0;
 
@@ -124,6 +128,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _activeSessionNotifier ??= ref.read(activeSessionProvider.notifier);
     _automationNotifier ??= ref.read(automationProvider.notifier);
     _claimEntryNotifier ??= ref.read(claimEntryProvider.notifier);
+    _claimServiceNotifier ??= ref.read(claimServiceProvider.notifier);
     _readinessNotifier ??= ref.read(serviceReadinessProvider.notifier);
     _approvalCenterNotifier ??= ref.read(approvalCenterProvider.notifier);
     _startDispatch();
@@ -548,9 +553,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   Future<void> _logout() async {
     final l10n = AppLocalizations.of(context)!;
-    final account = ref
-        .read(accountsProvider)
-        .activeAccountOf(widget.device);
+    final account = ref.read(accountsProvider).activeAccountOf(widget.device);
     var revokeError = '';
     if (account?.jwt != null && account!.jwt!.isNotEmpty) {
       try {
@@ -592,25 +595,22 @@ class _SessionViewState extends ConsumerState<SessionView> {
       context: context,
       builder: (sheetContext) {
         final zt = sheetContext.zt;
-        Widget action(
-          String label,
-          IconData icon,
-          VoidCallback onTap,
-        ) => ListTile(
-          leading: Icon(icon, size: 20, color: zt.textLo),
-          title: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: zt.textHi,
-            ),
-          ),
-          onTap: () {
-            Navigator.pop(sheetContext);
-            onTap();
-          },
-        );
+        Widget action(String label, IconData icon, VoidCallback onTap) =>
+            ListTile(
+              leading: Icon(icon, size: 20, color: zt.textLo),
+              title: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: zt.textHi,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                onTap();
+              },
+            );
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -706,7 +706,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
           children: [
             for (final d in devices) ...[
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 2,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: d.id == widget.device.id
@@ -721,7 +724,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    leading: _Led(status: ref.read(sessionStatusProvider)[d.id]),
+                    leading: _Led(
+                      status: ref.read(sessionStatusProvider)[d.id],
+                    ),
                     title: Text(
                       d.displayName(l10n),
                       maxLines: 1,
@@ -789,12 +794,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
             final sessionsMap = ref.watch(
               sessionIndexProvider,
             )[widget.device.id];
-            final sorted =
-                (sessionsMap?.values.toList() ?? <SessionState>[])
-                  ..sort(SessionRanking.compareSessions);
-            final activeId = ref.watch(
-              activeSessionProvider,
-            )[widget.device.id];
+            final sorted = (sessionsMap?.values.toList() ?? <SessionState>[])
+              ..sort(SessionRanking.compareSessions);
+            final activeId = ref.watch(activeSessionProvider)[widget.device.id];
             return SessionPanelSheet(
               sessions: sorted,
               activeSessionId: activeId,
@@ -839,15 +841,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
     final workspace = ref
         .read(sessionIndexProvider)[widget.device.id]?[sessionId]
         ?.workspacePath;
-    final ok = await TaskActionsClient(bridge).stopGeneration(
-      taskId: sessionId,
-      workspacePath: workspace,
-    );
+    final ok = await TaskActionsClient(
+      bridge,
+    ).stopGeneration(taskId: sessionId, workspacePath: workspace);
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.approvalStopFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.approvalStopFailed)));
     }
   }
 
@@ -910,7 +911,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ClaimPage(device: widget.device, bridge: bridge),
+        builder: (_) => ClaimPage(
+          device: widget.device,
+          bridge: bridge,
+          onDiagnosticsPressed: _openDiagnostics,
+        ),
       ),
     );
   }
@@ -940,7 +945,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ModelSettingsPage(device: widget.device, bridge: bridge),
+        builder: (_) =>
+            ModelSettingsPage(device: widget.device, bridge: bridge),
       ),
     );
   }
@@ -954,7 +960,15 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => DiagnosticsPage(device: widget.device, bridge: bridge),
+        builder: (_) => DiagnosticsPage(
+          device: widget.device,
+          bridge: bridge,
+          // 端点探测 billing/balance 用设备在用账号的 zai JWT。
+          tokenProvider: () async => ticketsOfActiveAccount(
+            ref.read(accountsProvider),
+            widget.device,
+          ).quotaTokens,
+        ),
       ),
     );
   }
@@ -969,7 +983,15 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => QuotaPage(device: widget.device, bridge: bridge),
+        builder: (_) => QuotaPage(
+          device: widget.device,
+          bridge: bridge,
+          // 设备在用账号的直连票据（额度通路 B）。
+          tokenProvider: () async => ticketsOfActiveAccount(
+            ref.read(accountsProvider),
+            widget.device,
+          ).quotaTokens,
+        ),
       ),
     );
   }
@@ -978,7 +1000,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => RewardsPage(device: widget.device),
+        builder: (_) => RewardsPage(
+          device: widget.device,
+          // 福利页 localStorage 五键（含登录门控 zcodejwttoken）。
+          credentialsProvider: () async => ticketsOfActiveAccount(
+            ref.read(accountsProvider),
+            widget.device,
+          ).rewardsCredentials,
+        ),
       ),
     );
   }
@@ -1009,12 +1038,56 @@ class _SessionViewState extends ConsumerState<SessionView> {
     }
     if (!await _ensureServiceReady()) return;
     if (!mounted) return;
+    // 实测：sessionIndex 的 workspacePath 全 null，宿主 localStorage 才有真实值。
+    final hostWorkspace = await _ensureHostWorkspacePath();
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AssetsPage(device: widget.device, bridge: bridge),
+        builder: (_) => AssetsPage(
+          device: widget.device,
+          bridge: bridge,
+          hostWorkspacePath: hostWorkspace ?? _activeWorkspacePath(),
+        ),
       ),
     );
   }
+
+  /// 宿主当前工作区回退源。
+  ///
+  /// 实测（2026-11-15 P0-2）：`sessionIndexProvider` 里会话的 `workspacePath`
+  /// 全为 null，真实值在宿主 localStorage `zcode-workspace-expansion`，
+  /// 形状为 `Record<workspacePath, boolean>`（取首个 key），旧版本可能直接存路径串。
+  Future<String?> _readHostWorkspacePath() async {
+    final raw = await _evaluateOnPage(
+      "localStorage.getItem('zcode-workspace-expansion')",
+    );
+    if (raw == null || raw.isEmpty || raw == 'null') return null;
+    var value = raw.trim();
+    if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.substring(1, value.length - 1);
+    }
+    String? path;
+    if (value.startsWith('{')) {
+      try {
+        final map = jsonDecode(value);
+        if (map is Map && map.isNotEmpty) {
+          final first = map.keys.first;
+          if (first is String && first.isNotEmpty) path = first;
+        }
+      } catch (_) {}
+    } else if (value.isNotEmpty) {
+      path = value;
+    }
+    if (path != null && _hostWorkspacePath != path) {
+      _hostWorkspacePath = path;
+      if (mounted) setState(() {});
+    }
+    return path;
+  }
+
+  /// 宿主工作区（带缓存）：资产页 / Git 卡的回退源。
+  Future<String?> _ensureHostWorkspacePath() async =>
+      _hostWorkspacePath ?? await _readHostWorkspacePath();
 
   /// 当前（活动会话优先）工作区路径：Git 卡 / 资产页共用。
   String? _activeWorkspacePath() {
@@ -1025,60 +1098,28 @@ class _SessionViewState extends ConsumerState<SessionView> {
         sessions.values.map((s) => s.workspacePath).nonNulls.firstOrNull;
   }
 
+  /// 领券入口能力探针：只回答「宿主有没有领券服务能力」。
+  ///
+  /// 业务态（无券可领 / 空 plans / manual_claim_preview_missing_data）
+  /// **不得**写成不可用——那是「有可领」徽标的事（claimEntryProvider），
+  /// 混用会让卡片被一次空结果永久锁死（修复前缺陷）。
   Future<void> _probeClaimEntry() async {
     final bridge = _rpcBridge;
     if (bridge == null) {
       debugPrint('claimEntry: probe skip（bridge 未就绪）');
       return;
     }
-    // P1-4：先用定点服务检查判定领券入口可用性，避免 15×2s 轮询
-    // getManualClaimPlanPreviews；服务存在即可点，无券时由领券页展示空态。
-    debugPrint('claimEntry: probe start (toolbox check)');
-    for (var attempt = 1; attempt <= 5; attempt++) {
-      final result = await ServiceProbe.checkToolbox(bridge);
-      if (!mounted) return;
-      if (result != null) {
-        final visible =
-            result['codingPlanSubscriptionService'] == true;
-        debugPrint(
-          'claimEntry: toolbox check visible=$visible '
-          'result=$result (#$attempt)',
-        );
-        _claimEntryNotifier?.report(widget.device.id, visible);
-        return;
-      }
-      await Future<void>.delayed(const Duration(seconds: 2));
-    }
-    // 定点检查不可用（probe dump 本身失败）→ 退回旧探针，缩短轮询。
-    debugPrint('claimEntry: fallback to previews probe');
-    bool visible = false;
-    for (var attempt = 1; attempt <= 5; attempt++) {
-      try {
-        final r = await bridge.call(
-          'coding-plan-subscription',
-          'getManualClaimPlanPreviews',
-          timeout: const Duration(seconds: 5),
-        );
-        final plans = r.firstObjectDeep?['plans'];
-        visible = plans is List && plans.isNotEmpty;
-        debugPrint(
-          'claimEntry: probe done visible=$visible '
-          'plans=${plans is List ? plans.length : plans}',
-        );
-        break;
-      } catch (e) {
-        debugPrint('claimEntry: probe error (#$attempt) $e');
-        final s = e.toString();
-        final retryable =
-            s.contains('no-services') ||
-            e is RpcTimeoutException;
-        if (!retryable || attempt == 5) break;
-        await Future<void>.delayed(const Duration(seconds: 2));
-        if (!mounted) return;
-      }
-    }
+    final result = await ServiceProbe.checkClaimService(bridge);
     if (!mounted) return;
-    _claimEntryNotifier?.report(widget.device.id, visible);
+    debugPrint(
+      'claimEntry: service available=${result.available} '
+      'reason=${result.reason}',
+    );
+    _claimServiceNotifier?.mark(
+      widget.device.id,
+      result.available,
+      reason: result.reason,
+    );
   }
 
   @override
@@ -1093,6 +1134,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _activeSessionNotifier?.forget(widget.device.id);
     _automationNotifier?.forget(widget.device.id);
     _claimEntryNotifier?.forget(widget.device.id);
+    _claimServiceNotifier?.forget(widget.device.id);
     _readinessNotifier?.forget(widget.device.id);
     _rpcBridge?.dispose();
     _dispatchServer?.dispose();
@@ -1141,7 +1183,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
               decoration: BoxDecoration(
                 color: context.zt.warn.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: context.zt.warn.withValues(alpha: 0.30)),
+                border: Border.all(
+                  color: context.zt.warn.withValues(alpha: 0.30),
+                ),
               ),
               child: Text(
                 l10n.loginRelogin,
@@ -1212,6 +1256,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _probeClaimEntry();
       });
+    } else if (status != SessionStatus.live) {
+      // 离 live 后允许再次探测（否则卡片状态会停在最后一次读数上）。
+      _claimEntryProbed = false;
     }
     final webDark = Theme.of(context).brightness == Brightness.dark;
     if (_appliedWebDark != webDark) {
@@ -1245,344 +1292,353 @@ class _SessionViewState extends ConsumerState<SessionView> {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.tune),
-          tooltip: l10n.manageTitle,
-          onPressed: _goHome,
-        ),
-        title: Tooltip(
-          message: l10n.sessionTitleTooltip(widget.device.displayName(l10n)),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: _showSwitcher,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _Led(status: status),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      widget.device.displayName(l10n),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                        color: context.zt.textHi,
+          leading: IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: l10n.manageTitle,
+            onPressed: _goHome,
+          ),
+          title: Tooltip(
+            message: l10n.sessionTitleTooltip(widget.device.displayName(l10n)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: _showSwitcher,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Led(status: status),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        widget.device.displayName(l10n),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          color: context.zt.textHi,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.expand_more,
-                    size: 20,
-                    color: context.zt.textLo,
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Icon(Icons.expand_more, size: 20, color: context.zt.textLo),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
-          child: _loading
-              ? const LinearProgressIndicator(
-                  minHeight: 2,
-                  backgroundColor: Colors.transparent,
-                )
-              : const SizedBox(height: 2, width: double.infinity),
-        ),
-        actions: [
-          if (widget.device.kind == DeviceKind.v2)
-            IconButton(
-              key: const Key('session-account-entry'),
-              icon: const Icon(Icons.account_circle_outlined),
-              tooltip: l10n.loginAccountMenu,
-              onPressed: _showAccountSheet,
-            ),
-          _ToolboxEntryButton(
-            device: widget.device,
-            onAutomationPressed: _openAutomation,
-            onClaimPressed: _openClaim,
-            onUsagePressed: _openUsage,
-            onModelSettingsPressed: _openModelSettings,
-            onDiagnosticsPressed: _openDiagnostics,
-            onQuotaPressed: _openQuota,
-            onRewardsPressed: _openRewards,
-            onDesktopSettingsPressed: _openDesktopSettings,
-            onAssetsPressed: _openAssets,
-            gitClient: _rpcBridge == null ? null : GitOverviewClient(_rpcBridge!),
-            workspacePath: _activeWorkspacePath(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.article_outlined),
-            tooltip: l10n.sessionsPanelTooltip,
-            onPressed: _showSessionPanel,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: l10n.refreshTooltip,
-            onPressed: _manualReload,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          AnimatedSize(
-            duration: ZrMotion.duration(240),
-            curve: ZrMotion.curve,
-            child: _errorShown
-                ? Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: context.zt.danger.withValues(alpha: 0.10),
-                      border: Border(
-                        left: BorderSide(color: context.zt.danger, width: 3),
-                      ),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 20,
-                          color: context.zt.danger,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.statusError,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: context.zt.danger,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                l10n.errorBannerDetail,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: context.zt.textLo,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _ErrorRetryButton(onPressed: _manualReload),
-                      ],
-                    ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(2),
+            child: _loading
+                ? const LinearProgressIndicator(
+                    minHeight: 2,
+                    backgroundColor: Colors.transparent,
                   )
-                : const SizedBox.shrink(),
+                : const SizedBox(height: 2, width: double.infinity),
           ),
-          AnimatedSize(
-            duration: ZrMotion.duration(240),
-            curve: ZrMotion.curve,
-            child: shouldShowIsolationFallback(
-              kind: widget.device.kind,
-              multiProfileSupported:
-                  ref.watch(multiProfileSupportedProvider).value ?? true,
-            )
-                ? Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: context.zt.warn.withValues(alpha: 0.10),
-                      border: Border(
-                        left: BorderSide(color: context.zt.warn, width: 3),
-                      ),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 20,
-                          color: context.zt.warn,
+          actions: [
+            if (widget.device.kind == DeviceKind.v2)
+              IconButton(
+                key: const Key('session-account-entry'),
+                icon: const Icon(Icons.account_circle_outlined),
+                tooltip: l10n.loginAccountMenu,
+                onPressed: _showAccountSheet,
+              ),
+            _ToolboxEntryButton(
+              device: widget.device,
+              onAutomationPressed: _openAutomation,
+              onClaimPressed: _openClaim,
+              onUsagePressed: _openUsage,
+              onModelSettingsPressed: _openModelSettings,
+              onDiagnosticsPressed: _openDiagnostics,
+              onQuotaPressed: _openQuota,
+              onRewardsPressed: _openRewards,
+              onDesktopSettingsPressed: _openDesktopSettings,
+              onAssetsPressed: _openAssets,
+              gitClient: _rpcBridge == null
+                  ? null
+                  : GitOverviewClient(_rpcBridge!),
+              workspacePath: _activeWorkspacePath() ?? _hostWorkspacePath,
+              onOpened: () {
+                // 开面板即复查领券能力（灰卡自愈）并预热宿主工作区缓存。
+                unawaited(_probeClaimEntry());
+                unawaited(_ensureHostWorkspacePath());
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.article_outlined),
+              tooltip: l10n.sessionsPanelTooltip,
+              onPressed: _showSessionPanel,
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: l10n.refreshTooltip,
+              onPressed: _manualReload,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            AnimatedSize(
+              duration: ZrMotion.duration(240),
+              curve: ZrMotion.curve,
+              child: _errorShown
+                  ? Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: context.zt.danger.withValues(alpha: 0.10),
+                        border: Border(
+                          left: BorderSide(color: context.zt.danger, width: 3),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            l10n.webviewIsolationUnsupportedHint,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.zt.textLo,
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 20,
+                            color: context.zt.danger,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.statusError,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: context.zt.danger,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  l10n.errorBannerDetail,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: context.zt.textLo,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 10),
+                          _ErrorRetryButton(onPressed: _manualReload),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            AnimatedSize(
+              duration: ZrMotion.duration(240),
+              curve: ZrMotion.curve,
+              child:
+                  shouldShowIsolationFallback(
+                    kind: widget.device.kind,
+                    multiProfileSupported:
+                        ref.watch(multiProfileSupportedProvider).value ?? true,
                   )
-                : const SizedBox.shrink(),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
-            child: _buildJwtExpiringBanner(context),
-          ),
-          Expanded(
-            child: ColoredBox(
-              color: context.zt.bg,
-              child: _dispatchPort == null
-                  ? const SizedBox.expand()
-                  : InAppWebView(
-                      initialUrlRequest: _freshRequest(),
-                      initialUserScripts: _userScripts(webDark),
-                      initialSettings: InAppWebViewSettings(
-                        javaScriptEnabled: true,
-                        domStorageEnabled: true,
-                        supportZoom: false,
-                        transparentBackground: true,
-                        useHybridComposition: false,
-                        supportMultipleWindows: true,
-                        javaScriptCanOpenWindowsAutomatically: true,
-                        androidWebProfile: webProfileNameFor(widget.device),
-                        // P3-7：桌面 UA 覆写实验开关（构造时应用，重开会话生效）。
-                        userAgent: desktopUaFor(
-                          ref.watch(uaDesktopProvider),
+                  ? Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: context.zt.warn.withValues(alpha: 0.10),
+                        border: Border(
+                          left: BorderSide(color: context.zt.warn, width: 3),
                         ),
                       ),
-                      onCreateWindow: (controller, action) async =>
-                          _openAuthPopup(action),
-                      onRenderProcessGone: (_, detail) {
-                        debugPrint('[zr-resume] rendererGone detail=$detail');
-                        _rendererGone = true;
-                        if (!mounted) return;
-                        if (ref.read(appLifecycleProvider) ==
-                            AppLifecycleState.resumed) {
-                          _rendererGone = false;
-                          _manualReload();
-                        }
-                      },
-                      onWebViewCreated: (controller) {
-                        _controller = controller;
-                        if (kDebugMode) {
-                          InAppWebViewController.setWebContentsDebuggingEnabled(
-                            true,
-                          );
-                          debugPrint(
-                            '[zr-diag] webview created dev=${widget.device.id}',
-                          );
-                        }
-                        _rpcBridge = RpcBridge(
-                          deviceId: widget.device.id,
-                          dispatch: _dispatchServer!,
-                          onServiceState: widget.device.kind == DeviceKind.v2
-                              ? (ready) => _reportServiceReadiness(
-                                  ready
-                                      ? ServiceReadiness.ready
-                                      : ServiceReadiness.unavailable,
-                                )
-                              : null,
-                        );
-                        // P2-1：自动领取装配（通路 A 宿主 RPC）。
-                        unawaited(
-                          ref
-                              .read(claimSchedulerHubProvider.notifier)
-                              .attach(widget.device, _rpcBridge!),
-                        );
-                        // P1-4：审批动作客户端注册（通知动作按钮回执）。
-                        ref
-                            .read(approvalCenterProvider.notifier)
-                            .attach(widget.device.id, _rpcBridge!);
-                        controller.addJavaScriptHandler(
-                          handlerName: 'zrEvents',
-                          callback: (args) {
-                            final body = args.isNotEmpty ? args.first : null;
-                            if (body is String) _onBridgeMessage(body);
-                            return null;
-                          },
-                        );
-                        controller.addJavaScriptHandler(
-                          handlerName: 'zrViewState',
-                          callback: (args) {
-                            final body = args.isNotEmpty ? args.first : null;
-                            if (body is String) _onViewStateSync(body);
-                            return null;
-                          },
-                        );
-                        controller.addJavaScriptHandler(
-                          handlerName: 'zrWs',
-                          callback: (args) {
-                            final body = args.isNotEmpty ? args.first : null;
-                            if (body is String) _onWsEvent(body);
-                            return null;
-                          },
-                        );
-                        controller.addJavaScriptHandler(
-                          handlerName: 'zrSvcResult',
-                          callback: (args) {
-                            final body = args.isNotEmpty ? args.first : null;
-                            if (body is String) _rpcBridge?.onSvcResult(body);
-                            return null;
-                          },
-                        );
-                      },
-                      onLoadStart: (_, _) {
-                        if (mounted) {
-                          setState(() {
-                            _loading = true;
-                            _errorShown = false;
-                          });
-                          _report(SessionStatus.loading);
-                        _automationNotifier?.reportSubscribed(
-                          widget.device.id,
-                          false,
-                        );
-                        _rpcBridge?.resetOffPeakProbe();
-                        _rpcBridge?.resetServiceResolution();
-                        _probeArmed = true;
-                        _readinessEpoch++;
-                        _readinessNotifier?.reset(widget.device.id);
-                        _claimEntryProbed = false;
-                        _claimEntryNotifier?.reset(widget.device.id);
-                        }
-                      },
-                      onLoadStop: (_, _) {
-                        if (mounted) {
-                          setState(() => _loading = false);
-                          _syncWebTheme(
-                            Theme.of(context).brightness == Brightness.dark,
-                          );
-                          if (widget.device.kind == DeviceKind.v2) {
-                            unawaited(_probeServiceReady());
-                          }
-                        }
-                      },
-                      onReceivedError: (controller, request, error) async {
-                        if (!mounted) return;
-                        if (!PageLoadPolicy.isMainDocFailure(
-                          request.isForMainFrame,
-                        )) {
-                          return;
-                        }
-                        setState(() => _loading = false);
-                        await _onLoadError();
-                      },
-                      onReceivedHttpError:
-                          (controller, request, errorResponse) async {
-                            if (!mounted) return;
-                            if (!PageLoadPolicy.isHttpFailure(
-                              request.isForMainFrame,
-                              errorResponse.statusCode,
-                            )) {
-                              return;
-                            }
-                            setState(() => _loading = false);
-                            await _onLoadError();
-                          },
-                    ),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 20,
+                            color: context.zt.warn,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.webviewIsolationUnsupportedHint,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.zt.textLo,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
-          ),
-        ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              child: _buildJwtExpiringBanner(context),
+            ),
+            Expanded(
+              child: ColoredBox(
+                color: context.zt.bg,
+                child: _dispatchPort == null
+                    ? const SizedBox.expand()
+                    : InAppWebView(
+                        initialUrlRequest: _freshRequest(),
+                        initialUserScripts: _userScripts(webDark),
+                        initialSettings: InAppWebViewSettings(
+                          javaScriptEnabled: true,
+                          domStorageEnabled: true,
+                          supportZoom: false,
+                          transparentBackground: true,
+                          useHybridComposition: false,
+                          supportMultipleWindows: true,
+                          javaScriptCanOpenWindowsAutomatically: true,
+                          androidWebProfile: webProfileNameFor(widget.device),
+                          // P3-7：桌面 UA 覆写实验开关（构造时应用，重开会话生效）。
+                          userAgent: desktopUaFor(ref.watch(uaDesktopProvider)),
+                        ),
+                        onCreateWindow: (controller, action) async =>
+                            _openAuthPopup(action),
+                        onRenderProcessGone: (_, detail) {
+                          debugPrint('[zr-resume] rendererGone detail=$detail');
+                          _rendererGone = true;
+                          if (!mounted) return;
+                          if (ref.read(appLifecycleProvider) ==
+                              AppLifecycleState.resumed) {
+                            _rendererGone = false;
+                            _manualReload();
+                          }
+                        },
+                        onWebViewCreated: (controller) {
+                          _controller = controller;
+                          if (kDebugMode) {
+                            InAppWebViewController.setWebContentsDebuggingEnabled(
+                              true,
+                            );
+                            debugPrint(
+                              '[zr-diag] webview created dev=${widget.device.id}',
+                            );
+                          }
+                          _rpcBridge = RpcBridge(
+                            deviceId: widget.device.id,
+                            dispatch: _dispatchServer!,
+                            onServiceState: widget.device.kind == DeviceKind.v2
+                                ? (ready) => _reportServiceReadiness(
+                                    ready
+                                        ? ServiceReadiness.ready
+                                        : ServiceReadiness.unavailable,
+                                  )
+                                : null,
+                          );
+                          // P2-1：自动领取装配（通路 A 宿主 RPC）。
+                          unawaited(
+                            ref
+                                .read(claimSchedulerHubProvider.notifier)
+                                .attach(widget.device, _rpcBridge!),
+                          );
+                          // P1-4：审批动作客户端注册（通知动作按钮回执）。
+                          ref
+                              .read(approvalCenterProvider.notifier)
+                              .attach(widget.device.id, _rpcBridge!);
+                          controller.addJavaScriptHandler(
+                            handlerName: 'zrEvents',
+                            callback: (args) {
+                              final body = args.isNotEmpty ? args.first : null;
+                              if (body is String) _onBridgeMessage(body);
+                              return null;
+                            },
+                          );
+                          controller.addJavaScriptHandler(
+                            handlerName: 'zrViewState',
+                            callback: (args) {
+                              final body = args.isNotEmpty ? args.first : null;
+                              if (body is String) _onViewStateSync(body);
+                              return null;
+                            },
+                          );
+                          controller.addJavaScriptHandler(
+                            handlerName: 'zrWs',
+                            callback: (args) {
+                              final body = args.isNotEmpty ? args.first : null;
+                              if (body is String) _onWsEvent(body);
+                              return null;
+                            },
+                          );
+                          controller.addJavaScriptHandler(
+                            handlerName: 'zrSvcResult',
+                            callback: (args) {
+                              final body = args.isNotEmpty ? args.first : null;
+                              if (body is String) _rpcBridge?.onSvcResult(body);
+                              return null;
+                            },
+                          );
+                        },
+                        onLoadStart: (_, _) {
+                          if (mounted) {
+                            setState(() {
+                              _loading = true;
+                              _errorShown = false;
+                            });
+                            _report(SessionStatus.loading);
+                            _automationNotifier?.reportSubscribed(
+                              widget.device.id,
+                              false,
+                            );
+                            _rpcBridge?.resetOffPeakProbe();
+                            _rpcBridge?.resetServiceResolution();
+                            _probeArmed = true;
+                            _readinessEpoch++;
+                            _readinessNotifier?.reset(widget.device.id);
+                            _claimEntryProbed = false;
+                            _claimEntryNotifier?.reset(widget.device.id);
+                            _claimServiceNotifier?.reset(widget.device.id);
+                          }
+                        },
+                        onLoadStop: (_, _) {
+                          if (mounted) {
+                            setState(() => _loading = false);
+                            _syncWebTheme(
+                              Theme.of(context).brightness == Brightness.dark,
+                            );
+                            if (widget.device.kind == DeviceKind.v2) {
+                              unawaited(_probeServiceReady());
+                            }
+                            // 错误恢复后复查领券服务能力（灰卡自愈）。
+                            unawaited(_probeClaimEntry());
+                            unawaited(_ensureHostWorkspacePath());
+                          }
+                        },
+                        onReceivedError: (controller, request, error) async {
+                          if (!mounted) return;
+                          if (!PageLoadPolicy.isMainDocFailure(
+                            request.isForMainFrame,
+                          )) {
+                            return;
+                          }
+                          setState(() => _loading = false);
+                          await _onLoadError();
+                        },
+                        onReceivedHttpError:
+                            (controller, request, errorResponse) async {
+                              if (!mounted) return;
+                              if (!PageLoadPolicy.isHttpFailure(
+                                request.isForMainFrame,
+                                errorResponse.statusCode,
+                              )) {
+                                return;
+                              }
+                              setState(() => _loading = false);
+                              await _onLoadError();
+                            },
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -1597,6 +1653,7 @@ class _Led extends StatelessWidget {
     return StatusLed(status: status, size: 8, showGlow: true);
   }
 }
+
 class _ToolboxEntryButton extends ConsumerWidget {
   const _ToolboxEntryButton({
     required this.device,
@@ -1611,9 +1668,14 @@ class _ToolboxEntryButton extends ConsumerWidget {
     this.onAssetsPressed,
     this.gitClient,
     this.workspacePath,
+    this.onOpened,
   });
 
   final RemoteDevice device;
+
+  /// 打开工具箱前的钩子（复查领券能力 / 预热宿主工作区缓存）。
+  final VoidCallback? onOpened;
+
   final VoidCallback onAutomationPressed;
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
@@ -1648,21 +1710,24 @@ class _ToolboxEntryButton extends ConsumerWidget {
         child: const Icon(Icons.grid_view_rounded, size: 20),
       ),
       tooltip: AppLocalizations.of(context)!.toolboxTitle,
-      onPressed: () => showToolboxSheet(
-        context: context,
-        device: device,
-        onAutomationPressed: onAutomationPressed,
-        onClaimPressed: onClaimPressed,
-        onUsagePressed: onUsagePressed,
-        onModelSettingsPressed: onModelSettingsPressed,
-        onDiagnosticsPressed: onDiagnosticsPressed,
-        onQuotaPressed: onQuotaPressed,
-        onRewardsPressed: onRewardsPressed,
-        onDesktopSettingsPressed: onDesktopSettingsPressed,
-        onAssetsPressed: onAssetsPressed,
-        gitClient: gitClient,
-        workspacePath: workspacePath,
-      ),
+      onPressed: () {
+        onOpened?.call();
+        showToolboxSheet(
+          context: context,
+          device: device,
+          onAutomationPressed: onAutomationPressed,
+          onClaimPressed: onClaimPressed,
+          onUsagePressed: onUsagePressed,
+          onModelSettingsPressed: onModelSettingsPressed,
+          onDiagnosticsPressed: onDiagnosticsPressed,
+          onQuotaPressed: onQuotaPressed,
+          onRewardsPressed: onRewardsPressed,
+          onDesktopSettingsPressed: onDesktopSettingsPressed,
+          onAssetsPressed: onAssetsPressed,
+          gitClient: gitClient,
+          workspacePath: workspacePath,
+        );
+      },
     );
   }
 }

@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/event_observer.dart';
+import 'package:zremote/services/service_probe.dart';
+import 'package:zremote/state/claim_entry.dart';
+import 'package:zremote/state/claim_history.dart';
 import 'package:zremote/state/event_feed.dart';
 import 'package:zremote/state/service_readiness.dart';
 import 'package:zremote/ui/toolbox_sheet.dart';
@@ -92,7 +95,86 @@ void main() {
     expect(inkFor('模型设置').onTap, isNotNull);
     expect(inkFor('用量统计').onTap, isNotNull);
     expect(inkFor('自动化调度').onTap, isNotNull);
-    expect(inkFor('权益中心').onTap, isNull);
+    // 能力态未探测（unknown）不按不可用处理：入口仍可点，由页面给结论。
+    expect(inkFor('权益中心').onTap, isNotNull);
+  });
+
+  group('权益中心：enabled 只看「服务可用」，徽标只看「有可领/今日已领」', () {
+    InkWell claimInk(WidgetTester tester) => tester.widget<InkWell>(
+      find.ancestor(
+        of: find.text('权益中心'),
+        matching: find.byType(InkWell),
+      ).first,
+    );
+
+    testWidgets('服务可用 + 有可领 → 可点 + 「有可领」徽标', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(claimServiceProvider.notifier).mark('d1', true);
+      container.read(claimEntryProvider.notifier).report('d1', true);
+      await pumpSheet(tester, container);
+
+      expect(claimInk(tester).onTap, isNotNull);
+      expect(find.text('有可领'), findsOneWidget);
+    });
+
+    testWidgets('回归锁：report(false)（无券）不锁死入口，徽标转「今日已领」',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(claimServiceProvider.notifier).mark('d1', true);
+      container.read(claimEntryProvider.notifier).report('d1', false);
+      container
+          .read(claimHistoryProvider.notifier)
+          .record('d1', planId: 'a', success: true);
+      await pumpSheet(tester, container);
+
+      // 本次修复的根因：旧实现 enabled=claimReady，空 plans 一回写就永灰。
+      expect(claimInk(tester).onTap, isNotNull);
+      expect(find.text('今日已领 1'), findsOneWidget);
+      expect(find.text('有可领'), findsNothing);
+    });
+
+    testWidgets('服务不可用（no-method）→ 置灰 + 副标题给原因', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container
+          .read(claimServiceProvider.notifier)
+          .mark('d1', false, reason: ClaimServiceProbe.reasonNoMethod);
+      container.read(claimEntryProvider.notifier).report('d1', true);
+      await pumpSheet(tester, container);
+
+      expect(claimInk(tester).onTap, isNull);
+      expect(find.text('远端未提供领券服务，请升级远端后重试'), findsOneWidget);
+      // 徽标仍在（业务态独立），只是不可点。
+      expect(find.text('有可领'), findsOneWidget);
+    });
+
+    testWidgets('服务不可用（probe-failed）→ 置灰 + 通用原因文案', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container
+          .read(claimServiceProvider.notifier)
+          .mark('d1', false, reason: ClaimServiceProbe.reasonProbeFailed);
+      await pumpSheet(tester, container);
+
+      expect(claimInk(tester).onTap, isNull);
+      expect(find.text('领券服务状态未能确认，可稍候重试'), findsOneWidget);
+    });
+
+    testWidgets('服务恢复可用 → 卡片重新可点（不被一次结论锁死）', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final service = container.read(claimServiceProvider.notifier);
+      service.mark('d1', false, reason: ClaimServiceProbe.reasonNoServices);
+      await pumpSheet(tester, container);
+      expect(claimInk(tester).onTap, isNull);
+
+      service.mark('d1', true);
+      await tester.pumpAndSettle();
+      expect(claimInk(tester).onTap, isNotNull);
+      expect(find.text('活动礼包与算力领取'), findsOneWidget);
+    });
   });
 
   testWidgets('P1-2/P1-3：额度中心与福利中心入口卡（回调缺省置灰）', (tester) async {

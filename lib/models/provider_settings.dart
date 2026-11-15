@@ -1,3 +1,141 @@
+/// 宿主额度回执语义（quota 中心与模型设置页共用）。
+///
+/// 宿主未登录/未配置时 `usageStats.getEntitlementSnapshot` **成功返回**
+/// `authenticated:true + unavailableReason:"not_configured" + quota:null`
+/// （bigmodelUsageQuotaProvider.ts:287-319，开源版与官方一致）——既不是
+/// `no_plan`（账号无生效套餐）也不是错误，页面须展示「登录后查看」引导。
+enum EntitlementSemantic {
+  /// 有 limits 数据，正常渲染。
+  ok,
+
+  /// `unavailableReason == "no_plan"`：账号无生效套餐。
+  noPlan,
+
+  /// 未配置 / 未登录：not_configured、not_authenticated，或 quota 缺失
+  /// （null）且原因非 no_plan。
+  notConfigured,
+
+  /// 回执完全不可解析（空对象且无关键键）。
+  unparseable,
+}
+
+/// 从 provider 视图挑首选 entitle 账号 provider（额度页与模型设置页共用）。
+///
+/// 排序与模型设置页连接行同序：先按「当前连接 family 的当前 kind」命中，
+/// 否则回落首个 entitle provider。无可用 provider → null（调用方降级）。
+ZrProvider? pickEntitlementProvider(
+  ProviderSettingsView? view,
+  ZrConnectionSettings? settings,
+) {
+  if (view == null) return null;
+  final entitled = view.entitledAccountProviders;
+  if (entitled.isEmpty) return null;
+  final byFamily = <String, List<ZrProvider>>{};
+  for (final p in view.providers) {
+    final access = p.effectiveConfig?.access;
+    if (access == null || !access.isAccount) continue;
+    final family = access.accountType;
+    final mode = access.mode;
+    if (family == null ||
+        family.isEmpty ||
+        mode == null ||
+        mode.isEmpty ||
+        access.entitled != true) {
+      continue;
+    }
+    byFamily.putIfAbsent(family, () => []).add(p);
+  }
+  for (final entry in byFamily.entries) {
+    final current = settings?.selections[entry.key]?.kind;
+    if (current == null) continue;
+    for (final p in entry.value) {
+      if (p.effectiveConfig?.access?.mode == current) return p;
+    }
+  }
+  return entitled.first;
+}
+
+/// `getEntitlementSnapshot` 参数构造（额度页与模型设置页共用）。
+///
+/// 宿主对仅带 `includeSubscription` 的请求在账号无 entitle provider 时返回
+/// `not_configured`（P0-5 实测）；带 `preferredProviderId + accountAccess`
+/// 且该 provider 有 entitle 时立即返回完整 `quota.limits`。
+///
+/// `accountAccess` 官方 schema 为 strict：`type` / `accountType` / `mode`
+/// 三字段必须齐全（P0 实测缺 `entitled` 仍返回完整快照，故 `entitled` 存在
+/// 才带）。任一所需字段缺失 → **不发** `accountAccess`，降级为按
+/// `preferredProviderId` 查询，并随之省略 `requirePreferredProvider`
+/// （否则降级请求会被该约束判失败）。
+Map<String, dynamic> entitlementParamsFor(ZrProvider provider) {
+  final access = provider.effectiveConfig?.access;
+  final accountAccess = _strictAccountAccess(access);
+  final params = <String, dynamic>{
+    'includeSubscription': true,
+    'preferredProviderId': provider.providerId,
+    'allowDisabledPreferredProvider': true,
+    'allowEnvApiKey': false,
+  };
+  if (accountAccess != null) {
+    params['accountAccess'] = accountAccess;
+    params['requirePreferredProvider'] = true;
+  }
+  return params;
+}
+
+/// 三字段齐全才构造 accountAccess（`entitled` 可选，存在才带）。
+Map<String, dynamic>? _strictAccountAccess(ZrProviderAccess? access) {
+  if (access == null) return null;
+  final accountType = access.accountType;
+  final mode = access.mode;
+  if (access.type.isEmpty ||
+      accountType == null ||
+      accountType.isEmpty ||
+      mode == null ||
+      mode.isEmpty) {
+    return null;
+  }
+  return <String, dynamic>{
+    'type': access.type,
+    'accountType': accountType,
+    'mode': mode,
+    if (access.entitled != null) 'entitled': access.entitled,
+  };
+}
+
+/// 宿主错误文本是否表达「未配置 / 未登录」（RPC 异常文本形态，
+/// 与回执里的 unavailableReason 同义）。
+bool isNotConfiguredErrorText(String message) =>
+    message.contains('not_configured') ||
+    message.contains('not_authenticated') ||
+    message.contains('未配置') ||
+    message.contains('未登录');
+
+/// 额度回执分类（quota_client 与 model_settings_page 共用同一判据）。
+///
+/// - 有 limits → [EntitlementSemantic.ok]
+/// - `no_plan` → [EntitlementSemantic.noPlan]
+/// - 其余有数据但无 limits（未配置 / 未登录 / quota 为 null）→
+///   [EntitlementSemantic.notConfigured]
+/// - 解析不出对象：但原始报文里出现 `authenticated` / `unavailableReason` /
+///   `quota` 任一键，说明宿主已作答（未配置），否则才算 [unparseable]。
+EntitlementSemantic classifyEntitlement(
+  UsageEntitlement? ent, {
+  Map<String, dynamic>? raw,
+}) {
+  if (ent != null) {
+    if (ent.limits.isNotEmpty) return EntitlementSemantic.ok;
+    if (ent.noPlan) return EntitlementSemantic.noPlan;
+    return EntitlementSemantic.notConfigured;
+  }
+  final r = raw;
+  if (r != null &&
+      (r.containsKey('authenticated') ||
+          r.containsKey('unavailableReason') ||
+          r.containsKey('quota'))) {
+    return EntitlementSemantic.notConfigured;
+  }
+  return EntitlementSemantic.unparseable;
+}
 
 class ZrProviderAccess {
   const ZrProviderAccess({

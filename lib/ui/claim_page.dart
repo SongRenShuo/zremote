@@ -9,6 +9,7 @@ import '../models/device.dart';
 import '../models/device_label.dart';
 import '../services/claim_scheduler.dart';
 import '../services/rpc_bridge.dart';
+import '../services/service_probe.dart';
 import '../state/claim_config.dart';
 import '../state/claim_entry.dart';
 import '../state/claim_history.dart';
@@ -23,10 +24,19 @@ import 'status_led.dart';
 import 'tactile_button.dart';
 
 class ClaimPage extends ConsumerStatefulWidget {
-  const ClaimPage({super.key, required this.device, required this.bridge});
+  const ClaimPage({
+    super.key,
+    required this.device,
+    required this.bridge,
+    this.onDiagnosticsPressed,
+  });
 
   final RemoteDevice device;
   final RpcBridge bridge;
+
+  /// 服务不可用时的「连接诊断」出口（可诊断，不让用户灰着不知道为什么）。
+  /// 缺省不显示该按钮，页面退化为纯文案指引。
+  final VoidCallback? onDiagnosticsPressed;
 
   @override
   ConsumerState<ClaimPage> createState() => _ClaimPageState();
@@ -34,12 +44,13 @@ class ClaimPage extends ConsumerStatefulWidget {
 
 enum _ClaimPhase { loading, ready, error }
 
-enum _ClaimErrorKind { notReady, remote }
+enum _ClaimErrorKind { notReady, remote, service }
 
 class _ClaimPageState extends ConsumerState<ClaimPage> {
   _ClaimPhase _phase = _ClaimPhase.loading;
   _ClaimErrorKind _errorKind = _ClaimErrorKind.notReady;
   String _errorMessage = '';
+  String? _serviceReason;
   bool _refreshing = false;
   List<ClaimPreview> _previews = const [];
   int _tabIndex = 0;
@@ -96,6 +107,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         _phase = _ClaimPhase.ready;
       });
       debugPrint('[claim] refresh ok plans=${previews.length}');
+      // 能力与业务分离：接口通了即「服务可用」（无券也保持可用），
+      // report 只影响「有可领」徽标 —— 绝不因空数组把服务置为不可用。
+      ref.read(claimServiceProvider.notifier).mark(widget.device.id, true);
       ref
           .read(claimEntryProvider.notifier)
           .report(widget.device.id, previews.isNotEmpty);
@@ -104,16 +118,25 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
       if (!mounted) return;
       // 宿主实测（2026-11-14）：账号未配置套餐时 getManualClaimPlanPreviews
       // 抛业务错 manual_claim_preview_missing_data —— 这是"无券可领"的真实
-      // 业务态，展示空态而非错误页。
+      // 业务态，展示空态而非错误页；服务本身可用。
       if (e.message.contains('manual_claim_preview_missing_data')) {
         setState(() => _phase = _ClaimPhase.ready);
+        ref.read(claimServiceProvider.notifier).mark(widget.device.id, true);
         ref.read(claimEntryProvider.notifier).report(widget.device.id, false);
+        return;
+      }
+      // 服务级错误（no-method / no-services）才写「服务不可用」；
+      // 其它业务错只展示错误页，不污染能力态。
+      final reason = _serviceReasonOf(e.message);
+      if (reason != null) {
+        _markServiceUnavailable(reason);
         return;
       }
       setState(() {
         _phase = _ClaimPhase.error;
         _errorKind = _ClaimErrorKind.remote;
         _errorMessage = e.message;
+        _serviceReason = null;
       });
     } on RpcNotReadyException {
       debugPrint('[claim] refresh notReady after retries');
@@ -146,9 +169,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
           timeout: const Duration(seconds: 10),
         );
       } on RpcRemoteException catch (e) {
-        final transient =
-            e.message.contains('no-services') ||
-            e.message.contains('no-method');
+        // no-method 是一次性结论（宿主有服务无此方法），不重试：
+        // 别名服务大概率同样没有该方法，重试只是拖长失败路径。
+        final transient = e.message.contains('no-services');
         if (!transient || attempt >= 3) rethrow;
       } on RpcNotReadyException {
         if (attempt >= 3) rethrow;
@@ -165,6 +188,34 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     setState(() {
       _phase = _ClaimPhase.error;
       _errorKind = _ClaimErrorKind.notReady;
+      _errorMessage = '';
+      _serviceReason = null;
+    });
+  }
+
+  /// 错误消息里的服务级原因码；其它错误返回 null（不能结论服务不可用）。
+  static String? _serviceReasonOf(String message) {
+    if (message.contains(ClaimServiceProbe.reasonNoMethod)) {
+      return ClaimServiceProbe.reasonNoMethod;
+    }
+    if (message.contains(ClaimServiceProbe.reasonNoServices)) {
+      return ClaimServiceProbe.reasonNoServices;
+    }
+    return null;
+  }
+
+  /// 服务不可用：写能力态（带原因）+ 页面错误态。
+  /// 与「无券可领」彻底分离，绝不回写 claimEntryProvider。
+  void _markServiceUnavailable(String reason) {
+    debugPrint('[claim] service unavailable: $reason');
+    ref
+        .read(claimServiceProvider.notifier)
+        .mark(widget.device.id, false, reason: reason);
+    if (!mounted) return;
+    setState(() {
+      _phase = _ClaimPhase.error;
+      _errorKind = _ClaimErrorKind.service;
+      _serviceReason = reason;
       _errorMessage = '';
     });
   }
@@ -987,8 +1038,17 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     );
   }
 
+  /// 服务不可用原因码 → 可读文案（原因码来自 [ClaimServiceProbe]）。
+  String _serviceReasonText(AppLocalizations l10n) => switch (_serviceReason) {
+    ClaimServiceProbe.reasonNoMethod => l10n.claimServiceNoMethod,
+    ClaimServiceProbe.reasonNoServices => l10n.claimServiceNoServices,
+    _ => l10n.claimServiceProbeFailed,
+  };
+
   Widget _errorView(AppLocalizations l10n, bool offline) {
-    final remote = _errorKind == _ClaimErrorKind.remote;
+    final kind = _errorKind;
+    final remote = kind == _ClaimErrorKind.remote;
+    final service = kind == _ClaimErrorKind.service;
     final notReadyText =
         offline ? l10n.claimDeviceNotReady : l10n.claimServiceUnavailable;
     final zt = context.zt;
@@ -1014,7 +1074,10 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
             ),
             const SizedBox(height: 14),
             Text(
-              remote ? l10n.claimFailedGeneric : notReadyText,
+              remote
+                  ? l10n.claimFailedGeneric
+                  : (service ? _serviceReasonText(l10n) : notReadyText),
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -1031,8 +1094,25 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                 style: TextStyle(fontSize: 12, color: context.zt.textLo),
               ),
             ],
+            // 可诊断：服务不可用必须给出"去哪查"，而不是灰着不知道原因。
+            if (service) ...[
+              const SizedBox(height: 6),
+              Text(
+                l10n.claimServiceUnavailableHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: context.zt.textLo),
+              ),
+            ],
             const SizedBox(height: 16),
             TactileButton(label: l10n.claimRefresh, onPressed: _refresh),
+            if (service && widget.onDiagnosticsPressed != null) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                key: const Key('claim-service-diagnostics'),
+                onPressed: widget.onDiagnosticsPressed,
+                child: Text(l10n.toolboxDiagnostics),
+              ),
+            ],
           ],
         ),
       ),

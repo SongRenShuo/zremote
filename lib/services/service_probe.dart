@@ -227,6 +227,86 @@ abstract final class ServiceProbe {
     }
   }
 
+  /// 领券服务（能力）探测结论：`available=false` 时 [reason] 为原因码。
+  /// 与 [checkToolbox] 共用 `toolboxChecks` 的
+  /// `codingPlanSubscriptionService` 条目，只发一条 dump。
+  static Future<ClaimServiceProbe> checkClaimService(
+    RpcBridge bridge, {
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
+    const service = 'codingPlanSubscriptionService';
+    final checklist = [
+      {'s': service, 'm': toolboxChecks[service]},
+    ];
+    try {
+      final response = await bridge.callArgs(
+        'zr-probe',
+        'dump',
+        args: [checklist],
+        timeout: timeout,
+      );
+      final payload = response.firstObject;
+      final checks = payload?['checks'];
+      if (checks is! Map) {
+        return const ClaimServiceProbe(
+          available: false,
+          reason: ClaimServiceProbe.reasonProbeFailed,
+        );
+      }
+      return _concludeClaim(checks, service);
+    } on RpcRemoteException catch (e) {
+      if (e.message.contains('no-services')) {
+        return const ClaimServiceProbe(
+          available: false,
+          reason: ClaimServiceProbe.reasonNoServices,
+        );
+      }
+      if (e.message.contains('no-method')) {
+        return const ClaimServiceProbe(
+          available: false,
+          reason: ClaimServiceProbe.reasonNoMethod,
+        );
+      }
+      return const ClaimServiceProbe(
+        available: false,
+        reason: ClaimServiceProbe.reasonProbeFailed,
+      );
+    } catch (_) {
+      return const ClaimServiceProbe(
+        available: false,
+        reason: ClaimServiceProbe.reasonProbeFailed,
+      );
+    }
+  }
+
+  /// 判定单服务结论：
+  /// - 任一关键方法 `true` → 可用；
+  /// - 方法存在但全 `false` → `no-method`（宿主有服务无方法）；
+  /// - 服务缺失（`no-svc` 或根本无该服务条目）→ `no-services`。
+  static ClaimServiceProbe _concludeClaim(
+    Map<Object?, Object?> checks,
+    String service,
+  ) {
+    var sawEntry = false;
+    for (final entry in checks.entries) {
+      final key = entry.key;
+      if (key is! String || !key.startsWith('$service.')) continue;
+      if (entry.value == 'no-svc') continue;
+      sawEntry = true;
+      if (entry.value == true) return const ClaimServiceProbe(available: true);
+      return const ClaimServiceProbe(
+        available: false,
+        reason: ClaimServiceProbe.reasonNoMethod,
+      );
+    }
+    return ClaimServiceProbe(
+      available: false,
+      reason: sawEntry
+          ? ClaimServiceProbe.reasonNoMethod
+          : ClaimServiceProbe.reasonNoServices,
+    );
+  }
+
   static bool _serviceOk(Map<Object?, Object?> checks, String service) {
     // 任一关键方法存在即视为可用；服务缺失（no-svc）或方法全移除均为不可用。
     for (final entry in checks.entries) {
@@ -392,4 +472,27 @@ abstract final class ServiceProbe {
 
   static String _clip(String text) =>
       text.length <= errorMaxChars ? text : text.substring(0, errorMaxChars);
+}
+
+/// 领券服务（能力）定点检查结论。
+///
+/// 只回答"宿主有没有领券服务能力"，不回答"有没有券可领"——后者是业务态，
+/// 由领券页预览结果决定，不得回写成 [available] = false。
+class ClaimServiceProbe {
+  const ClaimServiceProbe({required this.available, this.reason});
+
+  final bool available;
+
+  /// 不可用原因码；取值见 [reasonNoMethod] / [reasonNoServices] /
+  /// [reasonProbeFailed]。
+  final String? reason;
+
+  /// 宿主有服务但没有 `getManualClaimPlanPreviews`（版本过旧/被裁）。
+  static const String reasonNoMethod = 'no-method';
+
+  /// 宿主未挂载领券服务或未就绪。
+  static const String reasonNoServices = 'no-services';
+
+  /// 探测请求本身失败（超时/形状异常），无法确认。
+  static const String reasonProbeFailed = 'probe-failed';
 }

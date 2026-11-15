@@ -38,13 +38,25 @@ void main() {
     String customName = 'My OpenAI',
     String customApiKey = 'sk-abcdef123456',
     bool withCustom = true,
+    String zaiAccessType = 'zhipu-account',
+    String? zaiAccessAccountType = 'zai',
+    String? zaiAccessMode = 'individual-coding-plan',
     List<Map<String, dynamic>> extraProviders = const [],
     List<Map<String, dynamic>> providerTemplates = const [],
 
     Map<String, dynamic>? customPersonalConfig,
 
     List<Map<String, dynamic>>? customModelEntries,
-  }) => {
+  }) {
+    final zaiAccess = <String, dynamic>{'type': zaiAccessType};
+    if (zaiAccessAccountType != null) {
+      zaiAccess['accountType'] = zaiAccessAccountType;
+    }
+    if (zaiAccessMode != null) {
+      zaiAccess['mode'] = zaiAccessMode;
+    }
+    zaiAccess['entitled'] = entitled;
+    return {
     'revision': 5,
     if (providerTemplates.isNotEmpty) 'providerTemplates': providerTemplates,
     'providers': [
@@ -55,12 +67,7 @@ void main() {
         'enabled': true,
         'effectiveConfig': {
           'group': 'zai-family',
-          'access': {
-            'type': 'zhipu-account',
-            'accountType': 'zai',
-            'mode': 'individual-coding-plan',
-            'entitled': entitled,
-          },
+          'access': zaiAccess,
         },
         'models': [
           {'kind': 'chat', 'modelId': 'GLM-4.6', 'selectable': true,
@@ -116,7 +123,8 @@ void main() {
         },
       ...extraProviders,
     ],
-  };
+    };
+  }
 
   Map<String, dynamic> inheritedConfigJson({
     int contextWindow = 200000,
@@ -275,6 +283,66 @@ void main() {
       entParams['accountAccess'],
       containsPair('type', 'zhipu-account'),
     );
+  });
+
+  testWidgets('1b. accountAccess 缺字段降级：不发 accountAccess，不附带 requirePreferredProvider', (
+    tester,
+  ) async {
+    final bridge = ScriptedBridge(script: [
+      [viewJson(zaiAccessMode: null)],
+      [settingsJson(kind: 'individual-coding-plan')],
+      [entitlementJson()],
+      [{}],
+    ]);
+    await pumpPage(tester, bridge: bridge);
+    final entReq = requestOf(bridge.commands[2]);
+    expect(entReq.method, 'getEntitlementSnapshot');
+    final params = entReq.params as Map<String, dynamic>;
+    expect(params['preferredProviderId'], 'builtin:zai-coding-plan');
+    expect(params.containsKey('accountAccess'), isFalse);
+    expect(params.containsKey('requirePreferredProvider'), isFalse);
+    expect(params['allowDisabledPreferredProvider'], isTrue);
+    expect(params['allowEnvApiKey'], isFalse);
+  });
+
+  testWidgets('1c. 未配置/未登录回执 → 登录引导而非「套餐信息获取失败」', (
+    tester,
+  ) async {
+    final bridge = ScriptedBridge(script: [
+      [viewJson()],
+      [settingsJson(kind: 'individual-coding-plan')],
+      [
+        {
+          'generatedAt': 1780000000000,
+          'authenticated': true,
+          'unavailableReason': 'not_configured',
+          'quota': null,
+        },
+      ],
+      [{}],
+    ]);
+    await pumpPage(tester, bridge: bridge);
+    await tester.pumpAndSettle();
+    expect(find.text('登录后查看套餐信息'), findsOneWidget);
+    expect(find.text('套餐信息获取失败'), findsNothing);
+    expect(find.byKey(const Key('model-plan-card')), findsNothing);
+  });
+
+  testWidgets('1d. 真实 RPC 错误：带原文，不再一律「套餐信息获取失败」', (
+    tester,
+  ) async {
+    final bridge = ScriptedBridge(
+      script: [
+        [viewJson()],
+        [settingsJson(kind: 'individual-coding-plan')],
+      ],
+      errors: {2: 'entitlement exploded'},
+    );
+    await pumpPage(tester, bridge: bridge);
+    await tester.pumpAndSettle();
+    expect(find.text('套餐信息获取失败'), findsOneWidget);
+    expect(find.textContaining('entitlement exploded'), findsOneWidget);
+    expect(find.text('登录后查看套餐信息'), findsNothing);
   });
 
   testWidgets('2. 套餐行直开模型管理：无切换语义、全程零写调用', (

@@ -17,6 +17,8 @@ class _FakeQuotaClient extends QuotaClient {
   final ResetCardStatus? status;
 
   int fetchCount = 0;
+  int loadParamsCount = 0;
+  Map<String, dynamic>? lastEntitlementParams;
   int statusCount = 0;
   final List<String> usedTypes = [];
   ResetCardUseResult useResult = const ResetCardUseResult(
@@ -27,8 +29,15 @@ class _FakeQuotaClient extends QuotaClient {
   bool supported = true;
 
   @override
-  Future<QuotaOverview> fetch() async {
+  Future<Map<String, dynamic>?> loadEntitlementParams() async {
+    loadParamsCount++;
+    return null;
+  }
+
+  @override
+  Future<QuotaOverview> fetch({Map<String, dynamic>? entitlementParams}) async {
     fetchCount++;
+    lastEntitlementParams = entitlementParams;
     final error = fetchError;
     if (error != null) throw error;
     return overview!;
@@ -287,6 +296,34 @@ void main() {
     await tester.tap(find.text('刷新'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('quota-summary-card')), findsOneWidget);
+  });
+
+  testWidgets('未配置/未登录空态：登录引导而非「加载失败」', (tester) async {
+    await _pumpPage(
+      tester,
+      overview: QuotaOverview(
+        plans: const [],
+        items: const [],
+        refreshedAt: DateTime(2026, 11, 15),
+        sources: const [],
+        notConfigured: true,
+      ),
+      status: const ResetCardStatus(entries: [], history: []),
+      supported: false,
+    );
+    expect(find.text('登录后查看额度'), findsOneWidget);
+    expect(find.textContaining('尚未登录'), findsOneWidget);
+    expect(find.text('额度数据加载失败'), findsNothing);
+    expect(find.byKey(const Key('quota-slot-0')), findsNothing);
+  });
+
+  testWidgets('刷新链路：先取 providerSettings 参数再拉额度（accountAccess）', (
+    tester,
+  ) async {
+    final fake = await _pumpPage(tester);
+    expect(fake.loadParamsCount, greaterThan(0));
+    expect(fake.fetchCount, greaterThan(0));
+    expect(fake.lastEntitlementParams, isNull, reason: '假 client 不返回参数');
   });
 
   testWidgets('无套餐空态（noPlan）', (tester) async {

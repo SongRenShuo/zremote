@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../services/endpoint_probe.dart';
+import '../services/quota_client.dart' show QuotaTokenProvider;
 import '../services/rpc_bridge.dart';
 import '../services/service_probe.dart';
 import '../theme.dart';
@@ -21,13 +22,17 @@ class DiagnosticsPage extends StatefulWidget {
     required this.device,
     required this.bridge,
     this.endpointProbe,
+    this.tokenProvider,
   });
 
   final RemoteDevice device;
   final RpcBridge bridge;
 
-  /// 测试注入用；null 时按默认 EndpointProbe 构造（无 token，降级跳过）。
+  /// 测试注入用；null 时按 [tokenProvider] 构造 EndpointProbe。
   final EndpointProbe? endpointProbe;
+
+  /// zai JWT 供票（账号库接线位）；null/空票据时 billing/balance 跳过。
+  final QuotaTokenProvider? tokenProvider;
 
   @override
   State<DiagnosticsPage> createState() => _DiagnosticsPageState();
@@ -69,7 +74,8 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
     if (_endpointsRunning) return;
     setState(() => _endpointsRunning = true);
     try {
-      final probe = widget.endpointProbe ?? EndpointProbe();
+      final probe = widget.endpointProbe ??
+          EndpointProbe(tokenProvider: widget.tokenProvider);
       final results = await probe.run();
       if (!mounted) return;
       setState(() => _endpoints = results);
