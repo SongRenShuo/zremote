@@ -90,15 +90,20 @@ jobs:
           done
           [ "$ok" = 1 ]
 
-      # CPF-Flutter 3.41 嵌入层 OhosAutoFillHelper 引用了公开 SDK 未导出的
-      # autoFillManager 类型（15 个 ArkTS 编译错误）——用本地脚本降级为 any
-      # （Autofill 在 api<26 运行时短路，不改真机行为）。上游修复后可移除。
-      # ohpm install 由 flutter build hap 内部触发，但补丁须在 ArkTS 编译前打；
-      # 故先手动 ohpm install 生成 oh_modules，再打补丁（幂等，build 时不会重下嵌入层）。
+      # CPF-Flutter 3.41 嵌入层 OhosAutoFillHelper 引用公开 SDK 未导出的
+      # autoFillManager 类型（15 个 ArkTS 编译错误），需补丁降级为 any
+      # （Autofill 在 api<26 运行时短路，不改真机行为）。上游修复后移除本节。
+      #
+      # @ohos/flutter_ohos 由 Flutter 的 FlutterTask 阶段注入 oh-package.json5
+      # 并 ohpm install 生成 oh_modules（手动 ohpm install 只装 hypium，装不到它）。
+      # 故第一次 build 会先在 ArkTS 编译失败，但 oh_modules 已生成——此时打补丁，
+      # 第二次 build 复用已补丁的 oh_modules 即可通过（本机同顺序验证成功）。
+      - name: 首轮 build（注入 oh_modules，容忍 Autofill 编译失败）
+        continue-on-error: true
+        run: flutter build hap --release --no-codesign
+
       - name: Patch OH embedder Autofill types
-        run: |
-          (cd ohos && ohpm install --all)
-          python3 tool/patch_ohos_autofill.py
+        run: python3 tool/patch_ohos_autofill.py
 
       # 未签名 hap：本机/CI 只验证「可构建」；签名作为 P6 子项（需华为签名证书）。
       - run: flutter build hap --release --no-codesign
