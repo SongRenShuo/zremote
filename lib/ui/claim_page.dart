@@ -55,6 +55,15 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
   List<ClaimPreview> _previews = const [];
   int _tabIndex = 0;
 
+  /// 一键领取进行中（Z6 互斥：批量期间禁用其它领取入口）。
+  bool _claimAllRunning = false;
+
+  /// 立即执行一轮进行中（仅控制按钮 spinner，门控以 agent 为准）。
+  bool _runNowActive = false;
+
+  /// 自动轮冷却展示的定时刷新（快照非响应式，30s 兜底重读）。
+  Timer? _snapshotTicker;
+
   final Set<String> _busy = {};
 
   @override
@@ -67,7 +76,19 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
             widget.device.id,
           ),
     );
+    _snapshotTicker = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+        if (mounted) setState(() {});
+      },
+    );
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _snapshotTicker?.cancel();
+    super.dispose();
   }
 
   void _snack(String message) {
@@ -241,12 +262,18 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         );
   }
 
-  Future<void> _claim(ClaimPreview plan) async {
+  /// 手动领取单个套餐。
+  /// [batch]（一键领取模式，20261116-2341 Z2）：无感验证失败/领取失败
+  /// 不弹人工降级框与失败框，静默记失败继续下一个；成功不弹票据框。
+  /// 返回该套餐是否领取成功。
+  Future<bool> _claim(ClaimPreview plan, {bool batch = false}) async {
     final l10n = AppLocalizations.of(context)!;
-    if (_busy.isNotEmpty) return;
+    if (!batch && (_busy.isNotEmpty || _claimAllRunning)) return false;
     if (ref.read(sessionStatusProvider)[widget.device.id] !=
         SessionStatus.live) {
-      return;
+      // 非 live 不再静默 return：给出口提示（20261116-2341 §2#8）。
+      if (!batch && mounted) _snack(l10n.claimDeviceNotReady);
+      return false;
     }
     setState(() => _busy.add(plan.planId));
     // P2-4 手动优先：领取在途 → 自动轮让位 + 阻止 tick；结束 60s 冷却。
@@ -262,12 +289,14 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         cfg = CaptchaConfig.fromJson(r.firstObject ?? const {});
       } catch (e) {
         debugPrint('[claim] captchaConfig error $e');
-        if (mounted) _snack('${l10n.claimFailedGeneric}${_msgOf(e)}');
-        return;
+        if (!batch && mounted) {
+          _snack('${l10n.claimFailedGeneric}${_msgOf(e)}');
+        }
+        return false;
       }
       if (!cfg.enabled || cfg.sceneId.isEmpty) {
-        if (mounted) _snack(l10n.claimUnavailable);
-        return;
+        if (!batch && mounted) _snack(l10n.claimUnavailable);
+        return false;
       }
 
       final String verifyParam;
@@ -286,14 +315,31 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         final v = r.firstObject;
         final param = v?['param'];
         if (v == null || v['ok'] != true || param is! String || param.isEmpty) {
+          if (batch) {
+            // 批量模式静默降级（Z2）：记失败继续下一个，不弹人工框。
+            _recordClaim(
+              plan: plan,
+              success: false,
+              message: l10n.claimCaptchaFallbackTitle,
+            );
+            return false;
+          }
           await _fallbackDialog();
-          return;
+          return false;
         }
         verifyParam = param;
       } catch (e) {
         debugPrint('[claim] captcha verify error $e');
+        if (batch) {
+          _recordClaim(
+            plan: plan,
+            success: false,
+            message: l10n.claimCaptchaFallbackTitle,
+          );
+          return false;
+        }
         await _fallbackDialog();
-        return;
+        return false;
       }
 
       final ClaimOutcome outcome;
@@ -311,25 +357,85 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
       } catch (e) {
         debugPrint('[claim] claimManualPlan error $e');
         _recordClaim(plan: plan, success: false, message: e.toString());
-        if (mounted) _snack('${l10n.claimFailedGeneric}${_msgOf(e)}');
-        return;
+        if (!batch && mounted) {
+          _snack('${l10n.claimFailedGeneric}${_msgOf(e)}');
+        }
+        return false;
       }
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if (outcome.success) {
         debugPrint('[claim] claim ok plan=${plan.planId}');
         _recordClaim(plan: plan, success: true, outcome: outcome);
-        if (mounted) setState(() => _busy.clear());
-        await showClaimTicketDialog(context, plan: plan, outcome: outcome);
-        if (mounted) await _refresh();
+        if (!batch) {
+          if (mounted) setState(() => _busy.clear());
+          await showClaimTicketDialog(context, plan: plan, outcome: outcome);
+          if (mounted) await _refresh();
+        }
+        return true;
       } else {
         debugPrint('[claim] claim fail code=${outcome.code}');
         _recordClaim(plan: plan, success: false, outcome: outcome);
-        await _failureDialog(outcome);
+        if (!batch) await _failureDialog(outcome);
+        return false;
       }
     } finally {
       hub.manualEnded(widget.device.id);
-      if (mounted) setState(() => _busy.clear());
+      if (mounted) setState(() => _busy.remove(plan.planId));
+    }
+  }
+
+  /// 一键领取（20261116-2341 D2，zcode-switch Z1 精华）：
+  /// 串行逐套餐走既有领取链路；单个失败不中断整批；结束汇总 + 刷新。
+  Future<void> _claimAll() async {
+    if (_claimAllRunning || _busy.isNotEmpty || _refreshing) return;
+    final plans = List<ClaimPreview>.of(_previews);
+    if (plans.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    _claimAllRunning = true;
+    if (mounted) setState(() {});
+    final hub = ref.read(claimSchedulerHubProvider.notifier);
+    hub.manualStarted(widget.device.id);
+    var ok = 0;
+    var fail = 0;
+    try {
+      for (final plan in plans) {
+        if (!mounted) break;
+        // 设备中途掉线即停（后续套餐统一按失败计不合适，直接中止整批）。
+        if (ref.read(sessionStatusProvider)[widget.device.id] !=
+            SessionStatus.live) {
+          break;
+        }
+        if (await _claim(plan, batch: true)) {
+          ok++;
+        } else {
+          fail++;
+        }
+      }
+      if (mounted) {
+        _snack(l10n.claimBatchSummary(ok, fail));
+        if (ok > 0) await _refresh();
+      }
+    } finally {
+      _claimAllRunning = false;
+      hub.manualEnded(widget.device.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  /// 立即执行一轮自动领取（20261116-2341 D4）：清冷却越过首轮延迟。
+  Future<void> _runAutoNow() async {
+    if (_runNowActive) return;
+    final l10n = AppLocalizations.of(context)!;
+    _runNowActive = true;
+    if (mounted) setState(() {});
+    try {
+      final hub = ref.read(claimSchedulerHubProvider.notifier);
+      final triggered = await hub.runNow(widget.device.id);
+      if (!triggered && mounted) _snack(l10n.claimRunNowRejected);
+    } finally {
+      _runNowActive = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -387,6 +493,19 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(main),
+            // Z5 结构化 detail：业务码已映射时附服务端原始 message，便于排查。
+            if (mapped != null &&
+                outcome.message.isNotEmpty &&
+                outcome.message != mapped) ...[
+              const SizedBox(height: 6),
+              Text(
+                outcome.message,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             if (retry != null) ...[
               const SizedBox(height: 8),
               Text(
@@ -446,7 +565,22 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
           ],
         ),
         actions: [
-          if (_refreshing || _busy.isNotEmpty)
+          IconButton(
+            key: const Key('claim-all-btn'),
+            icon: _claimAllRunning
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.done_all_rounded),
+            tooltip: l10n.claimBatchAction,
+            onPressed:
+                offline || _busy.isNotEmpty || _refreshing || _claimAllRunning
+                ? null
+                : _claimAll,
+          ),
+          if (_refreshing || _busy.isNotEmpty || _claimAllRunning)
             const Padding(
               padding: EdgeInsets.all(14),
               child: SizedBox(
@@ -636,7 +770,7 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
               ),
             ],
           ),
-          if (config.enabled)
+          if (config.enabled) ...[
             InkWell(
               key: const Key('claim-auto-silent-entry'),
               borderRadius: BorderRadius.circular(8),
@@ -669,9 +803,81 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                 ),
               ),
             ),
+            _runNowRow(l10n),
+          ],
+          Text(
+            l10n.claimAutoSessionHint,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10.5, color: zt.textTertiary),
+          ),
         ],
       ),
     );
+  }
+
+  /// 「立即执行一轮」行（20261116-2341 D4）：清冷却立即跑一轮；
+  /// 冷却中/在飞展示调度器快照读数（D1③）。
+  Widget _runNowRow(AppLocalizations l10n) {
+    final zt = context.zt;
+    final snapshot = ref
+        .read(claimSchedulerHubProvider.notifier)
+        .snapshotOf(widget.device.id);
+    final now = DateTime.now();
+    final cooldown = snapshot?.cooldownUntil;
+    final cooling =
+        cooldown != null && cooldown.isAfter(now) && !(snapshot?.roundInFlight ?? false);
+    final running = snapshot?.roundInFlight ?? false;
+    final statusText = running
+        ? l10n.claimAutoRoundRunning
+        : cooling
+        ? l10n.claimAutoCooldown(_hhmmOfDay(cooldown))
+        : null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 2, 10, 6),
+      child: Row(
+        children: [
+          TactileButton(
+            key: const Key('claim-run-now-btn'),
+            height: 32,
+            icon: _runNowActive || running
+                ? SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: zt.accent,
+                    ),
+                  )
+                : Icon(Icons.play_arrow_rounded, size: 16, color: zt.accent),
+            label: l10n.claimRunNowAction,
+            onPressed: _runNowActive || running ? null : _runAutoNow,
+          ),
+          if (statusText != null) ...[
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                statusText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: zrMono(fontSize: 11, color: zt.textLo),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 冷却截止时刻的 HH:mm（当天内）或 MM-DD HH:mm（跨天）。
+  static String _hhmmOfDay(DateTime at) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final sameDay =
+        at.year == now.year && at.month == now.month && at.day == now.day;
+    return sameDay
+        ? '${two(at.hour)}:${two(at.minute)}'
+        : '${two(at.month)}-${two(at.day)} ${two(at.hour)}:${two(at.minute)}';
   }
 
   /// 静默时段设置底部弹层（开始/结束时间选择 + 关闭/恢复默认）。
@@ -898,15 +1104,38 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     );
   }
 
+  /// 阻断记录的原因 → 可读文案（20261116-2341 D1/D3）。
+  String _blockedText(AppLocalizations l10n, ClaimBlockedReason reason) =>
+      switch (reason) {
+        ClaimBlockedReason.previewError => l10n.claimBlockedPreviewError,
+        ClaimBlockedReason.captchaConfigError => l10n.claimBlockedCaptchaConfig,
+        ClaimBlockedReason.activityClosed => l10n.claimBlockedActivityClosed,
+        ClaimBlockedReason.noPlans => l10n.claimBlockedNoPlans,
+        ClaimBlockedReason.accountNotConfigured =>
+          l10n.claimBlockedAccountNotConfigured,
+      };
+
   Widget _historyCard(AppLocalizations l10n, ClaimRecord record) {
     final zt = context.zt;
-    final title = record.planName.isNotEmpty ? record.planName : record.planId;
-    final okColor = record.success ? zt.live : zt.danger;
+    final blocked = record.blockedReason;
+    final title = blocked != null
+        ? _blockedText(l10n, blocked)
+        : record.planName.isNotEmpty
+        ? record.planName
+        : record.planId;
+    // 阻断记录是"状态"而非"失败"：中性色，不用危险红。
+    final okColor = record.success
+        ? zt.live
+        : blocked != null
+        ? zt.textLo
+        : zt.danger;
     final codeMessage = record.code == null
         ? null
         : _codeMessage(l10n, record.code!);
     final resultText = record.success
         ? l10n.claimHistResultOk
+        : blocked != null
+        ? (record.message.isNotEmpty ? record.message : l10n.claimHistResultFail)
         : codeMessage ??
               (record.message.isNotEmpty
                   ? record.message
@@ -982,6 +1211,8 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                     Icon(
                       record.success
                           ? Icons.check_circle_outline
+                          : record.blockedReason != null
+                          ? Icons.info_outline
                           : Icons.error_outline,
                       size: 13,
                       color: okColor,
@@ -1159,7 +1390,8 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
 
   Widget _planCard(AppLocalizations l10n, ClaimPreview plan, bool offline) {
     final busyThis = _busy.contains(plan.planId);
-    final disabled = offline || _busy.isNotEmpty || _refreshing;
+    final disabled =
+        offline || _busy.isNotEmpty || _refreshing || _claimAllRunning;
     final quotaUnits = _tokenUnits(plan);
     final zt = context.zt;
 
