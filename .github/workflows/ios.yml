@@ -1,0 +1,50 @@
+name: ios
+
+# iOS 可构建性巡检（独立 workflow）。
+#
+# 为什么从 ci.yml 拆出来：macOS arm64 托管池容量紧张时，job 排队 15 分钟仍
+# 「not acquired by Runner」会被取消；而 `continue-on-error` 对「被取消」不生效，
+# 留在主 ci 会把整轮判红。拆开后主 ci（check 硬门禁）稳定可判，iOS 可构建性
+# 在这里独立可见——红了说明 iOS 侧需关注，但不阻塞日常提交。
+#
+# 必须用 arm64 的 macos-latest：device_info_plus 13.3.0 调用
+# NSProcessInfo.isiOSAppOnVision（需 iOS 26.1 SDK / Xcode 26 声明该 selector，
+# 运行时 @available 守卫无法规避编译期缺失），Intel 镜像 Xcode 较旧会编译失败。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
+      - run: flutter build ios --release --no-codesign

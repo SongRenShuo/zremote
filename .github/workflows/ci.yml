@@ -53,37 +53,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-  # iOS 可构建性巡检：macOS 出未签名包，防 iOS 侧悄悄烂掉。
-  # 关键路径实测：近 10 轮 ios 墙钟 43~348s（均值约 230s），其中 Xcode build 约 80~260s、
-  # Flutter SDK 缓存恢复约 20~67s。这条腿是整轮 CI 的地板，故不裁（裁了等于放弃 iOS 可构建性验证）。
-  ios:
-    # 必须用 arm64 的 macos-latest：device_info_plus 13.3.0 调用
-    # NSProcessInfo.isiOSAppOnVision（iOS 26.1 SDK / Xcode 26 才声明该 selector，
-    # 运行时 @available 守卫无法规避编译期缺失），Intel 镜像 Xcode 较旧会编译失败。
-    # 容量紧张时该 job 可能排队失败（infra）——故设 continue-on-error 不阻塞：
-    # 硬门禁是 check(ubuntu)+hap，iOS 可构建性为「尽力巡检」，避免日常提交被容量卡红。
-    runs-on: macos-latest
-    continue-on-error: true
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 3.38.5
-          channel: stable
-          cache: true
-
-      - name: flutter pub get（含重试）
-        run: |
-          ok=0
-          for i in 1 2 3; do
-            if flutter pub get; then ok=1; break; fi
-            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
-            sleep 5
-          done
-          [ "$ok" = 1 ]
-
-      - run: flutter build ios --release --no-codesign
+  # 注：iOS 可构建性巡检已拆到独立 workflow `ios.yml`。
+  # 原因：macOS arm64 托管池容量紧张时，job 排队 15 分钟仍未被分配会被取消，
+  # 且 `continue-on-error` 对「被取消」无效——留在本 workflow 会把主 CI 拖红。
+  # 拆开后 `ci`（check 硬门禁）稳定可判，iOS 可构建性独立可见。
