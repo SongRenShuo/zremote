@@ -71,12 +71,12 @@ class ManagePage extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    if (devices.isNotEmpty)
-                      IconButton(
-                        tooltip: l10n.importScanLabel,
-                        onPressed: () => _showImportSheet(context, ref),
-                        icon: Icon(Icons.add, color: context.zt.textLo),
-                      ),
+                    // 0 设备也保留 +：导入 sheet 内含「登录账号」，空库态不止空态页一个入口。
+                    IconButton(
+                      tooltip: l10n.importScanLabel,
+                      onPressed: () => _showImportSheet(context, ref),
+                      icon: Icon(Icons.add, color: context.zt.textLo),
+                    ),
                     const _SettingsGear(),
                   ],
                 ),
@@ -138,6 +138,7 @@ class ManagePage extends ConsumerWidget {
                     ),
                     _AddDeviceCard(
                       onTap: () => _showImportSheet(context, ref),
+                      onLogin: () => _openLogin(context, ref),
                     ),
                   ],
                 ],
@@ -173,7 +174,9 @@ class ManagePage extends ConsumerWidget {
           required String label,
           required String sub,
           required String value,
+          Key? key,
         }) => ListTile(
+          key: key,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20),
           leading: Container(
             width: 36,
@@ -216,6 +219,14 @@ class ManagePage extends ConsumerWidget {
               sub: l10n.importSheetPasteSub,
               value: 'paste',
             ),
+            const Divider(height: 1, indent: 20, endIndent: 20),
+            entry(
+              key: const Key('import-sheet-login'),
+              icon: Icons.login_rounded,
+              label: l10n.loginEntryAccount,
+              sub: l10n.loginEntrySheetSub,
+              value: 'login',
+            ),
           ],
         );
       },
@@ -226,6 +237,8 @@ class ManagePage extends ConsumerWidget {
         await _openScanner(context, ref);
       case 'paste':
         await _showPasteDialog(context, ref);
+      case 'login':
+        await _openLogin(context, ref);
     }
   }
 
@@ -2009,9 +2022,10 @@ class _SettingsGearState extends ConsumerState<_SettingsGear> {
 }
 
 class _AddDeviceCard extends StatelessWidget {
-  const _AddDeviceCard({required this.onTap});
+  const _AddDeviceCard({required this.onTap, this.onLogin});
 
   final VoidCallback onTap;
+  final VoidCallback? onLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -2023,64 +2037,103 @@ class _AddDeviceCard extends StatelessWidget {
       child: Material(
         color: isDark ? const Color(0xFF101218) : zt.surface,
         borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: CustomPaint(
-            painter: ZrDashedBorderPainter(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.16)
-                  : zt.hairlineBright,
-              radius: 12,
-              strokeWidth: 1.2,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: zt.accentSubtle,
-                    border: Border.all(
-                      color: zt.accentBorder,
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Icon(Icons.add, size: 20, color: zt.accent),
+        child: CustomPaint(
+          painter: ZrDashedBorderPainter(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.16)
+                : zt.hairlineBright,
+            radius: 12,
+            strokeWidth: 1.2,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                onTap: onTap,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        l10n.addDeviceCardTitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                          color: zt.textHi,
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: zt.accentSubtle,
+                          border: Border.all(
+                            color: zt.accentBorder,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Icon(Icons.add, size: 20, color: zt.accent),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.addDeviceCardTitle,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                                color: zt.textHi,
+                              ),
+                            ),
+                            const SizedBox(height: 2.5),
+                            Text(
+                              l10n.addDeviceCardSub,
+                              style: TextStyle(fontSize: 11.5, color: zt.textLo),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 2.5),
-                      Text(
-                        l10n.addDeviceCardSub,
-                        style: TextStyle(fontSize: 11.5, color: zt.textLo),
+                      Icon(
+                        Icons.qr_code_scanner,
+                        size: 20,
+                        color: zt.textLo,
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.qr_code_scanner,
-                  size: 20,
-                  color: zt.textLo,
+              ),
+              // 与「接入新设备」区分的次级入口：已有账号先登录，不必先有设备。
+              if (onLogin != null) ...[
+                Divider(height: 1, indent: 16, endIndent: 16, color: zt.hairline),
+                InkWell(
+                  key: const Key('add-device-login'),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(12),
+                  ),
+                  onTap: onLogin,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 11,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.login_rounded, size: 14, color: zt.textLo),
+                        const SizedBox(width: 6),
+                        Text(
+                          l10n.acctLoginEntryHint,
+                          style: TextStyle(fontSize: 12.5, color: zt.textLo),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
-              ),
-            ),
+            ],
           ),
         ),
       ),

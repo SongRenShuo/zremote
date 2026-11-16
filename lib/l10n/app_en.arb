@@ -725,6 +725,10 @@
   "@importSheetPasteSub": {
     "description": "Import sheet: paste entry subtitle"
   },
+  "loginEntrySheetSub": "Credentials are saved to the account vault; add a device later",
+  "@loginEntrySheetSub": {
+    "description": "Import sheet: login entry subtitle"
+  },
   "pasteDialogSub": "Paste the control link generated on your computer — import once, stays valid",
   "@pasteDialogSub": {
     "description": "Paste dialog subtitle"
@@ -2107,6 +2111,10 @@
   "acctVaultEntry": "Account vault",
   "@acctVaultEntry": {
     "description": "Session account menu: open vault"
+  },
+  "acctLoginEntryHint": "Already have an account? Sign in",
+  "@acctLoginEntryHint": {
+    "description": "Add-device card: secondary login entry hint"
   },
   "acctLogoutConfirmTitle": "Sign out?",
   "@acctLogoutConfirmTitle": {
