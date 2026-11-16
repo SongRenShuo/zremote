@@ -14,24 +14,83 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  # 鸿蒙适配（车道 B）：换用 CPF-Flutter 社区 ohos fork（含 ohos 平台实现）。
+  # ref 均经 git ls-remote 核实（2026-11-16）；Android/iOS 行为保持不变。
+  # inappwebview 主包保留 stock hosted（与本地 MULTI_PROFILE platform_interface
+  # fork 兼容；CPF 主包新增的 dispose() 调用本地接口没有，stock SDK 测试编译
+  # 会挂），仅追加 flutter_inappwebview_ohos 实现子包注册 ohos 平台。
   flutter_inappwebview: ^6.1.5
+  flutter_inappwebview_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_inappwebview.git
+      path: flutter_inappwebview_ohos
+      ref: br_v6.1.5_ohos
+  # mobile_scanner 暂保留 stock hosted：CPF fork lib 内使用 Flutter-OH 专有的
+  # TargetPlatform.ohos（lib/src/method_channel/mobile_scanner_method_channel.dart
+  # 3 处），stock SDK 下整个 app 编译失败（连 Android 一起挂），宁缺毋滥。
   mobile_scanner: ^7.4.0
-  flutter_secure_storage: ^11.0.0
-  local_auth: ^3.0.2
+  flutter_secure_storage:
+    git:
+      url: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git
+      path: flutter_secure_storage
+      ref: 9.2.4-ohos-1.0.0
+  # flutter_secure_storage 主包（9.2.4-ohos-1.0.0）未把 ohos 实现列为
+  # default_package，需显式引入实现包注册 ohos 平台。
+  flutter_secure_storage_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git
+      path: flutter_secure_storage_ohos
+      ref: 9.2.4-ohos-1.0.0
+  local_auth:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      path: packages/local_auth/local_auth
+      ref: br_local_auth-v3.0.1_ohos
   flutter_riverpod: ^3.3.2
-  shared_preferences: ^2.5.5
-  package_info_plus: ^10.2.1
+  shared_preferences:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      path: packages/shared_preferences/shared_preferences
+      ref: br_shared_preferences-v2.5.4_ohos
+  package_info_plus:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git
+      path: packages/package_info_plus/package_info_plus
+      ref: br_package_info_plus-v9.0.0_ohos
   uuid: ^4.6.0
+  # flutter_local_notifications 暂保留 stock hosted：CPF fork（22.0.1-ohos tag
+  # 与 19.5.0 均同）lib 内 9 处 TargetPlatform.ohos（Flutter-OH 专有），stock
+  # SDK 下整个 app 编译失败；鸿蒙通知通道待 Flutter-OH 统一构建时评估。
   flutter_local_notifications: ^22.3.0
-  url_launcher: ^6.3.2
+  url_launcher:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      path: packages/url_launcher/url_launcher
+      ref: br_url_launcher-v6.3.2_ohos
   intl: ^0.20.2
 
   # V2.0 新增（开发计划 20261115-0901 P5-5 统一落位）
   dio: ^5.7.0
   cryptography: ^2.7.0
-  share_plus: ">=10.0.0 <14.0.0"
-  path_provider: ^2.1.5
-  file_picker: ^13.3.3
+  share_plus:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git
+      path: packages/share_plus/share_plus
+      ref: br_share_plus-v12.0.1_ohos
+  path_provider:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      path: packages/path_provider/path_provider
+      ref: br_path_provider-v2.1.5_ohos
+  # file_picker fork 基于 10.3.8 旧架构（FilePicker.platform.pickFiles），
+  # 包名被 fork 改为 file_picker_ohos；调用点见 ui/account_vault_page.dart。
+  file_picker_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/fluttertpc_file_picker.git
+      ref: br_v10.3.8_ohos
+  # device_info_plus 暂保留 stock hosted：CPF fork 主包 lib 内联 ohos 实现
+  # 且使用 Flutter-OH 专有的 Platform.isOhos，stock SDK 下测试编译失败
+  # （宁缺毋滥，见车道 B 适配对照表「风险」列）。
   device_info_plus: ">=11.0.0 <14.0.0"
 
 dev_dependencies:
@@ -41,10 +100,25 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 dependency_overrides:
+  # MULTI_PROFILE 特性 fork（Android 多 WebView 配置文件语义）：
+  # 保留本地 fork，覆盖 CPF inappwebview fork 自带的同名子包。
+  # CPF 主包同为 6.1.5 基线，与本 platform_interface（1.3.0+1 + 特性）兼容。
   flutter_inappwebview_platform_interface:
     path: third_party/flutter_inappwebview_platform_interface
   flutter_inappwebview_android:
     path: third_party/flutter_inappwebview_android
+  # share_plus_platform_interface（CPF fork）内部依赖 path_provider 指向
+  # openharmony-sig/flutter_packages master；统一覆盖为 CPF fork 分支，
+  # 避免同一包双 git 源版本冲突。
+  path_provider:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      path: packages/path_provider/path_provider
+      ref: br_path_provider-v2.1.5_ohos
+  # local_auth_ohos（CPF fork）锁 intl <0.19.0，但其 Dart 侧仅用
+  # Intl.message 稳定 API；本仓与 flutter_localizations 需要 intl 0.20.x，
+  # 统一覆盖为 0.20.2。
+  intl: 0.20.2
 
 flutter:
 
