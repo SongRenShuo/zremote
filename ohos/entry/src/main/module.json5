@@ -43,7 +43,7 @@
               {
                 "scheme": "https",
                 "host": "zcode.z.ai",
-                "pathPrefix": "/remote"
+                "pathStartWith": "/remote"
               }
             ]
           }
@@ -64,9 +64,6 @@
       },
       {
         "name": "ohos.permission.ACCESS_BIOMETRIC"
-      },
-      {
-        "name": "ohos.permission.FOREGROUND_SERVICE"
       }
     ]
   }

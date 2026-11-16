@@ -36,14 +36,25 @@
 6. **签名**：`build-profile.json5` 的 `signingConfigs` 由 DevEco「自动生成签名」或
    CI secrets 注入；未签名包只能验证构建，不能安装。
 
-## 构建
+## 构建（2026-11-16 Windows 本机实测通过）
+
+前置：`D:\HuanJing\flutter_oh`（Flutter-OH SDK）、`D:\HuanJing\Huawei\command-line-tools`（6.1.1.280），
+`flutter config --ohos-sdk .../command-line-tools/sdk`，并把命令行工具的 `bin`/`ohpm/bin`/SDK `toolchains` 加入 PATH。
+`flutter doctor` 的 HarmonyOS toolchain 应全部 ✓。
 
 ```bash
-flutter build hap --debug
-flutter build hap --release --no-codesign   # 未签名，仅验证可构建
+flutter pub get
+python tool/patch_ohos_autofill.py   # 必须：CPF 3.41 嵌入层 Autofill 类型补丁（每次 pub get 后重跑）
+flutter build hap --debug --no-codesign
+# 或 release
+flutter build hap --release --no-codesign
 ```
 
-产物：`build/ohos/hap/entry-default-unsigned.hap`。
+> Windows + Git Bash 下直接跑可能因 `ohpm.bat` 的 `BATCH RECURSION` 中断；
+> 用 PowerShell 执行 bat（见 `zr_build_hap.bat` 做法）或直接在 cmd 中构建。
+
+产物：`build/ohos/hap/entry-default-unsigned.hap`（本机 debug 构建 **148 MB**，已验证）。
+未签名包需华为证书签名后才能安装到真机。
 
 ## 生成态文件（不提交）
 

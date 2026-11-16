@@ -22,16 +22,19 @@ permissions:
   contents: read
 
 env:
-  # Flutter-OH 引擎产物镜像（FAQ：debug snapshot 不匹配时用它清缓存）
-  FLUTTER_STORAGE_BASE_URL: https://flutter-ohos.obs.cn-south-1.myhuaweicloud.com
+  # stock 引擎 stamp/产物走中国镜像（2026-11-16 实测：若设为 OH 镜像会导致
+  # engine_stamp.json 404）；OH 引擎产物走分叉默认的 FLUTTER_OHOS_STORAGE_BASE_URL。
+  FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
   # 锁到具体 tag，分叉升级期不随默认分支漂移
   FLUTTER_OH_VERSION: 3.41.10-ohos-1.0.1
 
-# 工具链官方路径（CPF-Flutter FAQ）：OpenHarmony 命令行工具 + JDK 17，
-# `./ohsdkmgr install ets:9 js:9 native:9 previewer:9 toolchains:9 --accept-license`
-# 即可，DevEco Studio 非必需；`flutter config --ohos-sdk` 指向 SDK home。
+# 工具链（2026-11-16 Windows 本机全链路实测）：需 **完整 HarmonyOS 命令行工具**
+# （含 ohpm + hvigorw + SDK），不是裸 OpenHarmony SDK——后者缺 ohpm/hvigorw。
+# 本机路径：D:\HuanJing\Huawei\command-line-tools（6.1.1.280），SDK 在其
+# sdk/default/openharmony；`flutter config --ohos-sdk` 指向 sdk/default 的父级 sdk 目录。
+# Linux runner 对应 commandline-tools-linux + ohsdkmgr（CPF FAQ），并设 HOS_SDK_HOME。
 # 公开可跑样例：niuhuan/harmony-next-flutter-pipeline-docker（容器镜像）。
-# TODO(OH-CI)：首跑若 setup-ohos-sdk 的目录布局不匹配，改走 ohsdkmgr 或该镜像。
+# 关键：CPF 3.41 嵌入层需打 Autofill 补丁（见下方步骤），否则 ArkTS 编译失败。
 jobs:
   hap:
     runs-on: ubuntu-latest
@@ -51,19 +54,20 @@ jobs:
         with:
           node-version: "20"
 
-      # OpenHarmony SDK（含 ohpm / hvigor / hdc）。
-      # TODO(OH-CI)：首次跑通后把 SDK 版本与 action 版本钉死，并加缓存。
-      - name: 安装 OpenHarmony SDK
-        uses: openharmony-rs/setup-ohos-sdk@v1
-        with:
-          version: "5.0.0"
-      # setup-ohos-sdk 导出 OHOS_BASE_SDK_HOME / OHOS_SDK_NATIVE（无 HOS_SDK_HOME）。
-      # TODO(OH-CI)：Flutter-OH 的 `flutter config --ohos-sdk` 期望的 SDK home 形态
-      # （OpenHarmony SDK 根 vs DevEco 的 Hmos SDK 根）首跑校准；若不符改用 OHOS_SDK_NATIVE。
-      - name: 暴露 DEVECO_SDK_HOME
+      # 完整 HarmonyOS 命令行工具（含 ohpm + hvigorw + SDK），本机 Windows 同款 Linux 版。
+      # 必须整套而非裸 SDK：flutter build hap 硬依赖 ohpm install + hvigorw assembleHap。
+      - name: 安装 HarmonyOS 命令行工具 + SDK
         run: |
-          echo "DEVECO_SDK_HOME=$OHOS_BASE_SDK_HOME" >> "$GITHUB_ENV"
-          echo "PATH=$OHOS_SDK_NATIVE:$PATH" >> "$GITHUB_ENV"
+          set -e
+          curl -fsSL -o /tmp/cmdtools.zip \
+            https://image.cdn.dog/commandline-tools-linux-x64-6.1.1.280.zip
+          unzip -q /tmp/cmdtools.zip -d "$HOME/ohos-tools"
+          TOOLS="$HOME/ohos-tools/command-line-tools"
+          echo "TOOL_HOME=$TOOLS" >> "$GITHUB_ENV"
+          echo "HOS_SDK_HOME=$TOOLS/sdk" >> "$GITHUB_ENV"
+          echo "DEVECO_SDK_HOME=$TOOLS/sdk" >> "$GITHUB_ENV"
+          echo "PATH=$TOOLS/bin:$TOOLS/ohpm/bin:$TOOLS/sdk/default/openharmony/toolchains:$PATH" >> "$GITHUB_ENV"
+          chmod +x "$TOOLS/bin"/* 2>/dev/null || true
 
       - name: 准备 Flutter-OH SDK（锁 tag）
         run: |
@@ -71,7 +75,8 @@ jobs:
             https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
           flutter --version
-          flutter config --ohos-sdk "$OHOS_BASE_SDK_HOME"
+          flutter config --ohos-sdk "$HOS_SDK_HOME"
+          flutter doctor | grep -i -A4 "HarmonyOS" || true
 
       - name: flutter pub get（含重试）
         run: |
@@ -82,6 +87,12 @@ jobs:
             sleep 5
           done
           [ "$ok" = 1 ]
+
+      # CPF-Flutter 3.41 嵌入层 OhosAutoFillHelper 引用了公开 SDK 未导出的
+      # autoFillManager 类型（15 个 ArkTS 编译错误）——用本地脚本降级为 any
+      # （Autofill 在 api<26 运行时短路，不改真机行为）。上游修复后可移除。
+      - name: Patch OH embedder Autofill types
+        run: python3 tool/patch_ohos_autofill.py
 
       # 未签名 hap：本机/CI 只验证「可构建」；签名作为 P6 子项（需华为签名证书）。
       - run: flutter build hap --release --no-codesign

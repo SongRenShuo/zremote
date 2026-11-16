@@ -70,6 +70,14 @@
 - **L32 新平台判定必须抽象成能力层，禁止散写 `Platform.isAndroid`/`isIOS` 二分**。证据：stock Flutter 3.38 **没有** `Platform.isOhos`、`TargetPlatform` **没有** `ohos` 取值，直接写编译失败；本仓 `zai_auth_client.dart`、`quota_client.dart`、`webview_profile.dart` 三处二分需改造（`3691207` 引入 `lib/services/platform_caps.dart`，用 `Platform.operatingSystem` 探测 + 测试注入；判定要尊重 `debugDefaultTargetPlatformOverride`，否则既有 iOS/Android 用例回归）。OH 分叉实测（ref `oh-3.41.9-release`）：`Platform.operatingSystem=='ohos'`、`defaultTargetPlatform==TargetPlatform.ohos`；`Platform.isOhos` 也存在但 **CPF FAQ 明确不建议用**（会让 `flutter run/build hap/attach` 在服务端引擎产物下失败）。判据：**凡「按平台分支」的代码先问「新增平台时这里会不会漏」**；新平台接入先落能力层，再改分支。**Seen 1× (11-16)**
 - **L33 `dependency_overrides` 无平台条件——一份 pubspec 服务多端时，新平台插件 fork 替换是核心难点**。证据：本仓 `flutter_inappwebview` 有本地 Android fork（MULTI_PROFILE，`third_party/`），CPF-Flutter 的 ohos 实现是 **git fork（`-ohos-` tag，多不在 pub.dev）**；直接覆盖会连带改掉 Android/iOS 行为（计划 20261116-1434 P3）。判据：**多端工程接新平台，先列「插件 × 平台」支持矩阵与覆盖影响面**，再动 `dependency_overrides`；无法两全时优先自研抽象层而非全局覆盖。**Seen 1× (11-16)**
 
+## 2026-11-16 鸿蒙工具链搭建与 hap 构建
+
+**数据**：用户授权后本机装齐工具链并**成功构建 hap**（`entry-default-unsigned.hap` 148MB）；Flutter-OH SDK `3.41.10-ohos-1.0.1` + 命令行工具 6.1.1.280； experiment 对照 `3.41.9+ohos-1.0.2` 同样需补丁。
+
+- **L34 社区 SDK 分叉的下载缓存损坏要查 zip 中央目录，不能只看文件大小**。证据：Flutter-OH 的 Dart SDK zip 被代理 range 续传污染，大小恰为 Content-Length（199119085）但 `zipfile.ZipFile` 打不开（中央目录坏）；删临时文件完整重下 + 手动解压 + 写 stamp 才过。判据：**下载的 zip 大小对了也要 `unzip -t` / `ZipFile.testzip()` 验完整性**，尤其代理/断点续传场景。**Seen 1× (11-16)**
+- **L35 跨平台 SDK 的 schema 校验是构建前置门禁，自定义字段要用官方名字**。证据：`module.json5` 的 `pathPrefix` 不被 HarmonyOS hvigor 识别（正确 `pathStartWith`，`00303038` schema 错误）；`ohos.permission.FOREGROUND_SERVICE` 在旧 SDK 未预定义（`00303221`，须 definePermissions 或移除）。判据：**新平台脚手架先跑一次官方 `flutter create --platforms <平台>` 生成模板逐字对齐**，自定义字段（权限/深链）以模板 schema 为准，别照搬 Android manifest 直觉。**Seen 1× (11-16)**
+- **L36 社区 fork 的嵌入层可能引用未进入公开 SDK 的 API，需可重复补丁**。证据：CPF-Flutter 3.41 的 `OhosAutoFillHelper.ets` 引用 `autoFillManager.AutoFillType/ViewData` 等类型，所有公开 SDK（API 12/23/24）都没有（15 个 ArkTS 编译错误），但代码用 `AUTOFILL_SUPPORT_API=26` 运行时短路——`tool/patch_ohos_autofill.py` 把类型降级为 `any` 即编译通过且不改真机行为。判据：**fork 构建失败先分清「我方配置错」还是「fork 用了超前 API」**；后者补丁要幂等、每次 pub get 后重跑（生成物会被覆盖）、CI 串接。**Seen 1× (11-16)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。

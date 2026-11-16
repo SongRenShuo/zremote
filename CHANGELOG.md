@@ -6,6 +6,10 @@
 
 ### 新增
 
+- **鸿蒙 hap 本机构建打通**：装齐 Flutter-OH SDK + HarmonyOS 命令行工具（6.1.1.280），修复 module.json5 schema 错误（`pathStartWith` / 移除未预定义权限），加 `tool/patch_ohos_autofill.py` 修复 CPF 嵌入层 Autofill 超前 API 编译错误；`flutter build hap --debug --no-codesign` 成功产出 148MB 未签名 hap（CI 同步接入补丁与完整工具链）
+
+### 变更
+
 - **鸿蒙（HarmonyOS NEXT）支持立项 + 平台能力抽象**：新增 `PlatformCaps` 统一平台判定（规避 stock Flutter 无 `Platform.isOhos`），账号授权 / 配额 / WebView 隔离三处平台分支补鸿蒙路径；设置页「平台限制说明」由 iOS 专属泛化为 iOS / 鸿蒙各显各自条目（`3691207`）
 - **开发计划**：新增 [鸿蒙 NEXT 全面支持开发计划](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md)（方案裁定 / 差距分析 / 分阶段 P0–P6 / 风险与验收）
 

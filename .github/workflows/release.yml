@@ -172,26 +172,30 @@ jobs:
         with:
           node-version: "20"
 
-      - name: 安装 OpenHarmony SDK
-        uses: openharmony-rs/setup-ohos-sdk@v1
-        with:
-          version: "5.0.0"
-      # setup-ohos-sdk 导出 OHOS_BASE_SDK_HOME / OHOS_SDK_NATIVE（无 HOS_SDK_HOME）。
-      # TODO(OH-CI)：与 ohos.yml 同口径，首跑校准 SDK home 形态。
-      - name: 暴露 DEVECO_SDK_HOME
+      # 完整 HarmonyOS 命令行工具 + SDK（与 ohos.yml 同口径，本机验证过布局）
+      - name: 安装 HarmonyOS 命令行工具 + SDK
         run: |
-          echo "DEVECO_SDK_HOME=$OHOS_BASE_SDK_HOME" >> "$GITHUB_ENV"
-          echo "PATH=$OHOS_SDK_NATIVE:$PATH" >> "$GITHUB_ENV"
+          set -e
+          curl -fsSL -o /tmp/cmdtools.zip \
+            https://image.cdn.dog/commandline-tools-linux-x64-6.1.1.280.zip
+          unzip -q /tmp/cmdtools.zip -d "$HOME/ohos-tools"
+          TOOLS="$HOME/ohos-tools/command-line-tools"
+          echo "HOS_SDK_HOME=$TOOLS/sdk" >> "$GITHUB_ENV"
+          echo "DEVECO_SDK_HOME=$TOOLS/sdk" >> "$GITHUB_ENV"
+          echo "PATH=$TOOLS/bin:$TOOLS/ohpm/bin:$TOOLS/sdk/default/openharmony/toolchains:$PATH" >> "$GITHUB_ENV"
+          chmod +x "$TOOLS/bin"/* 2>/dev/null || true
 
       - name: 准备 Flutter-OH SDK（锁 tag）
         env:
           FLUTTER_OH_VERSION: 3.41.10-ohos-1.0.1
-          FLUTTER_STORAGE_BASE_URL: https://flutter-ohos.obs.cn-south-1.myhuaweicloud.com
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
         run: |
           git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
             https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
-          flutter config --ohos-sdk "$OHOS_BASE_SDK_HOME"
+          flutter --version
+          flutter config --ohos-sdk "$HOS_SDK_HOME"
+          flutter doctor | grep -i -A4 "HarmonyOS" || true
 
       - name: flutter pub get（含重试）
         run: |
@@ -202,6 +206,10 @@ jobs:
             sleep 5
           done
           [ "$ok" = 1 ]
+
+      # CPF-Flutter 3.41 嵌入层 Autofill 类型补丁（详见 tool/patch_ohos_autofill.py）
+      - name: Patch OH embedder Autofill types
+        run: python3 tool/patch_ohos_autofill.py
 
       - run: flutter build hap --release --no-codesign
 

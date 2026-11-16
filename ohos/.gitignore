@@ -15,6 +15,8 @@
 /package-lock.json
 
 **/src/main/resources/rawfile/flutter_assets/
+# Flutter-OH 构建时会把 buildinfo.json5 等复制进 rawfile（生成物，源在 base/profile）
+**/src/main/resources/rawfile/buildinfo.json5
 **/libs/**/libapp.so
 **/libs/**/libflutter.so
 **/libs/**/libvmservice_snapshot.so
