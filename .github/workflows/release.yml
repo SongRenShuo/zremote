@@ -116,7 +116,9 @@ jobs:
 
   # iOS 出未签名 IPA：无 Apple 开发者账号也可分发，用户自行签名侧载。
   ipa:
-    runs-on: macos-latest
+    # 走 Intel 池（macos-15-intel）绕开 arm64 托管池容量拥堵；Intel 为桥接（~2027 停用），
+    # 后续需迁回 arm64 标签。ipa 是发行资产，保持必过。
+    runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
