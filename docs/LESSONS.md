@@ -53,6 +53,14 @@
 - **L26 弹层/展开内容必须落在「有界可滚动」容器里，展开后要主动滚入可视区**。证据：自动化计划卡「展开运行」与工具箱「更多」展开后新内容整块停在视口外（复现：800×1200 卡底边 1283>1200），需用户自己找；同型还有 `session_view._showSwitcher` 无界 `Column`（20 台设备溢出 329px、不可滚动）（`da550bd`+`b4e93f3`）。判据：**弹层列表一律 `Flexible/Expanded` + `ListView`/`SingleChildScrollView`；展开状态变化后用 `Scrollable.ensureVisible`（`keepVisibleAtEnd`）只补最小滚动**——用 explicit 滚到顶会让顶部卡片跳页（实测 428px→0）。**Seen 1× (11-16)**
 - **L27 账户能力不得强依赖「已有设备」——入口可达性是硬需求**。证据：`LoginWebPage`/`AccountVaultPage` 构造 `required device`、登录入口只在设备会话页 → **全新安装（0 设备）无法登录**，于是「登录→拉取服务端设备列表→重建设备库」的迁移路径断在第一步（`6dd76c4`+`606dd6f`）。判据：涉及账户/登录的能力要能在**空库态**可达（入口放空态页与设置页，`device` 设可选并显式降级），并把「0 设备可达」写进用例。**Seen 1× (11-16)**
 
+## 2026-11-16 登录入口 / 导入设备登录态 / 改名轮（两车道并行）
+
+**数据**：2 车道 worktree（fix/v22-{loginentry,autoinject}）；合并后全量 **1209 例全绿** + analyze 零问题；提交 `1518699`（合并 `aa0a7dd`）、`0ee8db2`（合并 `e44c34e`）、`c49c856`；报告 `~/.zremote-e2e/lane-{loginentry,autoinject}-report.md`。
+
+- **L28 `ConsumerState.dispose` 里 `ref.read` 在 Flutter 3.38 会抛（unmount 后 ref 已 defunct）——要在 `didChangeDependencies` 缓存 notifier**。证据：会话页 dispose 用 `ref.read(claimSchedulerHubProvider.notifier).detach(...)`，页面销毁即抛（`0ee8db2` 同批最小修复：缓存 `_claimSchedulerHubNotifier`/`_approvalCenterNotifier` 后判空调用）。判据：**dispose 内只允许用已在 `didChangeDependencies`/`initState` 缓存的引用**，不要在 unmount 路径上现取 provider。**Seen 1× (11-16)**
+- **L29 「账号↔设备绑定」与「凭据注入」是两件事：只写绑定不写 localStorage，页面依旧取不到票**。证据：`AccountVaultPage._installAccountDevice` 只 `add(device)` + `setActiveForDevice`，设备 WebView 五键凭据仓为空 → 额度/福利取不到票，用户必须去账户库手动「应用」一次（`0ee8db2` 修复：会话页 `onLoadStop` 自检「有绑定 + 缺 `zcodejwttoken`」→ 注入并 reload 一次，按「设备 id+账号 id」防循环；换绑重检、解绑清键）。判据：凡「新增/切换账号到设备」的落点，要么**同批注入**，要么**由会话页自检补注入**，并显式防循环。**Seen 1× (11-16)**
+- **L30 一次性副作用（注入/上报/解锁）必须带「身份键」防循环，且键要随身份变化而失效**。证据：注入后 reload 会再触发 `onLoadStop`，若无键则每次加载都回读+注入+reload（`0ee8db2`）。判据：键 = 触发条件全体（此处 设备 id + 账号 id）；「已完成」与「确认无需做」都写键；身份变化（换绑/解绑）清键。**Seen 1× (11-16)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
