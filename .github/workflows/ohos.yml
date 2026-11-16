@@ -74,9 +74,11 @@ jobs:
           git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
             https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
-          flutter --version
-          flutter config --ohos-sdk "$HOS_SDK_HOME"
-          flutter doctor | grep -i -A4 "HarmonyOS" || true
+          # GITHUB_PATH 对本 step 不生效——用绝对路径完成首轮初始化
+          export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+          "$HOME/flutter_oh/bin/flutter" --version
+          "$HOME/flutter_oh/bin/flutter" config --ohos-sdk "$HOS_SDK_HOME"
+          "$HOME/flutter_oh/bin/flutter" doctor | grep -i -A4 "HarmonyOS" || true
 
       - name: flutter pub get（含重试）
         run: |
