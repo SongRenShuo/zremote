@@ -4,18 +4,25 @@
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-11-16
+
+> 后台通知可靠性 + 鸿蒙构建链路：修复后台任务完成通知（心跳唤醒 + 事件去重 + 文案如实化）；鸿蒙 hap 构建打通并接入发行产物（HarmonyOS NEXT 支持仍在开发中）。本地 **1222 例全绿** + analyze 零问题。
+
 ### 新增
 
-- **鸿蒙 hap 本机构建打通**：装齐 Flutter-OH SDK + HarmonyOS 命令行工具（6.1.1.280），修复 module.json5 schema 错误（`pathStartWith` / 移除未预定义权限），加 `tool/patch_ohos_autofill.py` 修复 CPF 嵌入层 Autofill 超前 API 编译错误；`flutter build hap --debug --no-codesign` 成功产出 148MB 未签名 hap（CI 同步接入补丁与完整工具链）
+- **鸿蒙 hap 构建打通并接入发行产物**：装齐 Flutter-OH SDK + HarmonyOS 命令行工具（6.1.1.280），修复 module.json5 schema 错误（`pathStartWith` / 移除未预定义权限），加 `tool/patch_ohos_autofill.py` 修复 CPF 嵌入层 Autofill 超前 API 编译错误；`flutter build hap --no-codesign` 成功产出未签名 hap，CI/Release 同批构建 `ZRemoteX-v<版本>-ohos.hap`
 
 ### 变更
 
 - **鸿蒙（HarmonyOS NEXT）支持立项 + 平台能力抽象**：新增 `PlatformCaps` 统一平台判定（规避 stock Flutter 无 `Platform.isOhos`），账号授权 / 配额 / WebView 隔离三处平台分支补鸿蒙路径；设置页「平台限制说明」由 iOS 专属泛化为 iOS / 鸿蒙各显各自条目（`3691207`）
-- **开发计划**：新增 [鸿蒙 NEXT 全面支持开发计划](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md)（方案裁定 / 差距分析 / 分阶段 P0–P6 / 风险与验收）
 
 ### 修复
 
-- **后台任务完成通知失效**：完成通知此前完全寄生在 WebView 注入 JS 观察者上，切后台后 JS 被省电策略冻结 → 事件丢失，回前台重载才靠全量快照 diff 补发（用户「重连后才推送」）。新增后台心跳（D1：保活期间每 20s 用 `evaluateJavascript` 唤醒 JS 轮询并主动拉任务快照经 `zrBgSnapshot` 回传 diff 弹通知）+ 完成事件去重持久化（D3：10min 窗口防多链路重复）+ 保活文案如实化（D4：不再绝对承诺）。P0 裁定否决 Dart/原生直连方案（所有宿主数据访问必经 WebView JS 桥）。本地 1222 例全绿 + analyze 零问题；真机 E2E 因设备离线 not run（`82d560b`）
+- **后台任务完成通知失效**：完成通知此前完全寄生在 WebView 注入 JS 观察者上，切后台后 JS 被省电策略冻结 → 事件丢失，回前台重载才靠全量快照 diff 补发（用户「重连后才推送」）。新增后台心跳（D1：保活期间每 20s 用 `evaluateJavascript` 唤醒 JS 轮询并主动拉任务快照经 `zrBgSnapshot` 回传 diff 弹通知）+ 完成事件去重持久化（D3：10min 窗口防多链路重复）+ 保活文案如实化（D4：不再绝对承诺）。P0 裁定否决 Dart/原生直连方案（所有宿主数据访问必经 WebView JS 桥）。真机走查：心跳/callHandler 后台可用，宿主 `ChannelClient` 后台 disposed 属宿主侧限制，可靠路径为去重 + 回前台补发（`82d560b`）
+
+### 文档
+
+- 新增 [鸿蒙 NEXT 全面支持开发计划](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md)（方案裁定 / 差距分析 / 分阶段 P0–P6 / 风险与验收）
 
 ## [2.0.3] - 2026-11-16
 
