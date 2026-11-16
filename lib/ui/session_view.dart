@@ -199,8 +199,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
     debugPrint('[zr-keepalive] bg tick device=${widget.device.id}');
     unawaited(
       controller.evaluateJavascript(
-        source: 'window.__zrKeepAliveTick && window.__zrKeepAliveTick()',
-      ),
+        source: 'window.__zrKeepAliveTick ? window.__zrKeepAliveTick() : "no-tick"',
+      ).then((r) => debugPrint('[zr-keepalive] tick result=$r')),
     );
   }
 

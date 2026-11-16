@@ -82,6 +82,7 @@
 
 - **L37 方案选型进入实施前必须读真实调用链验证前提，别按概念设计投入**。证据：后台推送失效计划原提 D2（Dart 独立轮询宿主）/D5（原生直连宿主）看似根治，读代码发现全仓宿主数据访问都走 `RpcBridge.call → LoopbackDispatchServer.push → 注入 WebView 的 JS poll → callHandler 回传`（`rpc_bridge.dart:152-228`、`rpc_dispatch.dart:56-95`），Dart/原生无法绕过 JS 直连宿主 → D2/D5 地基不存在，当场否决改走 D1（后台心跳唤醒 JS）。判据：**任何"绕过某层直连"的方案，先 grep 该层是不是唯一通道**；实施前先证伪再投入工时（S2 反向验证在选型上的延伸）。**Seen 1× (11-16)**
 - **L38 "保活"与"事件→通知"是两条链路：进程存活不等于后台事件能被观察**。证据：完成通知完全寄生在 WebView 注入 JS 观察者上，`KeepAliveService.kt` 前台服务+WakeLock 只保 Dart 进程，切后台后 JS 被省电策略冻结即丢完成事件，回前台 reload 靠 `StateDiffer` 全量快照 diff 才补发（用户"重连后才推送"）；`NotificationGate` 后台放行、通知插件正常，断点在事件产生/回传而非显示。判据：**后台收不到通知先分清是"事件没产生"还是"通知没显示"**；寄生在 WebView JS 上的事件链路必须配后台唤醒（如 `evaluateJavascript` 心跳）+ 去重持久化兜底，且文案不可绝对承诺。**Seen 1× (11-16)**
+- **L39 JS→Dart 的 callHandler 后台可用 ≠ 宿主业务 RPC 后台可用；宿主会在后台 dispose 自己的 ChannelClient**。证据：真机诊断后台 `__zrKeepAliveTick` 能找到宿主注册表 + `windowControllerService.listTaskList`（`hasReg/hasSvc/hasFn` 全 true），诊断数据也能经 `callHandler` 回传 Dart，但 `listTaskList()` 每次抛 `ChannelClient is disposed`——宿主在页面后台主动释放其原生 RPC client 省电，App 侧无法绕过。判据：**验证后台链路要分层测**（JS 执行 / callHandler 回传 / 宿主服务调用三层独立），不能因 callHandler 通了就断定业务 RPC 可用；宿主后台 dispose client 时，"主动拉状态"方案无效，只能靠"回前台补发 + 去重 + 文案如实"。**Seen 1× (11-16)**
 
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
