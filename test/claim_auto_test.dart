@@ -369,5 +369,91 @@ void main() {
       hub.detach('d1');
       expect(container.read(claimSchedulerHubProvider).containsKey('d1'), isFalse);
     });
+
+    test('Blocked 落史：runNow preview 抛错 → 历史阻断记录；同因去重不刷屏',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final hub = container.read(claimSchedulerHubProvider.notifier);
+
+      // errors 覆盖别名重试的全部命令槽（L7：候选数 × 重试次数），
+      // 否则耗尽回空会被当成"无券"阻断而非 preview 异常。
+      final bridge = ScriptedBridge(
+        script: const [],
+        errors: {for (var i = 0; i < 12; i++) i: 'boom'},
+      );
+      await hub.attach(device, bridge.bridge);
+      hub.updateConfig('d1', const ClaimAutoConfig(enabled: true));
+      expect(await hub.runNow('d1'), isTrue);
+
+      final board = container.read(claimHistoryProvider)['d1'];
+      expect(board, isNotNull);
+      expect(board!.records, hasLength(1));
+      expect(
+        board.records.single.blockedReason,
+        ClaimBlockedReason.previewError,
+      );
+      expect(board.records.single.success, isFalse);
+      expect(board.records.single.source, ClaimRecordSource.auto);
+      expect(board.records.single.message, contains('boom'));
+
+      // 同因在 1h 窗口内再跑一轮：去重，不新增记录（防冷却循环刷屏）。
+      expect(await hub.runNow('d1'), isTrue);
+      expect(container.read(claimHistoryProvider)['d1']!.records, hasLength(1));
+    });
+
+    test('detach 清去重账：重新 attach 后同因可再记', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final hub = container.read(claimSchedulerHubProvider.notifier);
+
+      await hub.attach(
+        device,
+        ScriptedBridge(
+          script: const [],
+          errors: {for (var i = 0; i < 12; i++) i: 'boom'},
+        ).bridge,
+      );
+      hub.updateConfig('d1', const ClaimAutoConfig(enabled: true));
+      expect(await hub.runNow('d1'), isTrue);
+      expect(container.read(claimHistoryProvider)['d1']!.records, hasLength(1));
+
+      hub.detach('d1');
+      await hub.attach(
+        device,
+        ScriptedBridge(
+          script: const [],
+          errors: {for (var i = 0; i < 12; i++) i: 'boom-2'},
+        ).bridge,
+      );
+      hub.updateConfig('d1', const ClaimAutoConfig(enabled: true));
+      expect(await hub.runNow('d1'), isTrue);
+      expect(
+        container.read(claimHistoryProvider)['d1']!.records,
+        hasLength(2),
+        reason: 'detach 清账后同因可再记',
+      );
+    });
+
+    test('无代理 runNow → false；快照无代理 → null', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final hub = container.read(claimSchedulerHubProvider.notifier);
+      expect(await hub.runNow('none'), isFalse);
+      expect(hub.snapshotOf('none'), isNull);
+    });
+
+    test('snapshotOf：代理存在时暴露冷却与启用态', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final hub = container.read(claimSchedulerHubProvider.notifier);
+
+      await hub.attach(device, ScriptedBridge(script: const []).bridge);
+      final s = hub.snapshotOf('d1');
+      expect(s, isNotNull);
+      expect(s!.enabled, isFalse, reason: '默认关');
+      expect(s.cooldownUntil, isNull);
+      expect(s.roundInFlight, isFalse);
+    });
   });
 }

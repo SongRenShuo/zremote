@@ -173,6 +173,15 @@ abstract class ClaimRpcClient {
   });
 }
 
+/// 账号未配置套餐（宿主业务错 manual_claim_preview_missing_data 的
+/// 结构化形态）：自动轮按"业务态"干净收轮，不冷却。
+class ClaimPreviewMissingData implements Exception {
+  const ClaimPreviewMissingData();
+
+  @override
+  String toString() => 'manual_claim_preview_missing_data';
+}
+
 /// 通路 A：宿主 RPC（默认）。方法与参数形状对齐 claim_page 手动链路。
 class HostClaimRpcClient implements ClaimRpcClient {
   HostClaimRpcClient(this._bridge);
@@ -191,8 +200,10 @@ class HostClaimRpcClient implements ClaimRpcClient {
     } on RpcRemoteException catch (e) {
       // 宿主实测（2026-11-14）：账号未配置套餐抛业务错
       // manual_claim_preview_missing_data —— 视为"无券可领"而非失败。
+      // 结构化抛出（20261116-2341）：自动轮据此落"未绑套餐"阻断记录，
+      // 与普通"无券"区分（补救路径不同：绑套餐 vs 等放券）。
       if (e.message.contains('manual_claim_preview_missing_data')) {
-        return const [];
+        throw const ClaimPreviewMissingData();
       }
       rethrow;
     }
@@ -386,6 +397,55 @@ class ClaimAutoCaptchaNeeded extends ClaimSchedulerEvent {
   final ClaimPreview plan;
 }
 
+/// 自动轮被阻断的原因（20261116-2341 D1：静默失败可见化）。
+enum ClaimBlockedReason {
+  /// preview RPC 异常（网络/超时/服务错误）。
+  previewError,
+
+  /// 验证码配置 RPC 异常。
+  captchaConfigError,
+
+  /// 活动暂不可领（验证码通道未开 / sceneId 空）。
+  activityClosed,
+
+  /// 无券可领（preview 空列表）。
+  noPlans,
+
+  /// 账号未配置套餐（manual_claim_preview_missing_data）。
+  accountNotConfigured,
+}
+
+/// 自动轮阻断事件：本轮没有产生任何领取动作的原因。
+/// 装配层（hub）落历史并同因去重，替代原先只 debugPrint 的静默路径。
+class ClaimAutoBlocked extends ClaimSchedulerEvent {
+  const ClaimAutoBlocked({required this.reason, this.detail = ''});
+
+  final ClaimBlockedReason reason;
+
+  /// 异常详情（仅 *_error 类原因携带）。
+  final String detail;
+}
+
+/// 自动轮状态快照（UI 展示冷却/在飞/启用态，D1③）。
+class ClaimSchedulerSnapshot {
+  const ClaimSchedulerSnapshot({
+    required this.enabled,
+    required this.roundInFlight,
+    this.cooldownUntil,
+    this.manualCooldownUntil,
+  });
+
+  final bool enabled;
+
+  final bool roundInFlight;
+
+  /// 失败冷却截止（null = 无冷却）。
+  final DateTime? cooldownUntil;
+
+  /// 手动操作冷却截止（null = 无冷却）。
+  final DateTime? manualCooldownUntil;
+}
+
 /// 自动领取调度代理（纯逻辑，时钟/延迟/RPC 全注入，可全矩阵单测）。
 ///
 /// 生命周期由装配层（claim_scheduler_hub）驱动：attach 时创建并按配置
@@ -453,6 +513,36 @@ class ClaimSchedulerAgent {
   @visibleForTesting
   bool get started => _started;
 
+  /// 自动领取是否已启用（UI「立即执行」入口的可用判据）。
+  bool get enabled => _config.enabled;
+
+  /// 当前是否有轮次在飞。
+  bool get roundInFlight => _roundInFlight;
+
+  /// UI 展示用状态快照（冷却截止/在飞/启用态，20261116-2341 D1③）。
+  ClaimSchedulerSnapshot snapshot() => ClaimSchedulerSnapshot(
+    enabled: _config.enabled,
+    roundInFlight: _roundInFlight,
+    cooldownUntil: _cooldownUntil,
+    manualCooldownUntil: _manualCooldownUntil,
+  );
+
+  /// 立即执行一轮（UI「立即执行一轮」入口，20261116-2341 D1②）：
+  /// 清除失败冷却并越过首轮延迟，立即跑一轮。
+  ///
+  /// 门控保留：未启用 / 设备非 live / 手动操作进行中 / 已有轮次在飞
+  /// 时不触发（返回 false）。与在飞自动循环互斥由 [_roundInFlight] 保证；
+  /// 循环若在门控等待中，其醒来后照常检查门（冷却已被清，直接跑轮）。
+  Future<bool> runNow() async {
+    if (!_config.enabled) return false;
+    if (!_live) return false;
+    if (_manualActive) return false;
+    if (_roundInFlight) return false;
+    _cooldownUntil = null;
+    await _runRound(_generation);
+    return true;
+  }
+
   void start() {
     if (_started) return;
     if (!_config.enabled) return; // 开关默认关：未启用不启动（零调用）。
@@ -516,6 +606,8 @@ class ClaimSchedulerAgent {
     final now = _now();
     if (!_live) return ClaimSchedulerPolicy.liveRecheck;
     if (_manualActive) return ClaimSchedulerPolicy.manualRecheck;
+    // runNow 触发的轮次在飞 → 循环让位复查（防双轮并发，20261116-2341 R3）。
+    if (_roundInFlight) return ClaimSchedulerPolicy.manualRecheck;
     final manualCd = _manualCooldownUntil;
     if (manualCd != null && now.isBefore(manualCd)) {
       return manualCd.difference(now);
@@ -544,14 +636,34 @@ class ClaimSchedulerAgent {
         final List<ClaimPreview> previews;
         try {
           previews = await _client.fetchPreviews();
+        } on ClaimPreviewMissingData {
+          // 账号未配置套餐：业务态，干净收轮（不冷却）+ 阻断记录。
+          onEvent?.call(
+            const ClaimAutoBlocked(
+              reason: ClaimBlockedReason.accountNotConfigured,
+            ),
+          );
+          return;
         } catch (e) {
           _cooldownUntil = _now().add(
             ClaimSchedulerPolicy.genericFailureCooldown,
           );
           debugPrint('[claim-auto] $deviceId preview error: $e');
+          onEvent?.call(
+            ClaimAutoBlocked(
+              reason: ClaimBlockedReason.previewError,
+              detail: e.toString(),
+            ),
+          );
           return;
         }
-        if (previews.isEmpty) return; // 无券可领，干净收轮（不冷却）。
+        if (previews.isEmpty) {
+          // 无券可领，干净收轮（不冷却）+ 阻断记录（D1：不再静默）。
+          onEvent?.call(
+            const ClaimAutoBlocked(reason: ClaimBlockedReason.noPlans),
+          );
+          return;
+        }
         final plan = previews.first;
 
         final CaptchaConfig cfg;
@@ -562,12 +674,21 @@ class ClaimSchedulerAgent {
             ClaimSchedulerPolicy.genericFailureCooldown,
           );
           debugPrint('[claim-auto] $deviceId captchaConfig error: $e');
+          onEvent?.call(
+            ClaimAutoBlocked(
+              reason: ClaimBlockedReason.captchaConfigError,
+              detail: e.toString(),
+            ),
+          );
           return;
         }
         if (!cfg.enabled || cfg.sceneId.isEmpty) {
-          // 活动暂不可领（验证码通道未开）→ 按普通失败冷却。
+          // 活动暂不可领（验证码通道未开）→ 按普通失败冷却 + 阻断记录。
           _cooldownUntil = _now().add(
             ClaimSchedulerPolicy.genericFailureCooldown,
+          );
+          onEvent?.call(
+            const ClaimAutoBlocked(reason: ClaimBlockedReason.activityClosed),
           );
           return;
         }

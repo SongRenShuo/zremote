@@ -42,6 +42,7 @@ class _FakeDelay {
 class _FakeClaimClient implements ClaimRpcClient {
   List<ClaimPreview> previews = [];
   Object? previewError;
+  Object? configError;
   CaptchaConfig config = const CaptchaConfig(
     enabled: true,
     region: 'cn',
@@ -70,6 +71,7 @@ class _FakeClaimClient implements ClaimRpcClient {
   @override
   Future<CaptchaConfig> fetchCaptchaConfig() async {
     configCalls++;
+    if (configError != null) throw configError!;
     return config;
   }
 
@@ -445,7 +447,8 @@ void main() {
       expect(h.client.claimCalls, 2, reason: '10min 后恢复');
     });
 
-    test('preview 抛错 → 10min 冷却且零 claim', () async {
+    test('preview 抛错 → 10min 冷却且零 claim + 阻断记录（D1 不再静默）',
+        () async {
       final h = _Harness(DateTime(2026, 11, 15, 12));
       h.client.previewError = const RpcRemoteException('x', 'boom');
       h.makeAgent();
@@ -455,11 +458,12 @@ void main() {
       expect(h.client.previewCalls, 1);
       expect(h.client.claimCalls, 0);
       expect(h.agent.cooldownUntil, DateTime(2026, 11, 15, 12, 12));
-      expect(h.events, isEmpty);
+      final blocked = h.events.single as ClaimAutoBlocked;
+      expect(blocked.reason, ClaimBlockedReason.previewError);
+      expect(blocked.detail, contains('boom'));
     });
 
-    test('preview 业务空（manual_claim_preview_missing_data 由客户端归一）',
-        () async {
+    test('preview 业务空（无券可领）→ 阻断记录 noPlans，无冷却', () async {
       final h = _Harness(DateTime(2026, 11, 15, 12));
       h.client.previews = [];
       h.makeAgent();
@@ -468,6 +472,58 @@ void main() {
 
       expect(h.client.previewCalls, 1);
       expect(h.agent.cooldownUntil, isNull, reason: '无券可领不冷却');
+      final blocked = h.events.single as ClaimAutoBlocked;
+      expect(blocked.reason, ClaimBlockedReason.noPlans);
+    });
+
+    test('账号未绑套餐（ClaimPreviewMissingData）→ 阻断记录，无冷却零 claim',
+        () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previewError = const ClaimPreviewMissingData();
+      h.makeAgent();
+      h.agent.start();
+      await h.advance(const Duration(minutes: 2));
+
+      expect(h.client.previewCalls, 1);
+      expect(h.client.claimCalls, 0);
+      expect(h.agent.cooldownUntil, isNull, reason: '业务态干净收轮不冷却');
+      final blocked = h.events.single as ClaimAutoBlocked;
+      expect(blocked.reason, ClaimBlockedReason.accountNotConfigured);
+    });
+
+    test('captchaConfig 抛错 → 阻断记录 + 10min 冷却', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.client.configError = const RpcTimeoutException('cfg');
+      h.makeAgent();
+      h.agent.start();
+      await h.advance(const Duration(minutes: 2));
+
+      expect(h.client.configCalls, 1);
+      expect(h.client.claimCalls, 0);
+      expect(h.agent.cooldownUntil, DateTime(2026, 11, 15, 12, 12));
+      final blocked = h.events.single as ClaimAutoBlocked;
+      expect(blocked.reason, ClaimBlockedReason.captchaConfigError);
+    });
+
+    test('活动未开（验证码通道关）→ 阻断记录 activityClosed + 10min 冷却',
+        () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.client.config = const CaptchaConfig(
+        enabled: false,
+        region: 'cn',
+        prefix: 'p',
+        sceneId: '',
+      );
+      h.makeAgent();
+      h.agent.start();
+      await h.advance(const Duration(minutes: 2));
+
+      expect(h.client.claimCalls, 0);
+      expect(h.agent.cooldownUntil, DateTime(2026, 11, 15, 12, 12));
+      final blocked = h.events.single as ClaimAutoBlocked;
+      expect(blocked.reason, ClaimBlockedReason.activityClosed);
     });
 
     test('静默跨天 23:00–08:00：23:30 启动 → 次日 08:00 才跑', () async {
@@ -590,6 +646,99 @@ void main() {
     });
   });
 
+  group('runNow 立即执行一轮（20261116-2341 D1②）', () {
+    test('未启用 → false 零调用（零调用不变量保持）', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.makeAgent(config: const ClaimAutoConfig(enabled: false));
+      expect(await h.agent.runNow(), isFalse);
+      expect(h.client.previewCalls, 0);
+    });
+
+    test('启用未 start → 越过首轮延迟立即跑一轮（连领到上限）', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.makeAgent();
+      expect(await h.agent.runNow(), isTrue);
+      expect(h.client.previewCalls, 5, reason: '成功后重新 preview，单轮上限 5');
+      expect(h.client.claimCalls, 5);
+      expect(h.events.every((e) => e is ClaimAutoSucceeded), isTrue);
+    });
+
+    test('非 live / 手动进行中 → false', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [];
+      h.makeAgent();
+
+      h.agent.setLive(false);
+      expect(await h.agent.runNow(), isFalse, reason: '非 live 不触发');
+      expect(h.client.previewCalls, 0);
+
+      h.agent.setLive(true);
+      h.agent.manualStarted();
+      expect(await h.agent.runNow(), isFalse, reason: '手动进行中不触发');
+      expect(h.client.previewCalls, 0);
+    });
+
+    test('失败冷却被清除：1003 冷却中 runNow 立即重试', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.client.nextOutcome = const ClaimOutcome(success: false, code: 1003);
+      h.makeAgent();
+      expect(await h.agent.runNow(), isTrue);
+      expect(h.client.claimCalls, 1);
+      expect(
+        h.agent.cooldownUntil,
+        DateTime(2026, 11, 15, 13),
+        reason: '1003 → 1h 冷却（runNow 时刻 12:00 起）',
+      );
+
+      h.client.nextOutcome = const ClaimOutcome(success: false, code: 1002);
+      expect(await h.agent.runNow(), isTrue, reason: 'runNow 清冷却立即重试');
+      expect(h.client.claimCalls, 2);
+      expect(
+        h.agent.cooldownUntil,
+        DateTime(2026, 11, 15, 13),
+        reason: '1002 → 1h 重新冷却',
+      );
+    });
+
+    test('轮次在飞 → false（与自动循环互斥）', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.client.holdClaim = Completer<void>();
+      h.makeAgent();
+      h.agent.start();
+      await h.advance(const Duration(minutes: 2));
+      expect(h.client.claimCalls, 1, reason: '自动轮 claim 在飞');
+
+      expect(await h.agent.runNow(), isFalse, reason: '在飞时不触发');
+
+      h.client.holdClaim!.complete();
+      await pumpEventQueue();
+      expect(h.client.claimCalls, 5, reason: '在飞轮次继续连领到上限');
+      expect(h.events.every((e) => e is ClaimAutoSucceeded), isTrue);
+      expect(h.events, isNotEmpty);
+    });
+
+    test('snapshot 读数：enabled/roundInFlight/冷却截止', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [h.plan()];
+      h.client.nextOutcome = const ClaimOutcome(success: false, code: 1003);
+      final agent = h.makeAgent();
+
+      var s = agent.snapshot();
+      expect(s.enabled, isTrue);
+      expect(s.roundInFlight, isFalse);
+      expect(s.cooldownUntil, isNull);
+
+      await agent.runNow();
+      s = agent.snapshot();
+      expect(s.enabled, isTrue, reason: '快照反映配置态');
+      expect(s.cooldownUntil, DateTime(2026, 11, 15, 13), reason: '1003 → 1h');
+    });
+  });
+
   group('HostClaimRpcClient（通路 A）', () {
     test('红线：无 captchaVerifyParam 本地拒绝，零派发', () async {
       final bridge = ScriptedBridge(script: const []);
@@ -601,13 +750,17 @@ void main() {
       expect(bridge.commands, isEmpty);
     });
 
-    test('preview 业务错 manual_claim_preview_missing_data → 空列表', () async {
+    test('preview 业务错 manual_claim_preview_missing_data → 结构化异常',
+        () async {
       final bridge = ScriptedBridge(
         script: const [[]],
         errors: {0: 'manual_claim_preview_missing_data'},
       );
       final client = HostClaimRpcClient(bridge.bridge);
-      expect(await client.fetchPreviews(), isEmpty);
+      await expectLater(
+        client.fetchPreviews(),
+        throwsA(isA<ClaimPreviewMissingData>()),
+      );
     });
 
     test('preview 解析 + priority 降序排序', () async {

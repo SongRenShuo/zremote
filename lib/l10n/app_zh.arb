@@ -1284,6 +1284,67 @@
   "@claimAutoSilentReset": {
     "description": "Button to restore default silent hours in the sheet"
   },
+  "claimBatchAction": "一键领取",
+  "@claimBatchAction": {
+    "description": "Batch claim button above plan list (20261116-2341)"
+  },
+  "claimBatchSummary": "领取完成：成功 {ok}，失败 {fail}",
+  "@claimBatchSummary": {
+    "description": "Batch claim summary snackbar",
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "fail": {
+        "type": "int"
+      }
+    }
+  },
+  "claimRunNowAction": "立即执行一轮",
+  "@claimRunNowAction": {
+    "description": "Run-one-auto-round button in auto-claim card (20261116-2341)"
+  },
+  "claimRunNowRejected": "当前无法立即执行（需开启自动领取且设备在线）",
+  "@claimRunNowRejected": {
+    "description": "Snackbar when run-now is rejected by scheduler gates"
+  },
+  "claimAutoCooldown": "冷却至 {time}",
+  "@claimAutoCooldown": {
+    "description": "Auto round failure cooldown deadline display",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoRoundRunning": "自动轮进行中",
+  "@claimAutoRoundRunning": {
+    "description": "Auto round currently in flight"
+  },
+  "claimAutoSessionHint": "仅在设备会话连接期间运行，切后台或断开会暂停",
+  "@claimAutoSessionHint": {
+    "description": "Honest-scope hint under auto-claim card (20261116-2341 D1④)"
+  },
+  "claimBlockedPreviewError": "自动轮被阻断：可领列表获取失败",
+  "@claimBlockedPreviewError": {
+    "description": "History blocked record: previews fetch error"
+  },
+  "claimBlockedCaptchaConfig": "自动轮被阻断：验证码配置获取失败",
+  "@claimBlockedCaptchaConfig": {
+    "description": "History blocked record: captcha config fetch error"
+  },
+  "claimBlockedActivityClosed": "自动轮被阻断：活动暂不可领",
+  "@claimBlockedActivityClosed": {
+    "description": "History blocked record: activity closed"
+  },
+  "claimBlockedNoPlans": "自动轮检查完成：当前无可领活动",
+  "@claimBlockedNoPlans": {
+    "description": "History blocked record: no claimable plans"
+  },
+  "claimBlockedAccountNotConfigured": "自动轮被阻断：账号未配置套餐",
+  "@claimBlockedAccountNotConfigured": {
+    "description": "History blocked record: account has no plan configured"
+  },
   "claimAutoTabLabel": "可领活动",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

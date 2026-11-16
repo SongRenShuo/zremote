@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/claim_scheduler.dart';
 import '../services/device_store.dart';
 
 /// 领取记录来源。
@@ -14,17 +15,28 @@ ClaimRecordSource claimRecordSourceOf(String name) =>
       orElse: () => ClaimRecordSource.manual,
     );
 
+/// 阻断记录的原因解析（20261116-2341 D1）：未知名/缺失返回 null。
+ClaimBlockedReason? claimBlockedReasonOf(String? name) {
+  if (name == null) return null;
+  for (final r in ClaimBlockedReason.values) {
+    if (r.name == name) return r;
+  }
+  return null;
+}
+
 /// 单次领取记录（时间/套餐/结果码/结果文案/来源/权益摘要）。
+/// 阻断记录（blockedReason 非 null）没有 planId/planName，只有原因与详情。
 class ClaimRecord {
   const ClaimRecord({
     required this.at,
-    required this.planId,
+    this.planId = '',
     this.planName = '',
     this.success = false,
     this.code,
     this.message = '',
     this.source = ClaimRecordSource.manual,
     this.benefitSummary = '',
+    this.blockedReason,
   });
 
   final DateTime at;
@@ -45,6 +57,10 @@ class ClaimRecord {
   /// 权益摘要（如 "300,000,000 Tokens"），locale 无关的纯数字格式。
   final String benefitSummary;
 
+  /// 阻断原因（自动轮没有产生领取动作时的记录，20261116-2341 D1）。
+  /// 非 null 即阻断记录：时间线渲染为阻断样式而非失败样式。
+  final ClaimBlockedReason? blockedReason;
+
   Map<String, dynamic> toJson() => {
     'at': at.millisecondsSinceEpoch,
     'planId': planId,
@@ -54,13 +70,21 @@ class ClaimRecord {
     if (message.isNotEmpty) 'message': message,
     'source': source.name,
     if (benefitSummary.isNotEmpty) 'benefitSummary': benefitSummary,
+    if (blockedReason != null) 'blockedReason': blockedReason!.name,
   };
 
   /// 容错解析：关键键（at/planId）缺失或类型漂移丢条目，其余字段降级（M5）。
+  /// 阻断记录无 planId，凭 blockedReason 形似保留；两者皆缺则丢条目。
   static ClaimRecord? fromJson(Map<String, dynamic> j) {
     final at = j['at'];
+    if (at is! num) return null;
+    final blockedReason = claimBlockedReasonOf(
+      j['blockedReason'] as String?,
+    );
     final planId = j['planId'];
-    if (at is! num || planId is! String || planId.isEmpty) return null;
+    if (planId is! String || (planId.isEmpty && blockedReason == null)) {
+      return null;
+    }
     return ClaimRecord(
       at: DateTime.fromMillisecondsSinceEpoch(at.toInt()),
       planId: planId,
@@ -74,6 +98,7 @@ class ClaimRecord {
       benefitSummary: j['benefitSummary'] is String
           ? j['benefitSummary'] as String
           : '',
+      blockedReason: blockedReason,
     );
   }
 
@@ -87,7 +112,8 @@ class ClaimRecord {
       other.code == code &&
       other.message == message &&
       other.source == source &&
-      other.benefitSummary == benefitSummary;
+      other.benefitSummary == benefitSummary &&
+      other.blockedReason == blockedReason;
 
   @override
   int get hashCode => Object.hashAll([
@@ -99,6 +125,7 @@ class ClaimRecord {
     message,
     source,
     benefitSummary,
+    blockedReason,
   ]);
 }
 
@@ -219,15 +246,17 @@ class ClaimHistoryNotifier extends Notifier<Map<String, ClaimHistoryBoard>> {
   }
 
   /// 记一条领取结果（手动/自动共用入口），插头部、裁尾至 50 条。
+  /// 阻断记录（blockedReason 非 null）无 planId，见 [ClaimRecord]。
   void record(
     String deviceId, {
-    required String planId,
+    String planId = '',
     String planName = '',
     required bool success,
     int? code,
     String message = '',
     ClaimRecordSource source = ClaimRecordSource.manual,
     String benefitSummary = '',
+    ClaimBlockedReason? blockedReason,
   }) {
     final board = _boardOf(deviceId);
     final entry = ClaimRecord(
@@ -239,6 +268,7 @@ class ClaimHistoryNotifier extends Notifier<Map<String, ClaimHistoryBoard>> {
       message: message,
       source: source,
       benefitSummary: benefitSummary,
+      blockedReason: blockedReason,
     );
     final records = [entry, ...board.records];
     if (records.length > ClaimHistoryBoard.maxRecords) {
