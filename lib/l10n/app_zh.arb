@@ -1453,6 +1453,10 @@
   "@importSheetPasteSub": {
     "description": "Import sheet: paste entry subtitle"
   },
+  "loginEntrySheetSub": "凭据保存到账号库，可稍后再添加设备",
+  "@loginEntrySheetSub": {
+    "description": "Import sheet: login entry subtitle"
+  },
   "pasteDialogSub": "粘贴电脑端生成的控制链接，一次导入长期有效",
   "@pasteDialogSub": {
     "description": "Paste dialog subtitle"
@@ -2858,6 +2862,10 @@
   "acctVaultEntry": "账号库",
   "@acctVaultEntry": {
     "description": "Session account menu: open vault"
+  },
+  "acctLoginEntryHint": "已有账号？登录账号",
+  "@acctLoginEntryHint": {
+    "description": "Add-device card: secondary login entry hint"
   },
   "acctLogoutConfirmTitle": "退出登录？",
   "@acctLogoutConfirmTitle": {
