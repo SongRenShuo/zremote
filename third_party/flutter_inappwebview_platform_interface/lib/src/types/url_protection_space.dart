@@ -26,23 +26,34 @@ List<X509Certificate>? _distinguishedNamesDeserializer(dynamic value) {
   return distinguishedNames;
 }
 
+///Class that represents a protection space requiring authentication.
 @ExchangeableObject()
 class URLProtectionSpace_ {
+  ///The hostname of the server.
   String host;
 
+  ///The protocol of the server - e.g. "http", "ftp", "https".
   String? protocol;
 
+  ///A string indicating a protocol-specific subdivision of a single host.
+  ///For http and https, this maps to the realm string in http authentication challenges.
+  ///For many other protocols it is unused.
   String? realm;
 
+  ///The port of the server.
   int? port;
 
+  ///The SSL certificate used.
   SslCertificate_? sslCertificate;
 
+  ///The SSL Error associated.
   SslError_? sslError;
 
+  ///Use [authenticationMethod] instead.
   @Deprecated("Use authenticationMethod instead")
   IOSNSURLProtectionSpaceAuthenticationMethod_? iosAuthenticationMethod;
 
+  ///The authentication method used by the receiver.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLProtectionSpace.authenticationMethod",
@@ -55,10 +66,14 @@ class URLProtectionSpace_ {
   ])
   URLProtectionSpaceAuthenticationMethod_? authenticationMethod;
 
+  ///Use [distinguishedNames] instead.
   @Deprecated("Use distinguishedNames instead")
   @ExchangeableObjectProperty(deserializer: _distinguishedNamesDeserializer)
   List<X509Certificate>? iosDistinguishedNames;
 
+  ///The acceptable certificate-issuing authorities for client certificate authentication.
+  ///This value is `null` if the authentication method of the protection space is not client certificate.
+  ///The returned issuing authorities are encoded with Distinguished Encoding Rules (DER).
   @ExchangeableObjectProperty(deserializer: _distinguishedNamesDeserializer)
   @SupportedPlatforms(platforms: [
     IOSPlatform(
@@ -72,9 +87,12 @@ class URLProtectionSpace_ {
   ])
   List<X509Certificate>? distinguishedNames;
 
+  ///Use [receivesCredentialSecurely] instead.
   @Deprecated("Use receivesCredentialSecurely instead")
   bool? iosReceivesCredentialSecurely;
 
+  ///A Boolean value that indicates whether the credentials for the protection space can be sent securely.
+  ///This value is `true` if the credentials for the protection space represented by the receiver can be sent securely, `false` otherwise.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLProtectionSpace.receivesCredentialSecurely",
@@ -87,9 +105,13 @@ class URLProtectionSpace_ {
   ])
   bool? receivesCredentialSecurely;
 
+  ///Use [proxyType] instead.
   @Deprecated("Use proxyType instead")
   IOSNSURLProtectionSpaceProxyType_? iosProxyType;
 
+  ///The receiver's proxy type.
+  ///This value is `null` if the receiver does not represent a proxy protection space.
+  ///The supported proxy types are listed in [URLProtectionSpaceProxyType.values].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLProtectionSpace.proxyType",

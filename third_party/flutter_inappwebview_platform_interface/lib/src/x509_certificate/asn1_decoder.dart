@@ -44,6 +44,8 @@ class ASN1DERDecoder {
 
           asn1obj.encoded = Uint8List.fromList(contentData);
 
+          // decode the content data with come more convenient format
+
           var tagNumber = asn1obj.identifier!.tagNumber();
 
           if (tagNumber == ASN1IdentifierTagNumber.END_OF_CONTENT) {
@@ -55,7 +57,7 @@ class ASN1DERDecoder {
             }
           } else if (tagNumber == ASN1IdentifierTagNumber.INTEGER) {
             while (contentData.length > 0 && contentData.first == 0) {
-              contentData.removeAt(0);
+              contentData.removeAt(0); // remove not significant digit
             }
             asn1obj.value = contentData;
           } else if (tagNumber == ASN1IdentifierTagNumber.NULL) {
@@ -85,7 +87,7 @@ class ASN1DERDecoder {
             asn1obj.value = generalizedTimeToDate(contentData: contentData);
           } else if (tagNumber == ASN1IdentifierTagNumber.BIT_STRING) {
             if (contentData.length > 0) {
-              contentData.removeAt(0);
+              contentData.removeAt(0); // unused bits
             }
             asn1obj.value = contentData;
           } else if (tagNumber == ASN1IdentifierTagNumber.OCTET_STRING) {
@@ -104,9 +106,11 @@ class ASN1DERDecoder {
               }
             }
           } else {
+            // print("unsupported tag: ${asn1obj.identifier.tagNumber()}");
             asn1obj.value = contentData;
           }
         } else {
+          // custom/private tag
 
           var contentData = loadSubContent(iterator: iterator);
 
@@ -135,6 +139,7 @@ class ASN1DERDecoder {
       } catch (e) {}
       if (first != null) {
         if ((first & 0x80) != 0) {
+          // long
 
           var octetsToRead = first - 0x80;
           var data = <int>[];
@@ -152,6 +157,7 @@ class ASN1DERDecoder {
 
           return toIntValue(data) ?? BigInt.from(0);
         } else {
+          // short
           return BigInt.from(first);
         }
       }
@@ -186,6 +192,7 @@ class ASN1DERDecoder {
     return byteArray;
   }
 
+  /// Decode DER OID bytes to String with dot notation
   static String? decodeOid({required List<int> contentData}) {
     if (contentData.isEmpty) {
       return null;
@@ -208,7 +215,31 @@ class ASN1DERDecoder {
     return oid;
   }
 
+  ///Converts a UTCTime value to a date.
+  ///
+  ///Note: GeneralizedTime has 4 digits for the year and is used for X.509
+  ///dates past 2049. Parsing that structure hasn't been implemented yet.
+  ///
+  ///[contentData] the UTCTime value to convert.
   static DateTime? utcTimeToDate({required List<int> contentData}) {
+    /* The following formats can be used:
+      YYMMDDhhmmZ
+      YYMMDDhhmm+hh'mm'
+      YYMMDDhhmm-hh'mm'
+      YYMMDDhhmmssZ
+      YYMMDDhhmmss+hh'mm'
+      YYMMDDhhmmss-hh'mm'
+      Where:
+      YY is the least significant two digits of the year
+      MM is the month (01 to 12)
+      DD is the day (01 to 31)
+      hh is the hour (00 to 23)
+      mm are the minutes (00 to 59)
+      ss are the seconds (00 to 59)
+      Z indicates that local time is GMT, + indicates that local time is
+      later than GMT, and - indicates that local time is earlier than GMT
+      hh' is the absolute value of the offset from GMT in hours
+      mm' is the absolute value of the offset from GMT in minutes */
 
     String? utc;
     try {
@@ -218,6 +249,7 @@ class ASN1DERDecoder {
       return null;
     }
 
+    // if YY >= 50 use 19xx, if YY < 50 use 20xx
     var year = int.parse(utc.substring(0, 2), radix: 10);
     year = (year >= 50) ? 1900 + year : 2000 + year;
     // ignore: non_constant_identifier_names
@@ -230,11 +262,15 @@ class ASN1DERDecoder {
 
     int? end;
     String? c;
+    // not just YYMMDDhhmmZ
     if (utc.length > 11) {
+      // get character after minutes
       c = utc[10];
       end = 10;
 
+      // see if seconds are present
       if (c != '+' && c != '-') {
+        // get seconds
         ss = int.parse(utc.substring(10, 12), radix: 10);
         end += 2;
       }
@@ -243,17 +279,21 @@ class ASN1DERDecoder {
     var date = DateTime.utc(year, MM, DD, hh, mm, ss, 0);
 
     if (end != null) {
+      // get +/- after end of time
       c = utc[end];
       if (c == '+' || c == '-') {
+        // get hours+minutes offset
         var hhoffset =
             int.parse(utc.substring(end + 1, end + 1 + 2), radix: 10);
         var mmoffset =
             int.parse(utc.substring(end + 4, end + 4 + 2), radix: 10);
 
+        // calculate offset in milliseconds
         var offset = hhoffset * 60 + mmoffset;
         offset *= 60000;
 
         var offsetDuration = Duration(milliseconds: offset);
+        // apply offset
         if (c == '+') {
           date.subtract(offsetDuration);
         } else {
@@ -265,7 +305,31 @@ class ASN1DERDecoder {
     return date;
   }
 
+  ///Converts a GeneralizedTime value to a date.
+  ///
+  ///[contentData] the GeneralizedTime value to convert.
   static DateTime? generalizedTimeToDate({required List<int> contentData}) {
+    /* The following formats can be used:
+      YYYYMMDDHHMMSS
+      YYYYMMDDHHMMSS.fff
+      YYYYMMDDHHMMSSZ
+      YYYYMMDDHHMMSS.fffZ
+      YYYYMMDDHHMMSS+hh'mm'
+      YYYYMMDDHHMMSS.fff+hh'mm'
+      YYYYMMDDHHMMSS-hh'mm'
+      YYYYMMDDHHMMSS.fff-hh'mm'
+      Where:
+      YYYY is the year
+      MM is the month (01 to 12)
+      DD is the day (01 to 31)
+      hh is the hour (00 to 23)
+      mm are the minutes (00 to 59)
+      ss are the seconds (00 to 59)
+      .fff is the second fraction, accurate to three decimal places
+      Z indicates that local time is GMT, + indicates that local time is
+      later than GMT, and - indicates that local time is earlier than GMT
+      hh' is the absolute value of the offset from GMT in hours
+      mm' is the absolute value of the offset from GMT in minutes */
 
     String? gentime;
     try {
@@ -275,6 +339,7 @@ class ASN1DERDecoder {
       return null;
     }
 
+    // if YY >= 50 use 19xx, if YY < 50 use 20xx
     // ignore: non_constant_identifier_names
     var YYYY = int.parse(gentime.substring(0, 4), radix: 10);
     // ignore: non_constant_identifier_names
@@ -296,14 +361,17 @@ class ASN1DERDecoder {
     var end = gentime.length - 5;
     var c = gentime[end];
     if (c == '+' || c == '-') {
+      // get hours+minutes offset
       var hhoffset =
           int.parse(gentime.substring(end + 1, end + 1 + 2), radix: 10);
       var mmoffset =
           int.parse(gentime.substring(end + 4, end + 4 + 2), radix: 10);
 
+      // calculate offset in milliseconds
       offset = hhoffset * 60 + mmoffset;
       offset *= 60000;
 
+      // apply offset
       if (c == '+') {
         offset *= -1;
       }
@@ -311,6 +379,7 @@ class ASN1DERDecoder {
       isUTC = true;
     }
 
+    // check for second fraction
     if (gentime[14] == '.') {
       fff = double.parse(gentime.substring(14)) * 1000;
     }

@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'custom_tabs_relation_type.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Custom Tabs relation for which the result is available.
 class CustomTabsRelationType {
   final int _value;
   final int? _nativeValue;
@@ -10,6 +16,10 @@ class CustomTabsRelationType {
           int value, Function nativeValue) =>
       CustomTabsRelationType._internal(value, nativeValue());
 
+  ///Requests the ability to handle all URLs from a given origin.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final HANDLE_ALL_URLS =
       CustomTabsRelationType._internalMultiPlatform(2, () {
     switch (defaultTargetPlatform) {
@@ -21,6 +31,10 @@ class CustomTabsRelationType {
     return null;
   });
 
+  ///For App -> Web transitions, requests the app to use the declared origin to be used as origin for the client app in the web APIs context.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final USE_AS_ORIGIN =
       CustomTabsRelationType._internalMultiPlatform(1, () {
     switch (defaultTargetPlatform) {
@@ -32,11 +46,13 @@ class CustomTabsRelationType {
     return null;
   });
 
+  ///Set of all values of [CustomTabsRelationType].
   static final Set<CustomTabsRelationType> values = [
     CustomTabsRelationType.HANDLE_ALL_URLS,
     CustomTabsRelationType.USE_AS_ORIGIN,
   ].toSet();
 
+  ///Gets a possible [CustomTabsRelationType] instance from [int] value.
   static CustomTabsRelationType? fromValue(int? value) {
     if (value != null) {
       try {
@@ -49,6 +65,7 @@ class CustomTabsRelationType {
     return null;
   }
 
+  ///Gets a possible [CustomTabsRelationType] instance from a native value.
   static CustomTabsRelationType? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -61,8 +78,10 @@ class CustomTabsRelationType {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int?] native value.
   int? toNativeValue() => _nativeValue;
 
   @override

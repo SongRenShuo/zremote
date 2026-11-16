@@ -70,6 +70,7 @@ class ASN1DistinguishedNames {
   @override
   int get hashCode => _oid.hashCode;
 
+  /// Format subject/issuer information in RFC1779
   static String string({required ASN1Object block}) {
     var result = "";
     var oidNames = ASN1DistinguishedNames.values;

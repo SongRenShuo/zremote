@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'print_job_disposition.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class representing the constants that specify values for the print job disposition of a [PlatformPrintJobController].
 class PrintJobDisposition {
   final String _value;
   final String _nativeValue;
@@ -10,6 +16,10 @@ class PrintJobDisposition {
           String value, Function nativeValue) =>
       PrintJobDisposition._internal(value, nativeValue());
 
+  ///Cancel print job.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final CANCEL =
       PrintJobDisposition._internalMultiPlatform('CANCEL', () {
     switch (defaultTargetPlatform) {
@@ -21,6 +31,10 @@ class PrintJobDisposition {
     return null;
   });
 
+  ///Send to Preview application.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final PREVIEW =
       PrintJobDisposition._internalMultiPlatform('PREVIEW', () {
     switch (defaultTargetPlatform) {
@@ -32,6 +46,10 @@ class PrintJobDisposition {
     return null;
   });
 
+  ///Save to a file.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final SAVE = PrintJobDisposition._internalMultiPlatform('SAVE', () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -42,6 +60,10 @@ class PrintJobDisposition {
     return null;
   });
 
+  ///Normal print job.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final SPOOL = PrintJobDisposition._internalMultiPlatform('SPOOL', () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -52,6 +74,7 @@ class PrintJobDisposition {
     return null;
   });
 
+  ///Set of all values of [PrintJobDisposition].
   static final Set<PrintJobDisposition> values = [
     PrintJobDisposition.CANCEL,
     PrintJobDisposition.PREVIEW,
@@ -59,6 +82,7 @@ class PrintJobDisposition {
     PrintJobDisposition.SPOOL,
   ].toSet();
 
+  ///Gets a possible [PrintJobDisposition] instance from [String] value.
   static PrintJobDisposition? fromValue(String? value) {
     if (value != null) {
       try {
@@ -71,6 +95,7 @@ class PrintJobDisposition {
     return null;
   }
 
+  ///Gets a possible [PrintJobDisposition] instance from a native value.
   static PrintJobDisposition? fromNativeValue(String? value) {
     if (value != null) {
       try {
@@ -83,8 +108,10 @@ class PrintJobDisposition {
     return null;
   }
 
+  ///Gets [String] value.
   String toValue() => _value;
 
+  ///Gets [String] native value.
   String toNativeValue() => _nativeValue;
 
   @override

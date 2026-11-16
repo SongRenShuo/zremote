@@ -1,19 +1,43 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'http_authentication_challenge.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the challenge of the [PlatformWebViewCreationParams.onReceivedHttpAuthRequest] event.
+///It provides all the information about the challenge.
 class HttpAuthenticationChallenge extends URLAuthenticationChallenge {
+  ///The error object representing the last authentication failure.
+  ///This value is `null` if the protocol doesn’t use errors to indicate an authentication failure.
+  ///
+  ///**NOTE**: available only on iOS.
   String? error;
 
+  ///The URL response object representing the last authentication failure.
+  ///This value is `null` if the protocol doesn’t use responses to indicate an authentication failure.
+  ///
+  ///**NOTE**: available only on iOS.
   URLResponse? failureResponse;
 
+  ///Use [error] instead.
   @Deprecated('Use error instead')
   String? iosError;
 
+  ///Use [failureResponse] instead.
   @Deprecated('Use failureResponse instead')
   IOSURLResponse? iosFailureResponse;
 
+  ///A count of previous failed authentication attempts.
   int previousFailureCount;
 
+  ///The proposed credential for this challenge.
+  ///This method returns `null` if there is no default credential for this challenge.
+  ///If you have previously attempted to authenticate and failed, this method returns the most recent failed credential.
+  ///If the proposed credential is not nil and returns true when you call its hasPassword method, then the credential is ready to use as-is.
+  ///If the proposed credential’s hasPassword method returns false, then the credential provides a default user name,
+  ///and the client must prompt the user for a corresponding password.
   URLCredential? proposedCredential;
   HttpAuthenticationChallenge(
       {this.error,
@@ -29,6 +53,7 @@ class HttpAuthenticationChallenge extends URLAuthenticationChallenge {
         failureResponse ?? URLResponse.fromMap(iosFailureResponse?.toMap());
   }
 
+  ///Gets a possible [HttpAuthenticationChallenge] instance from a [Map] value.
   static HttpAuthenticationChallenge? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -49,6 +74,7 @@ class HttpAuthenticationChallenge extends URLAuthenticationChallenge {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "protectionSpace": protectionSpace.toMap(),
@@ -59,6 +85,7 @@ class HttpAuthenticationChallenge extends URLAuthenticationChallenge {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

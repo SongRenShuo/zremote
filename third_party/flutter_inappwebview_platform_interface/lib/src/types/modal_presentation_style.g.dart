@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'modal_presentation_style.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class used to specify the modal presentation style when presenting a view controller.
 class ModalPresentationStyle {
   final int _value;
   final int _nativeValue;
@@ -10,26 +16,39 @@ class ModalPresentationStyle {
           int value, Function nativeValue) =>
       ModalPresentationStyle._internal(value, nativeValue());
 
+  ///The default presentation style chosen by the system.
+  ///
+  ///**NOTE**: available on iOS 13.0+.
   static const AUTOMATIC = ModalPresentationStyle._internal(9, 9);
 
+  ///A presentation style where the content is displayed over another view controller’s content.
   static const CURRENT_CONTEXT = ModalPresentationStyle._internal(3, 3);
 
+  ///A custom view presentation style that is managed by a custom presentation controller and one or more custom animator objects.
   static const CUSTOM = ModalPresentationStyle._internal(4, 4);
 
+  ///A presentation style that displays the content centered in the screen.
   static const FORM_SHEET = ModalPresentationStyle._internal(2, 2);
 
+  ///A presentation style in which the presented view covers the screen.
   static const FULL_SCREEN = ModalPresentationStyle._internal(0, 0);
 
+  ///A presentation style that indicates no adaptations should be made.
   static const NONE = ModalPresentationStyle._internal(8, 8);
 
+  ///A presentation style where the content is displayed over another view controller’s content.
   static const OVER_CURRENT_CONTEXT = ModalPresentationStyle._internal(6, 6);
 
+  ///A view presentation style in which the presented view covers the screen.
   static const OVER_FULL_SCREEN = ModalPresentationStyle._internal(5, 5);
 
+  ///A presentation style that partially covers the underlying content.
   static const PAGE_SHEET = ModalPresentationStyle._internal(1, 1);
 
+  ///A presentation style where the content is displayed in a popover view.
   static const POPOVER = ModalPresentationStyle._internal(7, 7);
 
+  ///Set of all values of [ModalPresentationStyle].
   static final Set<ModalPresentationStyle> values = [
     ModalPresentationStyle.AUTOMATIC,
     ModalPresentationStyle.CURRENT_CONTEXT,
@@ -43,6 +62,7 @@ class ModalPresentationStyle {
     ModalPresentationStyle.POPOVER,
   ].toSet();
 
+  ///Gets a possible [ModalPresentationStyle] instance from [int] value.
   static ModalPresentationStyle? fromValue(int? value) {
     if (value != null) {
       try {
@@ -55,6 +75,7 @@ class ModalPresentationStyle {
     return null;
   }
 
+  ///Gets a possible [ModalPresentationStyle] instance from a native value.
   static ModalPresentationStyle? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -67,8 +88,10 @@ class ModalPresentationStyle {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override
@@ -105,6 +128,8 @@ class ModalPresentationStyle {
   }
 }
 
+///An iOS-specific class used to specify the modal presentation style when presenting a view controller.
+///Use [ModalPresentationStyle] instead.
 @Deprecated('Use ModalPresentationStyle instead')
 class IOSUIModalPresentationStyle {
   final int _value;
@@ -115,27 +140,40 @@ class IOSUIModalPresentationStyle {
           int value, Function nativeValue) =>
       IOSUIModalPresentationStyle._internal(value, nativeValue());
 
+  ///The default presentation style chosen by the system.
+  ///
+  ///**NOTE**: available on iOS 13.0+.
   static const AUTOMATIC = IOSUIModalPresentationStyle._internal(9, 9);
 
+  ///A presentation style where the content is displayed over another view controller’s content.
   static const CURRENT_CONTEXT = IOSUIModalPresentationStyle._internal(3, 3);
 
+  ///A custom view presentation style that is managed by a custom presentation controller and one or more custom animator objects.
   static const CUSTOM = IOSUIModalPresentationStyle._internal(4, 4);
 
+  ///A presentation style that displays the content centered in the screen.
   static const FORM_SHEET = IOSUIModalPresentationStyle._internal(2, 2);
 
+  ///A presentation style in which the presented view covers the screen.
   static const FULL_SCREEN = IOSUIModalPresentationStyle._internal(0, 0);
 
+  ///A presentation style that indicates no adaptations should be made.
   static const NONE = IOSUIModalPresentationStyle._internal(8, 8);
 
+  ///A presentation style where the content is displayed over another view controller’s content.
   static const OVER_CURRENT_CONTEXT =
       IOSUIModalPresentationStyle._internal(6, 6);
 
+  ///A view presentation style in which the presented view covers the screen.
   static const OVER_FULL_SCREEN = IOSUIModalPresentationStyle._internal(5, 5);
 
+  ///A presentation style that partially covers the underlying content.
   static const PAGE_SHEET = IOSUIModalPresentationStyle._internal(1, 1);
 
+  ///A presentation style where the content is displayed in a popover view.
   static const POPOVER = IOSUIModalPresentationStyle._internal(7, 7);
 
+  ///Set of all values of [IOSUIModalPresentationStyle].
   static final Set<IOSUIModalPresentationStyle> values = [
     IOSUIModalPresentationStyle.AUTOMATIC,
     IOSUIModalPresentationStyle.CURRENT_CONTEXT,
@@ -149,6 +187,7 @@ class IOSUIModalPresentationStyle {
     IOSUIModalPresentationStyle.POPOVER,
   ].toSet();
 
+  ///Gets a possible [IOSUIModalPresentationStyle] instance from [int] value.
   static IOSUIModalPresentationStyle? fromValue(int? value) {
     if (value != null) {
       try {
@@ -161,6 +200,7 @@ class IOSUIModalPresentationStyle {
     return null;
   }
 
+  ///Gets a possible [IOSUIModalPresentationStyle] instance from a native value.
   static IOSUIModalPresentationStyle? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -173,8 +213,10 @@ class IOSUIModalPresentationStyle {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override

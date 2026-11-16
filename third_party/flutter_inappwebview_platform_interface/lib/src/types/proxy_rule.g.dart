@@ -1,12 +1,21 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'proxy_rule.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that holds a scheme filter and a proxy URL.
 class ProxyRule {
+  ///Represents the scheme filter.
   ProxySchemeFilter? schemeFilter;
 
+  ///Represents the proxy URL.
   String url;
   ProxyRule({this.schemeFilter, required this.url});
 
+  ///Gets a possible [ProxyRule] instance from a [Map] value.
   static ProxyRule? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -18,6 +27,7 @@ class ProxyRule {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "schemeFilter": schemeFilter?.toNativeValue(),
@@ -25,6 +35,7 @@ class ProxyRule {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

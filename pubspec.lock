@@ -188,11 +188,9 @@ packages:
   file_picker_ohos:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "br_v10.3.8_ohos"
-      resolved-ref: "98af21560ef18e2bc428389e07c12ab7c17b98fb"
-      url: "https://gitcode.com/CPF-Flutter/fluttertpc_file_picker.git"
-    source: git
+      path: "third_party/fluttertpc_file_picker"
+      relative: true
+    source: path
     version: "10.3.8"
   file_selector_linux:
     dependency: transitive
@@ -257,11 +255,10 @@ packages:
   flutter_inappwebview_internal_annotations:
     dependency: transitive
     description:
-      name: flutter_inappwebview_internal_annotations
-      sha256: e30fba942e3debea7b7e6cdd4f0f59ce89dd403a9865193e3221293b6d1544c6
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "1.3.0"
+      path: "third_party/dev_packages/flutter_inappwebview_internal_annotations"
+      relative: true
+    source: path
+    version: "1.1.1"
   flutter_inappwebview_ios:
     dependency: transitive
     description:
@@ -281,11 +278,9 @@ packages:
   flutter_inappwebview_ohos:
     dependency: "direct main"
     description:
-      path: flutter_inappwebview_ohos
-      ref: "br_v6.1.5_ohos"
-      resolved-ref: "389cf40dbb647f1df7272de5ea6b3401efe27a75"
-      url: "https://gitcode.com/CPF-Flutter/flutter_inappwebview.git"
-    source: git
+      path: "third_party/flutter_inappwebview_ohos"
+      relative: true
+    source: path
     version: "1.1.3"
   flutter_inappwebview_platform_interface:
     dependency: "direct overridden"
@@ -407,11 +402,9 @@ packages:
   flutter_secure_storage_ohos:
     dependency: "direct main"
     description:
-      path: flutter_secure_storage_ohos
-      ref: "9.2.4-ohos-1.0.0"
-      resolved-ref: ecc4257040163da3c4dd64d4fced5d4d24676a53
-      url: "https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git"
-    source: git
+      path: "third_party/flutter_secure_storage_ohos"
+      relative: true
+    source: path
     version: "1.2.2"
   flutter_secure_storage_platform_interface:
     dependency: transitive
@@ -657,13 +650,11 @@ packages:
     source: hosted
     version: "2.0.4"
   local_auth_ohos:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      path: "packages/local_auth/local_auth_ohos"
-      ref: "br_local_auth-v3.0.1_ohos"
-      resolved-ref: f9d3021b918ea8acfa48f418c0eddb8ffc808e9f
-      url: "https://gitcode.com/CPF-Flutter/flutter_packages.git"
-    source: git
+      path: "third_party/local_auth_ohos"
+      relative: true
+    source: path
     version: "3.0.1"
   local_auth_platform_interface:
     dependency: transitive
@@ -748,11 +739,9 @@ packages:
   package_info_plus:
     dependency: "direct main"
     description:
-      path: "packages/package_info_plus/package_info_plus"
-      ref: "br_package_info_plus-v9.0.0_ohos"
-      resolved-ref: bc4df814a726042a9dad1a267ebb1d2973544e24
-      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
-    source: git
+      path: "third_party/package_info_plus"
+      relative: true
+    source: path
     version: "9.0.0"
   package_info_plus_platform_interface:
     dependency: transitive
@@ -804,13 +793,11 @@ packages:
     source: hosted
     version: "2.2.2"
   path_provider_ohos:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      path: "packages/path_provider/path_provider_ohos"
-      ref: "br_path_provider-v2.1.5_ohos"
-      resolved-ref: d4e49daa0acbd0bc419d58b1da27d64d44fab54b
-      url: "https://gitcode.com/openharmony-sig/flutter_packages.git"
-    source: git
+      path: "third_party/path_provider_ohos"
+      relative: true
+    source: path
     version: "2.2.17"
   path_provider_platform_interface:
     dependency: transitive
@@ -879,20 +866,16 @@ packages:
   share_plus:
     dependency: "direct main"
     description:
-      path: "packages/share_plus/share_plus"
-      ref: "br_share_plus-v12.0.1_ohos"
-      resolved-ref: bfd882da6893c4c8bfa1648ac637c2d557e6f4fa
-      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
-    source: git
+      path: "third_party/share_plus"
+      relative: true
+    source: path
     version: "12.0.1"
   share_plus_platform_interface:
     dependency: transitive
     description:
-      path: "packages/share_plus/share_plus_platform_interface"
-      ref: bfd882da6893c4c8bfa1648ac637c2d557e6f4fa
-      resolved-ref: bfd882da6893c4c8bfa1648ac637c2d557e6f4fa
-      url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
-    source: git
+      path: "third_party/share_plus_platform_interface"
+      relative: true
+    source: path
     version: "6.1.0"
   shared_preferences:
     dependency: "direct main"
@@ -928,13 +911,11 @@ packages:
     source: hosted
     version: "2.4.1"
   shared_preferences_ohos:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      path: "packages/shared_preferences/shared_preferences_ohos"
-      ref: "br_shared_preferences-v2.5.4_ohos"
-      resolved-ref: "143d83e7669a359a1ab1ee6558c4a2e4f7f4c53f"
-      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
-    source: git
+      path: "third_party/shared_preferences_ohos"
+      relative: true
+    source: path
     version: "2.5.4"
   shared_preferences_platform_interface:
     dependency: transitive
@@ -1143,13 +1124,11 @@ packages:
     source: hosted
     version: "3.2.6"
   url_launcher_ohos:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      path: "packages/url_launcher/url_launcher_ohos"
-      ref: "br_url_launcher-v6.3.2_ohos"
-      resolved-ref: ae4494a78db5a9e0fe760b0eba9231605ae45716
-      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
-    source: git
+      path: "third_party/url_launcher_ohos"
+      relative: true
+    source: path
     version: "6.3.2"
   url_launcher_platform_interface:
     dependency: transitive

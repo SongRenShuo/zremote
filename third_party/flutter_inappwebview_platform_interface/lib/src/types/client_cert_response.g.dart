@@ -1,16 +1,30 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'client_cert_response.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the response used by the [PlatformWebViewCreationParams.onReceivedClientCertRequest] event.
 class ClientCertResponse {
+  ///Indicate the [ClientCertResponseAction] to take in response of the client certificate challenge.
   ClientCertResponseAction? action;
 
+  ///Use [keyStoreType] instead.
   @Deprecated('Use keyStoreType instead')
   String? androidKeyStoreType;
 
+  ///The certificate password.
   String? certificatePassword;
 
+  ///The file path of the certificate to use.
   String certificatePath;
 
+  ///An Android-specific property used by Java [KeyStore](https://developer.android.com/reference/java/security/KeyStore) class to get the instance.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   String? keyStoreType;
   ClientCertResponse(
       {required this.certificatePath,
@@ -25,6 +39,7 @@ class ClientCertResponse {
     if (Util.isAndroid) assert(this.keyStoreType != null);
   }
 
+  ///Gets a possible [ClientCertResponse] instance from a [Map] value.
   static ClientCertResponse? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -39,6 +54,7 @@ class ClientCertResponse {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "action": action?.toNativeValue(),
@@ -48,6 +64,7 @@ class ClientCertResponse {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

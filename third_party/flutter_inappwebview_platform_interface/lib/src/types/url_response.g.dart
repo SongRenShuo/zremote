@@ -1,19 +1,32 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'url_response.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///The metadata associated with the response to a URL load request, independent of protocol and URL scheme.
 class URLResponse {
+  ///The expected length of the response’s content.
   int expectedContentLength;
 
+  ///All HTTP header fields of the response.
   Map<String, String>? headers;
 
+  ///The MIME type of the response.
   String? mimeType;
 
+  ///The response’s HTTP status code.
   int? statusCode;
 
+  ///A suggested filename for the response data.
   String? suggestedFilename;
 
+  ///The name of the text encoding provided by the response’s originating source.
   String? textEncodingName;
 
+  ///The URL for the response.
   WebUri? url;
   URLResponse(
       {required this.expectedContentLength,
@@ -24,6 +37,7 @@ class URLResponse {
       this.textEncodingName,
       this.url});
 
+  ///Gets a possible [URLResponse] instance from a [Map] value.
   static URLResponse? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -40,6 +54,7 @@ class URLResponse {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "expectedContentLength": expectedContentLength,
@@ -52,6 +67,7 @@ class URLResponse {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }
@@ -62,20 +78,28 @@ class URLResponse {
   }
 }
 
+///Use [URLResponse] instead.
 @Deprecated('Use URLResponse instead')
 class IOSURLResponse {
+  ///The expected length of the response’s content.
   int expectedContentLength;
 
+  ///All HTTP header fields of the response.
   Map<String, String>? headers;
 
+  ///The MIME type of the response.
   String? mimeType;
 
+  ///The response’s HTTP status code.
   int? statusCode;
 
+  ///A suggested filename for the response data.
   String? suggestedFilename;
 
+  ///The name of the text encoding provided by the response’s originating source.
   String? textEncodingName;
 
+  ///The URL for the response.
   Uri? url;
   IOSURLResponse(
       {required this.expectedContentLength,
@@ -86,6 +110,7 @@ class IOSURLResponse {
       this.textEncodingName,
       this.url});
 
+  ///Gets a possible [IOSURLResponse] instance from a [Map] value.
   static IOSURLResponse? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -102,6 +127,7 @@ class IOSURLResponse {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "expectedContentLength": expectedContentLength,
@@ -114,6 +140,7 @@ class IOSURLResponse {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

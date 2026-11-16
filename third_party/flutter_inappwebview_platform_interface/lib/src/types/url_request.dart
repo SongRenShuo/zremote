@@ -8,19 +8,28 @@ import 'url_request_attribution.dart';
 
 part 'url_request.g.dart';
 
+///A URL load request that is independent of protocol or URL scheme.
 @ExchangeableObject()
 class URLRequest_ {
+  ///The URL of the request. Setting this to `null` will load `about:blank`.
   WebUri? url;
 
+  ///The HTTP request method.
+  ///
+  ///**NOTE for Android**: it supports only "GET" and "POST" methods.
   String? method;
 
+  ///The data sent as the message body of a request, such as for an HTTP POST request.
   Uint8List? body;
 
+  ///A dictionary containing all of the HTTP header fields for a request.
   Map<String, String>? headers;
 
+  ///Use [allowsCellularAccess] instead.
   @Deprecated("Use allowsCellularAccess instead")
   bool? iosAllowsCellularAccess;
 
+  ///A Boolean value indicating whether the request is allowed to use the built-in cellular radios to satisfy the request.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.allowsCellularAccess",
@@ -33,9 +42,11 @@ class URLRequest_ {
   ])
   bool? allowsCellularAccess;
 
+  ///Use [allowsConstrainedNetworkAccess] instead.
   @Deprecated("Use allowsConstrainedNetworkAccess instead")
   bool? iosAllowsConstrainedNetworkAccess;
 
+  ///A Boolean value that indicates whether the request may use the network when the user has specified Low Data Mode.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "13.0",
@@ -50,9 +61,11 @@ class URLRequest_ {
   ])
   bool? allowsConstrainedNetworkAccess;
 
+  ///Use [allowsExpensiveNetworkAccess] instead.
   @Deprecated("Use allowsExpensiveNetworkAccess instead")
   bool? iosAllowsExpensiveNetworkAccess;
 
+  ///A Boolean value that indicates whether connections may use a network interface that the system considers expensive.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "13.0",
@@ -67,9 +80,11 @@ class URLRequest_ {
   ])
   bool? allowsExpensiveNetworkAccess;
 
+  ///Use [cachePolicy] instead.
   @Deprecated("Use cachePolicy instead")
   IOSURLRequestCachePolicy_? iosCachePolicy;
 
+  ///The request’s cache policy.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.cachePolicy",
@@ -82,9 +97,11 @@ class URLRequest_ {
   ])
   URLRequestCachePolicy_? cachePolicy;
 
+  ///Use [httpShouldHandleCookies] instead.
   @Deprecated("Use httpShouldHandleCookies instead")
   bool? iosHttpShouldHandleCookies;
 
+  ///A Boolean value indicating whether cookies will be sent with and set for this request.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.httpShouldHandleCookies",
@@ -97,9 +114,11 @@ class URLRequest_ {
   ])
   bool? httpShouldHandleCookies;
 
+  ///Use [httpShouldUsePipelining] instead.
   @Deprecated("Use httpShouldUsePipelining instead")
   bool? iosHttpShouldUsePipelining;
 
+  ///A Boolean value indicating whether the request should transmit before the previous response is received.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.httpShouldUsePipelining",
@@ -112,9 +131,11 @@ class URLRequest_ {
   ])
   bool? httpShouldUsePipelining;
 
+  ///Use [networkServiceType] instead.
   @Deprecated("Use networkServiceType instead")
   IOSURLRequestNetworkServiceType_? iosNetworkServiceType;
 
+  ///The service type associated with this request.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.networkServiceType",
@@ -127,9 +148,11 @@ class URLRequest_ {
   ])
   URLRequestNetworkServiceType_? networkServiceType;
 
+  ///Use [timeoutInterval] instead.
   @Deprecated("Use timeoutInterval instead")
   double? iosTimeoutInterval;
 
+  ///The timeout interval of the request.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.timeoutInterval",
@@ -142,9 +165,12 @@ class URLRequest_ {
   ])
   double? timeoutInterval;
 
+  ///Use [mainDocumentURL] instead.
   @Deprecated("Use mainDocumentURL instead")
   Uri? iosMainDocumentURL;
 
+  ///The main document URL associated with this request.
+  ///This URL is used for the cookie “same domain as main document” policy.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "URLRequest.mainDocumentURL",
@@ -157,6 +183,9 @@ class URLRequest_ {
   ])
   WebUri? mainDocumentURL;
 
+  ///`true` if server endpoint is known to support HTTP/3. Enables QUIC racing
+  ///without HTTP/3 service discovery. Defaults to `false`.
+  ///The default may be `true` in a future OS update.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "14.5",
@@ -171,6 +200,9 @@ class URLRequest_ {
   ])
   bool? assumesHTTP3Capable;
 
+  ///The entities that can make a network request.
+  ///
+  ///If you don’t set a value, the system assumes [URLRequestAttribution.DEVELOPER].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.0",

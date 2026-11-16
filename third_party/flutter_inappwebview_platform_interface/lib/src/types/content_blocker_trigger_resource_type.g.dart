@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'content_blocker_trigger_resource_type.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class that represents the possible resource type defined for a [ContentBlockerTrigger].
 class ContentBlockerTriggerResourceType {
   final String _value;
   final String _nativeValue;
@@ -19,6 +25,7 @@ class ContentBlockerTriggerResourceType {
   static const MEDIA =
       ContentBlockerTriggerResourceType._internal('media', 'media');
 
+  ///Any untyped load
   static const RAW = ContentBlockerTriggerResourceType._internal('raw', 'raw');
   static const SCRIPT =
       ContentBlockerTriggerResourceType._internal('script', 'script');
@@ -27,6 +34,7 @@ class ContentBlockerTriggerResourceType {
   static const SVG_DOCUMENT = ContentBlockerTriggerResourceType._internal(
       'svg-document', 'svg-document');
 
+  ///Set of all values of [ContentBlockerTriggerResourceType].
   static final Set<ContentBlockerTriggerResourceType> values = [
     ContentBlockerTriggerResourceType.DOCUMENT,
     ContentBlockerTriggerResourceType.FONT,
@@ -38,6 +46,7 @@ class ContentBlockerTriggerResourceType {
     ContentBlockerTriggerResourceType.SVG_DOCUMENT,
   ].toSet();
 
+  ///Gets a possible [ContentBlockerTriggerResourceType] instance from [String] value.
   static ContentBlockerTriggerResourceType? fromValue(String? value) {
     if (value != null) {
       try {
@@ -50,6 +59,7 @@ class ContentBlockerTriggerResourceType {
     return null;
   }
 
+  ///Gets a possible [ContentBlockerTriggerResourceType] instance from a native value.
   static ContentBlockerTriggerResourceType? fromNativeValue(String? value) {
     if (value != null) {
       try {
@@ -62,8 +72,10 @@ class ContentBlockerTriggerResourceType {
     return null;
   }
 
+  ///Gets [String] value.
   String toValue() => _value;
 
+  ///Gets [String] native value.
   String toNativeValue() => _nativeValue;
 
   @override

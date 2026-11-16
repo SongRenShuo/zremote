@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'web_message.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///The type corresponding to the [WebMessage].
 class WebMessageType {
   final int _value;
   final int _nativeValue;
@@ -10,15 +16,21 @@ class WebMessageType {
           int value, Function nativeValue) =>
       WebMessageType._internal(value, nativeValue());
 
+  ///Indicates the payload of WebMessageCompat is JavaScript ArrayBuffer.
+  ///
+  ///**NOTE**: available only if [WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER] feature is supported.
   static const ARRAY_BUFFER = WebMessageType._internal(1, 1);
 
+  ///Indicates the payload of WebMessageCompat is String.
   static const STRING = WebMessageType._internal(0, 0);
 
+  ///Set of all values of [WebMessageType].
   static final Set<WebMessageType> values = [
     WebMessageType.ARRAY_BUFFER,
     WebMessageType.STRING,
   ].toSet();
 
+  ///Gets a possible [WebMessageType] instance from [int] value.
   static WebMessageType? fromValue(int? value) {
     if (value != null) {
       try {
@@ -31,6 +43,7 @@ class WebMessageType {
     return null;
   }
 
+  ///Gets a possible [WebMessageType] instance from a native value.
   static WebMessageType? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -43,15 +56,17 @@ class WebMessageType {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override
   int get hashCode => _value.hashCode;
 
   @override
-  bool operator ==(value) => value == _value;
+  bool operator ==(Object other) => other is WebMessageType && other._value == _value;
 
   @override
   String toString() {
@@ -65,11 +80,20 @@ class WebMessageType {
   }
 }
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///The Dart representation of the HTML5 PostMessage event.
+///See https://html.spec.whatwg.org/multipage/comms.html#the-messageevent-interfaces for definition of a MessageEvent in HTML5.
 class WebMessage {
+  ///The data of the message.
   dynamic data;
 
+  ///The ports that are sent with the message.
   List<IWebMessagePort>? ports;
 
+  ///The payload type of the message.
   WebMessageType type;
   WebMessage({this.data, this.type = WebMessageType.STRING, this.ports}) {
     assert(((this.data == null || this.data is String) &&
@@ -79,6 +103,7 @@ class WebMessage {
             this.type == WebMessageType.ARRAY_BUFFER));
   }
 
+  ///Gets a possible [WebMessage] instance from a [Map] value.
   static WebMessage? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -93,6 +118,7 @@ class WebMessage {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "data": data,
@@ -101,6 +127,7 @@ class WebMessage {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

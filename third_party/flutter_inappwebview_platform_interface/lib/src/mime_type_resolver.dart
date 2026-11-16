@@ -1,5 +1,25 @@
 class MimeTypeResolver {
+  /*
+    Extension map generated from http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=markup
+    using this JavaScript code:
 
+    var extensionMap = {};
+    var table = document.querySelector('#vc_file table');
+    var rows = [].slice.call(table.querySelectorAll('tbody tr'));
+    for (var row of rows) {
+        var line = [].slice.call(row.querySelectorAll('td'))[1].textContent.trim();
+        if (line.startsWith('#')) {
+            continue;
+        }
+        var parts = line.split(/\s+/);
+        var mime = parts[0].trim();
+        parts.splice(0, 1);
+        for (var ext of parts) {
+            extensionMap[ext.trim()] = mime;
+        }
+    }
+    console.log(JSON.stringify(extensionMap, null, '\t'));
+  */
   static final Map<String, String> extensionMap = <String, String>{
     "123": "application/vnd.lotus-1-2-3",
     "ez": "application/andrew-inset",

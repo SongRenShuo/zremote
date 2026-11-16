@@ -1,10 +1,49 @@
+///Class that implements the [Uri] interface to maintain also the raw string value used by [Uri.parse].
+///
+///This class is used because some strings coming from the native platform side
+///are not parsed correctly or could lose letter case information,
+///so [rawValue] can be used as a fallback value.
+///
+///Examples:
+///```dart
+///  // InAppWebView example
+///  InAppWebView(
+///    initialUrlRequest:
+///      URLRequest(url: WebUri('https://flutter.dev'))
+///  )
+///
+///  // example of letter case difference
+///  final uri = WebUri('scheme://customHostValue', forceToStringRawValue: false);
+///  print(uri.rawValue); // scheme://customHostValue
+///  print(uri.isValidUri); // true
+///  print(uri.uriValue.toString()); // scheme://customhostvalue
+///  print(uri.toString()); // scheme://customhostvalue
+///
+///  uri.forceToStringRawValue = true;
+///  print(uri.toString()); // scheme://customHostValue
+///
+///  // example of a not valid URI
+///  // Uncaught Error: FormatException: Invalid port (at character 14)
+///  final invalidUri = WebUri('intent://not:valid_uri');
+///  print(invalidUri.rawValue); // intent://not:valid_uri
+///  print(invalidUri.isValidUri); // false
+///  print(invalidUri.uriValue.toString()); // ''
+///  print(invalidUri.toString()); // intent://not:valid_uri
+///```
 class WebUri implements Uri {
   Uri _uri = Uri();
   String _rawValue = '';
   bool _isValidUri = false;
 
+  ///Whether to force the usage of [rawValue] when calling [toString] or not.
+  ///Because [toString] is used to send URI strings to the native platform side,
+  ///this flag is useful when you want to send [rawValue] instead of [uriValue]`.toString()`.
+  ///
+  ///The default value is `false`.
   bool forceToStringRawValue = false;
 
+  ///Initialize a [WebUri] using a raw string value.
+  ///In this case, [uriValue]`.toString()` and [rawValue] could not have the same value.
   WebUri(String source, {this.forceToStringRawValue = false}) {
     _rawValue = source;
     try {
@@ -16,16 +55,21 @@ class WebUri implements Uri {
     }
   }
 
+  ///Initialize a [WebUri] using an [Uri] instance.
+  ///In this case, [uriValue]`.toString()` and [rawValue] will have the same value.
   WebUri.uri(Uri uri) {
     _uri = uri;
     _rawValue = uri.toString();
     _isValidUri = true;
   }
 
+  ///Raw string value used by [Uri.parse].
   String get rawValue => _rawValue;
 
+  ///Uri parsed value. If [isValidUri] is `false`, the value will be `Uri()`.
   Uri get uriValue => _uri;
 
+  ///`true` if [rawValue] has been parsed correctly, otherwise `false`.
   bool get isValidUri => _isValidUri;
 
   @override
@@ -161,6 +205,8 @@ class WebUri implements Uri {
       _isValidUri.hashCode ^
       forceToStringRawValue.hashCode;
 
+  ///If [forceToStringRawValue] is `true` or [isValidUri] is `false`, it returns [rawValue],
+  ///otherwise the value of [uriValue]`.toString()`.
   @override
   String toString() {
     return forceToStringRawValue || !_isValidUri ? _rawValue : _uri.toString();

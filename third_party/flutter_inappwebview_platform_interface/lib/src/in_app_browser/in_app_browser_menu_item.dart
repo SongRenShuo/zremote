@@ -30,6 +30,7 @@ dynamic _deserializeIcon(dynamic icon) {
   return null;
 }
 
+///Class that represents a custom menu item for a [PlatformInAppBrowser] instance.
 @SupportedPlatforms(platforms: [
   AndroidPlatform(),
   IOSPlatform(),
@@ -37,14 +38,18 @@ dynamic _deserializeIcon(dynamic icon) {
 ])
 @ExchangeableObject()
 class InAppBrowserMenuItem_ {
+  ///The menu item id.
   int id;
 
+  ///The title of the menu item.
   String title;
 
+  ///Item icon.
   @ExchangeableObjectProperty(
       serializer: _serializeIcon, deserializer: _deserializeIcon)
   dynamic icon;
 
+  ///Icon color.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(available: "13.0"),
@@ -52,10 +57,13 @@ class InAppBrowserMenuItem_ {
   ])
   Color_? iconColor;
 
+  ///Item order.
   int? order;
 
+  ///Show this item as a button in the Action Bar.
   bool showAsAction;
 
+  ///Callback function to be invoked when the menu item is clicked
   void Function()? onClick;
 
   InAppBrowserMenuItem_(

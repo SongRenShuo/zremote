@@ -1,15 +1,26 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'fetch_request_federated_credential.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents a [FederatedCredential](https://developer.mozilla.org/en-US/docs/Web/API/FederatedCredential) type of credentials.
 class FetchRequestFederatedCredential extends FetchRequestCredential {
+  ///URL pointing to an image for an icon. This image is intended for display in a credential chooser. The URL must be accessible without authentication.
   WebUri? iconURL;
 
+  ///Credential's identifier.
   dynamic id;
 
+  ///The name associated with a credential. It should be a human-readable, public name.
   String? name;
 
+  ///Credential's federated identity protocol.
   String? protocol;
 
+  ///Credential's federated identity provider.
   String? provider;
   FetchRequestFederatedCredential(
       {this.iconURL,
@@ -20,6 +31,7 @@ class FetchRequestFederatedCredential extends FetchRequestCredential {
       String? type})
       : super(type: type);
 
+  ///Gets a possible [FetchRequestFederatedCredential] instance from a [Map] value.
   static FetchRequestFederatedCredential? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -35,6 +47,7 @@ class FetchRequestFederatedCredential extends FetchRequestCredential {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "type": type,
@@ -46,6 +59,7 @@ class FetchRequestFederatedCredential extends FetchRequestCredential {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

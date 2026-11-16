@@ -8,28 +8,41 @@ import '../platform_in_app_browser.dart';
 import '../../types/main.dart';
 import '../../util.dart';
 
+///This class represents all the iOS-only [PlatformInAppBrowser] options available.
+///Use [InAppBrowserSettings] instead.
 @Deprecated('Use InAppBrowserSettings instead')
 class IOSInAppBrowserOptions implements BrowserOptions, IosOptions {
+  ///Set to `true` to set the toolbar at the top translucent. The default value is `true`.
   bool toolbarTopTranslucent;
 
+  ///Set the tint color to apply to the navigation bar background.
   Color? toolbarTopBarTintColor;
 
+  ///Set the tint color to apply to the navigation items and bar button items.
   Color? toolbarTopTintColor;
 
+  ///Set to `true` to hide the toolbar at the bottom of the WebView. The default value is `false`.
   bool hideToolbarBottom;
 
+  ///Set the custom background color of the toolbar at the bottom.
   Color? toolbarBottomBackgroundColor;
 
+  ///Set the tint color to apply to the bar button items.
   Color? toolbarBottomTintColor;
 
+  ///Set to `true` to set the toolbar at the bottom translucent. The default value is `true`.
   bool toolbarBottomTranslucent;
 
+  ///Set the custom text for the close button.
   String? closeButtonCaption;
 
+  ///Set the custom color for the close button.
   Color? closeButtonColor;
 
+  ///Set the custom modal presentation style when presenting the WebView. The default value is [IOSUIModalPresentationStyle.FULL_SCREEN].
   IOSUIModalPresentationStyle presentationStyle;
 
+  ///Set to the custom transition style when presenting the WebView. The default value is [IOSUIModalTransitionStyle.COVER_VERTICAL].
   IOSUIModalTransitionStyle transitionStyle;
 
   IOSInAppBrowserOptions(

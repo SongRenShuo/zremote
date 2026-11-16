@@ -1,12 +1,21 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'web_history.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///This class contains a snapshot of the current back/forward list for a `WebView`.
 class WebHistory {
+  ///Index of the current [WebHistoryItem].
   int? currentIndex;
 
+  ///List of all [WebHistoryItem]s.
   List<WebHistoryItem>? list;
   WebHistory({this.currentIndex, this.list});
 
+  ///Gets a possible [WebHistory] instance from a [Map] value.
   static WebHistory? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -21,6 +30,7 @@ class WebHistory {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "currentIndex": currentIndex,
@@ -28,6 +38,7 @@ class WebHistory {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

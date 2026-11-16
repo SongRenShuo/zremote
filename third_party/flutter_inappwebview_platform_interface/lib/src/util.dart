@@ -15,6 +15,9 @@ class Util {
   static bool get isAndroid =>
       !isWeb && defaultTargetPlatform == TargetPlatform.android;
 
+  static bool get isOhos =>
+      !isWeb && defaultTargetPlatform.name == 'ohos';
+
   static bool get isIOS =>
       !isWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -34,6 +37,7 @@ class Util {
 class IdGenerator {
   static int _count = 0;
 
+  /// Math.Random()-based RNG. All platforms, fast, not cryptographically strong. Optional Seed passable.
   static Uint8List mathRNG({int seed = -1}) {
     var b = Uint8List(16);
 
@@ -48,6 +52,7 @@ class IdGenerator {
     return b;
   }
 
+  /// Crypto-Strong RNG. All platforms, unknown speed, cryptographically strong (theoretically)
   static Uint8List cryptoRNG() {
     var b = Uint8List(16);
     var rand = Random.secure();
@@ -76,6 +81,22 @@ extension UtilColor on Color {
     } else if (colorValue.startsWith("hlsa(")) {
       return fromHlsaString(colorValue);
     } else {
+      /**
+          This part of the code is generated using the JavaScript code below on this link: https://drafts.csswg.org/css-color/#typedef-color
+
+
+          let code = 'switch(colorValue) {\n';
+          const table = document.querySelector('.named-color-table');
+          const colorNameCells = table.querySelectorAll('tr > th dfn');
+          const colorHexValueCells = table.querySelectorAll('tr > td:nth-child(4)');
+          for (let i = 0; i < colorNameCells.length; i++) {
+          const colorName = colorNameCells[i].textContent.trim();
+          const colorHexValue = colorHexValueCells[i].textContent.trim();
+          code += '  case "' + colorName + '":\n';
+          code += '     return getColorFromHex("' + colorHexValue + '");\n';
+          }
+          code += '}';
+       */
 
       switch (colorValue) {
         case "aliceblue":
@@ -386,6 +407,7 @@ extension UtilColor on Color {
 
     hexString = hexString.trim();
     if (hexString.length == 4) {
+      // convert for example #f00 to #ff0000
       hexString =
           "#" + (hexString[1] * 2) + (hexString[2] * 2) + (hexString[3] * 2);
     }
@@ -459,7 +481,7 @@ extension UtilColor on Color {
     double r, g, b;
 
     if (s == 0) {
-      r = g = b = l;
+      r = g = b = l; // achromatic
     } else {
       double q = l < 0.5 ? l * (1 + s) : l + s - l * s;
       double p = 2 * l - q;
@@ -475,6 +497,7 @@ extension UtilColor on Color {
     return min(255, (256 * v).round());
   }
 
+  /// Helper method that converts hue to rgb
   static double _hueToRgb(double p, double q, double t) {
     if (t < 0) t += 1;
     if (t > 1) t -= 1;
@@ -486,6 +509,7 @@ extension UtilColor on Color {
 }
 
 extension HexColor on Color {
+  /// Prefixes a hash sign if [leadingHashSign] is set to `true` (default is `true`).
   String toHex({bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
       '${alpha.toRadixString(16).padLeft(2, '0')}'
       '${red.toRadixString(16).padLeft(2, '0')}'
@@ -498,7 +522,10 @@ extension MapSize on Size {
     if (map == null) {
       return null;
     }
-    return Size(map["width"] ?? -1.0, map["height"] ?? -1.0);
+    return Size(
+      (map["width"] as num?)?.toDouble() ?? -1.0,
+      (map["height"] as num?)?.toDouble() ?? -1.0,
+    );
   }
 
   Map<String, double> toJson() {
@@ -558,6 +585,8 @@ void debugLog(
   }
 }
 
+// Class used only by the build_runner for @ExchangeableObject annotation.
+// For some strange reason, Color is not recognized anymore by the dart analyzer correctly.
 class Color_ extends Color {
   Color_(int value) : super(value);
 }

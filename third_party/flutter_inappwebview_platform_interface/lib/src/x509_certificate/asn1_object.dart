@@ -6,8 +6,10 @@ import 'asn1_identifier.dart';
 import 'oid.dart';
 
 class ASN1Object {
+  /// This property contains the DER encoded object
   Uint8List? encoded;
 
+  /// This property contains the decoded object whenever is possible
   dynamic value;
 
   ASN1Identifier? identifier;

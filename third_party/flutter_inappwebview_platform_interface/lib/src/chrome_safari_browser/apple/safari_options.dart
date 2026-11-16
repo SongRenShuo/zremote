@@ -8,20 +8,35 @@ import '../platform_chrome_safari_browser.dart';
 
 import '../../in_app_webview/apple/in_app_webview_options.dart';
 
+///This class represents all the iOS-only [PlatformChromeSafariBrowser] options available.
+///Use [ChromeSafariBrowserSettings] instead.
 @Deprecated('Use ChromeSafariBrowserSettings instead')
 class IOSSafariOptions implements ChromeSafariBrowserOptions, IosOptions {
+  ///Set to `true` if Reader mode should be entered automatically when it is available for the webpage. The default value is `false`.
   bool entersReaderIfAvailable;
 
+  ///Set to `true` to enable bar collapsing. The default value is `false`.
   bool barCollapsingEnabled;
 
+  ///Set the custom style for the dismiss button. The default value is [IOSSafariDismissButtonStyle.DONE].
+  ///
+  ///**NOTE**: available on iOS 11.0+.
   IOSSafariDismissButtonStyle dismissButtonStyle;
 
+  ///Set the custom background color of the navigation bar and the toolbar.
+  ///
+  ///**NOTE**: available on iOS 10.0+.
   Color? preferredBarTintColor;
 
+  ///Set the custom color of the control buttons on the navigation bar and the toolbar.
+  ///
+  ///**NOTE**: available on iOS 10.0+.
   Color? preferredControlTintColor;
 
+  ///Set the custom modal presentation style when presenting the WebView. The default value is [IOSUIModalPresentationStyle.FULL_SCREEN].
   IOSUIModalPresentationStyle presentationStyle;
 
+  ///Set to the custom transition style when presenting the WebView. The default value is [IOSUIModalTransitionStyle.COVER_VERTICAL].
   IOSUIModalTransitionStyle transitionStyle;
 
   IOSSafariOptions(

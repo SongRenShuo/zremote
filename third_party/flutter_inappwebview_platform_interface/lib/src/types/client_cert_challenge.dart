@@ -6,11 +6,15 @@ import '../in_app_webview/platform_webview.dart';
 
 part 'client_cert_challenge.g.dart';
 
+///Class that represents the challenge of the [PlatformWebViewCreationParams.onReceivedClientCertRequest] event.
+///It provides all the information about the challenge.
 @ExchangeableObject()
 class ClientCertChallenge_ extends URLAuthenticationChallenge_ {
+  ///Use [principals] instead.
   @Deprecated('Use principals instead')
   List<String>? androidPrincipals;
 
+  ///The acceptable certificate issuers for the certificate matching the private key.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "ClientCertRequest.getPrincipals",
@@ -20,9 +24,11 @@ class ClientCertChallenge_ extends URLAuthenticationChallenge_ {
   ])
   List<String>? principals;
 
+  ///Use [keyTypes] instead.
   @Deprecated('Use keyTypes instead')
   List<String>? androidKeyTypes;
 
+  ///Returns the acceptable types of asymmetric keys.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "ClientCertRequest.getKeyTypes",

@@ -4,6 +4,7 @@ import '../content_blocker.dart';
 
 part 'content_blocker_trigger_resource_type.g.dart';
 
+///Class that represents the possible resource type defined for a [ContentBlockerTrigger].
 @ExchangeableEnum()
 class ContentBlockerTriggerResourceType_ {
   // ignore: unused_field
@@ -25,5 +26,6 @@ class ContentBlockerTriggerResourceType_ {
   static const SVG_DOCUMENT =
       const ContentBlockerTriggerResourceType_._internal('svg-document');
 
+  ///Any untyped load
   static const RAW = const ContentBlockerTriggerResourceType_._internal('raw');
 }

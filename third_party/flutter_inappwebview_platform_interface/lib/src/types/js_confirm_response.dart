@@ -4,16 +4,22 @@ import 'js_confirm_response_action.dart';
 
 part 'js_confirm_response.g.dart';
 
+///Class that represents the response used by the [PlatformWebViewCreationParams.onJsConfirm] event to control a JavaScript confirm dialog.
 @ExchangeableObject()
 class JsConfirmResponse_ {
+  ///Message to be displayed in the window.
   String message;
 
+  ///Title of the confirm button.
   String confirmButtonTitle;
 
+  ///Title of the cancel button.
   String cancelButtonTitle;
 
+  ///Whether the client will handle the confirm dialog.
   bool handledByClient;
 
+  ///Action used to confirm that the user hit confirm or cancel button.
   JsConfirmResponseAction_? action;
 
   JsConfirmResponse_(

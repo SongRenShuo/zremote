@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'underline_style.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class that represents the constants for the underline style and strikethrough style attribute keys.
 class UnderlineStyle {
   final int _value;
   final int _nativeValue;
@@ -10,24 +16,34 @@ class UnderlineStyle {
           int value, Function nativeValue) =>
       UnderlineStyle._internal(value, nativeValue());
 
+  ///Draw the line only beneath or through words, not whitespace.
   static const BY_WORD = UnderlineStyle._internal(32768, 32768);
 
+  ///Draw a double line.
   static const DOUBLE = UnderlineStyle._internal(9, 9);
 
+  ///Draw a line of dashes.
   static const PATTERN_DASH = UnderlineStyle._internal(512, 512);
 
+  ///Draw a line of alternating dashes and dots.
   static const PATTERN_DASH_DOT = UnderlineStyle._internal(768, 768);
 
+  ///Draw a line of alternating dashes and two dots.
   static const PATTERN_DASH_DOT_DOT = UnderlineStyle._internal(1024, 1024);
 
+  ///Draw a line of dots.
   static const PATTERN_DOT = UnderlineStyle._internal(256, 256);
 
+  ///Draw a single line.
   static const SINGLE = UnderlineStyle._internal(1, 1);
 
+  ///Do not draw a line.
   static const STYLE_NONE = UnderlineStyle._internal(0, 0);
 
+  ///Draw a thick line.
   static const THICK = UnderlineStyle._internal(2, 2);
 
+  ///Set of all values of [UnderlineStyle].
   static final Set<UnderlineStyle> values = [
     UnderlineStyle.BY_WORD,
     UnderlineStyle.DOUBLE,
@@ -40,6 +56,7 @@ class UnderlineStyle {
     UnderlineStyle.THICK,
   ].toSet();
 
+  ///Gets a possible [UnderlineStyle] instance from [int] value.
   static UnderlineStyle? fromValue(int? value) {
     if (value != null) {
       try {
@@ -52,6 +69,7 @@ class UnderlineStyle {
     return null;
   }
 
+  ///Gets a possible [UnderlineStyle] instance from a native value.
   static UnderlineStyle? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -64,8 +82,10 @@ class UnderlineStyle {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override
@@ -100,6 +120,8 @@ class UnderlineStyle {
   }
 }
 
+///An iOS-specific Class that represents the constants for the underline style and strikethrough style attribute keys.
+///Use [UnderlineStyle] instead.
 @Deprecated('Use UnderlineStyle instead')
 class IOSNSUnderlineStyle {
   final int _value;
@@ -110,24 +132,34 @@ class IOSNSUnderlineStyle {
           int value, Function nativeValue) =>
       IOSNSUnderlineStyle._internal(value, nativeValue());
 
+  ///Draw the line only beneath or through words, not whitespace.
   static const BY_WORD = IOSNSUnderlineStyle._internal(32768, 32768);
 
+  ///Draw a double line.
   static const DOUBLE = IOSNSUnderlineStyle._internal(9, 9);
 
+  ///Draw a line of dashes.
   static const PATTERN_DASH = IOSNSUnderlineStyle._internal(512, 512);
 
+  ///Draw a line of alternating dashes and dots.
   static const PATTERN_DASH_DOT = IOSNSUnderlineStyle._internal(768, 768);
 
+  ///Draw a line of alternating dashes and two dots.
   static const PATTERN_DASH_DOT_DOT = IOSNSUnderlineStyle._internal(1024, 1024);
 
+  ///Draw a line of dots.
   static const PATTERN_DOT = IOSNSUnderlineStyle._internal(256, 256);
 
+  ///Draw a single line.
   static const SINGLE = IOSNSUnderlineStyle._internal(1, 1);
 
+  ///Do not draw a line.
   static const STYLE_NONE = IOSNSUnderlineStyle._internal(0, 0);
 
+  ///Draw a thick line.
   static const THICK = IOSNSUnderlineStyle._internal(2, 2);
 
+  ///Set of all values of [IOSNSUnderlineStyle].
   static final Set<IOSNSUnderlineStyle> values = [
     IOSNSUnderlineStyle.BY_WORD,
     IOSNSUnderlineStyle.DOUBLE,
@@ -140,6 +172,7 @@ class IOSNSUnderlineStyle {
     IOSNSUnderlineStyle.THICK,
   ].toSet();
 
+  ///Gets a possible [IOSNSUnderlineStyle] instance from [int] value.
   static IOSNSUnderlineStyle? fromValue(int? value) {
     if (value != null) {
       try {
@@ -152,6 +185,7 @@ class IOSNSUnderlineStyle {
     return null;
   }
 
+  ///Gets a possible [IOSNSUnderlineStyle] instance from a native value.
   static IOSNSUnderlineStyle? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -164,8 +198,10 @@ class IOSNSUnderlineStyle {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override

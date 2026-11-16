@@ -20,11 +20,10 @@ dependencies:
   # fork 兼容；CPF 主包新增的 dispose() 调用本地接口没有，stock SDK 测试编译
   # 会挂），仅追加 flutter_inappwebview_ohos 实现子包注册 ohos 平台。
   flutter_inappwebview: ^6.1.5
+  # ohos 实现子包 vendor 化到 third_party（同 file_picker：pub git 缓存
+  # 绝对路径会被 hvigor 00303231 拒绝——旧架构 ohos 平台包需相对 srcPath）。
   flutter_inappwebview_ohos:
-    git:
-      url: https://gitcode.com/CPF-Flutter/flutter_inappwebview.git
-      path: flutter_inappwebview_ohos
-      ref: br_v6.1.5_ohos
+    path: third_party/flutter_inappwebview_ohos
   # mobile_scanner 暂保留 stock hosted：CPF fork lib 内使用 Flutter-OH 专有的
   # TargetPlatform.ohos（lib/src/method_channel/mobile_scanner_method_channel.dart
   # 3 处），stock SDK 下整个 app 编译失败（连 Android 一起挂），宁缺毋滥。
@@ -36,11 +35,9 @@ dependencies:
       ref: 9.2.4-ohos-1.0.0
   # flutter_secure_storage 主包（9.2.4-ohos-1.0.0）未把 ohos 实现列为
   # default_package，需显式引入实现包注册 ohos 平台。
+  # 同上 vendor 化（旧架构 ohos 平台包，git 缓存绝对路径 hvigor 不收）。
   flutter_secure_storage_ohos:
-    git:
-      url: https://gitcode.com/CPF-Flutter/fluttertpc_flutter_secure_storage.git
-      path: flutter_secure_storage_ohos
-      ref: 9.2.4-ohos-1.0.0
+    path: third_party/flutter_secure_storage_ohos
   local_auth:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
@@ -52,11 +49,10 @@ dependencies:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
       path: packages/shared_preferences/shared_preferences
       ref: br_shared_preferences-v2.5.4_ohos
+  # 主包自带 ohos/ 平台工程（旧架构），vendor 化避免 pub git 缓存绝对
+  # 路径被 hvigor 00303231 拒绝（share_plus 与各 *_ohos 子包同理）。
   package_info_plus:
-    git:
-      url: https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git
-      path: packages/package_info_plus/package_info_plus
-      ref: br_package_info_plus-v9.0.0_ohos
+    path: third_party/package_info_plus
   uuid: ^4.6.0
   # flutter_local_notifications 暂保留 stock hosted：CPF fork（22.0.1-ohos tag
   # 与 19.5.0 均同）lib 内 9 处 TargetPlatform.ohos（Flutter-OH 专有），stock
@@ -73,10 +69,7 @@ dependencies:
   dio: ^5.7.0
   cryptography: ^2.7.0
   share_plus:
-    git:
-      url: https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git
-      path: packages/share_plus/share_plus
-      ref: br_share_plus-v12.0.1_ohos
+    path: third_party/share_plus
   path_provider:
     git:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
@@ -84,10 +77,10 @@ dependencies:
       ref: br_path_provider-v2.1.5_ohos
   # file_picker fork 基于 10.3.8 旧架构（FilePicker.platform.pickFiles），
   # 包名被 fork 改为 file_picker_ohos；调用点见 ui/account_vault_page.dart。
+  # vendor 化到 third_party（原 git 依赖的 pub 缓存绝对路径会被 hvigor
+  # 00303231 拒绝——旧架构 ohos 平台包必须以相对 srcPath 注册）。
   file_picker_ohos:
-    git:
-      url: https://gitcode.com/CPF-Flutter/fluttertpc_file_picker.git
-      ref: br_v10.3.8_ohos
+    path: third_party/fluttertpc_file_picker
   # device_info_plus 暂保留 stock hosted：CPF fork 主包 lib 内联 ohos 实现
   # 且使用 Flutter-OH 专有的 Platform.isOhos，stock SDK 下测试编译失败
   # （宁缺毋滥，见车道 B 适配对照表「风险」列）。
@@ -107,6 +100,16 @@ dependency_overrides:
     path: third_party/flutter_inappwebview_platform_interface
   flutter_inappwebview_android:
     path: third_party/flutter_inappwebview_android
+  # CPF fork 的 ohos 平台子包由主包 default_package 自动拉取（pub git 缓存
+  # 绝对路径 hvigor 不收），用 overrides 改指向仓库内 vendor 副本。
+  shared_preferences_ohos:
+    path: third_party/shared_preferences_ohos
+  path_provider_ohos:
+    path: third_party/path_provider_ohos
+  url_launcher_ohos:
+    path: third_party/url_launcher_ohos
+  local_auth_ohos:
+    path: third_party/local_auth_ohos
   # share_plus_platform_interface（CPF fork）内部依赖 path_provider 指向
   # openharmony-sig/flutter_packages master；统一覆盖为 CPF fork 分支，
   # 避免同一包双 git 源版本冲突。

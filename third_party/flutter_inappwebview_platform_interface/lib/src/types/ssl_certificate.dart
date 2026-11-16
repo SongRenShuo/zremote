@@ -8,16 +8,22 @@ import 'ssl_certificate_dname.dart';
 
 part 'ssl_certificate.g.dart';
 
+///SSL certificate info (certificate details) class.
 @ExchangeableObject()
 class SslCertificate_ {
+  ///Name of the entity this certificate is issued by.
   SslCertificateDName_? issuedBy;
 
+  ///Name of the entity this certificate is issued to.
   SslCertificateDName_? issuedTo;
 
+  ///Not-after date from the validity period.
   DateTime? validNotAfterDate;
 
+  ///Not-before date from the validity period.
   DateTime? validNotBeforeDate;
 
+  ///The original source certificate, if available.
   X509Certificate? x509Certificate;
 
   SslCertificate_(
@@ -27,6 +33,7 @@ class SslCertificate_ {
       this.validNotBeforeDate,
       this.x509Certificate});
 
+  ///Gets a possible [SslCertificate] instance from a [Map] value.
   static SslCertificate? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;

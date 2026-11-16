@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'print_job_page_order.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class representing the page order that will be used to generate the pages of a [PlatformPrintJobController].
 class PrintJobPageOrder {
   final int _value;
   final int _nativeValue;
@@ -10,6 +16,10 @@ class PrintJobPageOrder {
           int value, Function nativeValue) =>
       PrintJobPageOrder._internal(value, nativeValue());
 
+  ///Ascending (back to front) page order.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final ASCENDING = PrintJobPageOrder._internalMultiPlatform(1, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -20,6 +30,10 @@ class PrintJobPageOrder {
     return null;
   });
 
+  ///Descending (front to back) page order.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final DESCENDING = PrintJobPageOrder._internalMultiPlatform(-1, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -30,6 +44,10 @@ class PrintJobPageOrder {
     return null;
   });
 
+  ///The spooler does not rearrange pages—they are printed in the order received by the spooler.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final SPECIAL = PrintJobPageOrder._internalMultiPlatform(0, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -40,6 +58,10 @@ class PrintJobPageOrder {
     return null;
   });
 
+  ///No page order specified.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS
   static final UNKNOWN = PrintJobPageOrder._internalMultiPlatform(2, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -50,6 +72,7 @@ class PrintJobPageOrder {
     return null;
   });
 
+  ///Set of all values of [PrintJobPageOrder].
   static final Set<PrintJobPageOrder> values = [
     PrintJobPageOrder.ASCENDING,
     PrintJobPageOrder.DESCENDING,
@@ -57,6 +80,7 @@ class PrintJobPageOrder {
     PrintJobPageOrder.UNKNOWN,
   ].toSet();
 
+  ///Gets a possible [PrintJobPageOrder] instance from [int] value.
   static PrintJobPageOrder? fromValue(int? value) {
     if (value != null) {
       try {
@@ -69,6 +93,7 @@ class PrintJobPageOrder {
     return null;
   }
 
+  ///Gets a possible [PrintJobPageOrder] instance from a native value.
   static PrintJobPageOrder? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -81,8 +106,10 @@ class PrintJobPageOrder {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override

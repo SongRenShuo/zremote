@@ -1,15 +1,26 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'ssl_certificate.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///SSL certificate info (certificate details) class.
 class SslCertificate {
+  ///Name of the entity this certificate is issued by.
   SslCertificateDName? issuedBy;
 
+  ///Name of the entity this certificate is issued to.
   SslCertificateDName? issuedTo;
 
+  ///Not-after date from the validity period.
   DateTime? validNotAfterDate;
 
+  ///Not-before date from the validity period.
   DateTime? validNotBeforeDate;
 
+  ///The original source certificate, if available.
   X509Certificate? x509Certificate;
   SslCertificate(
       {this.issuedBy,
@@ -18,6 +29,7 @@ class SslCertificate {
       this.validNotBeforeDate,
       this.x509Certificate});
 
+  ///Gets a possible [SslCertificate] instance from a [Map] value.
   static SslCertificate? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -72,6 +84,7 @@ class SslCertificate {
         x509Certificate: x509Certificate);
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "issuedBy": issuedBy?.toMap(),
@@ -82,6 +95,7 @@ class SslCertificate {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

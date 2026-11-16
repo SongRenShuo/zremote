@@ -5,10 +5,12 @@ import '../web_message/platform_web_message_listener.dart';
 import 'platform_inappwebview_widget.dart';
 import 'platform_inappwebview_controller.dart';
 
+///Class used to keep alive a [PlatformInAppWebViewWidget].
 class InAppWebViewKeepAlive {
   String _id = IdGenerator.generate();
 }
 
+///Used internally
 extension InternalInAppWebViewKeepAlive on InAppWebViewKeepAlive {
   String get id => _id;
 
@@ -17,6 +19,8 @@ extension InternalInAppWebViewKeepAlive on InAppWebViewKeepAlive {
   }
 }
 
+///Used internally to save and restore [PlatformInAppWebViewController] properties
+///for the keep alive feature.
 class InAppWebViewControllerKeepAliveProps {
   Map<String, JavaScriptHandlerCallback> javaScriptHandlersMap;
   Map<UserScriptInjectionTime, List<UserScript>> userScripts;

@@ -3,6 +3,7 @@ import 'package:flutter_inappwebview_internal_annotations/flutter_inappwebview_i
 
 part 'web_resource_error_type.g.dart';
 
+///Class that represents the error types returned by URL loading APIs.
 @ExchangeableEnum()
 class WebResourceErrorType_ {
   // ignore: unused_field
@@ -12,6 +13,7 @@ class WebResourceErrorType_ {
 
   const WebResourceErrorType_._internal(this._value);
 
+  ///User authentication failed on server.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_AUTHENTICATION',
@@ -22,6 +24,7 @@ class WebResourceErrorType_ {
   static const USER_AUTHENTICATION_FAILED =
       WebResourceErrorType_._internal("USER_AUTHENTICATION_FAILED");
 
+  ///A malformed URL prevented a URL request from being initiated.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_BAD_URL',
@@ -41,6 +44,7 @@ class WebResourceErrorType_ {
   ])
   static const BAD_URL = WebResourceErrorType_._internal("BAD_URL");
 
+  ///Failed to connect to the server.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_CONNECT',
@@ -66,6 +70,7 @@ class WebResourceErrorType_ {
   static const CANNOT_CONNECT_TO_HOST =
       WebResourceErrorType_._internal("CANNOT_CONNECT_TO_HOST");
 
+  ///Failed to perform SSL handshake.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_FAILED_SSL_HANDSHAKE',
@@ -76,6 +81,7 @@ class WebResourceErrorType_ {
   static const FAILED_SSL_HANDSHAKE =
       WebResourceErrorType_._internal("FAILED_SSL_HANDSHAKE");
 
+  ///Generic file error.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_FILE',
@@ -86,6 +92,7 @@ class WebResourceErrorType_ {
   static const GENERIC_FILE_ERROR =
       WebResourceErrorType_._internal("GENERIC_FILE_ERROR");
 
+  ///File not found.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_FILE_NOT_FOUND',
@@ -106,6 +113,7 @@ class WebResourceErrorType_ {
   static const FILE_NOT_FOUND =
       WebResourceErrorType_._internal("FILE_NOT_FOUND");
 
+  ///Server or proxy hostname lookup failed.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_HOST_LOOKUP',
@@ -130,6 +138,7 @@ class WebResourceErrorType_ {
   ])
   static const HOST_LOOKUP = WebResourceErrorType_._internal("HOST_LOOKUP");
 
+  ///Failed to read or write to the server.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_IO',
@@ -139,6 +148,7 @@ class WebResourceErrorType_ {
   ])
   static const IO = WebResourceErrorType_._internal("IO");
 
+  ///User authentication failed on proxy.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_PROXY_AUTHENTICATION',
@@ -149,6 +159,7 @@ class WebResourceErrorType_ {
   static const PROXY_AUTHENTICATION =
       WebResourceErrorType_._internal("PROXY_AUTHENTICATION");
 
+  ///A redirect loop has been detected or the threshold for number of allowable redirects has been exceeded (currently `16` on iOS).
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_REDIRECT_LOOP',
@@ -169,6 +180,7 @@ class WebResourceErrorType_ {
   static const TOO_MANY_REDIRECTS =
       WebResourceErrorType_._internal("TOO_MANY_REDIRECTS");
 
+  ///Connection timed out.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_TIMEOUT',
@@ -193,6 +205,7 @@ class WebResourceErrorType_ {
   ])
   static const TIMEOUT = WebResourceErrorType_._internal("TIMEOUT");
 
+  ///Too many requests during this load.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_TOO_MANY_REQUESTS',
@@ -203,6 +216,7 @@ class WebResourceErrorType_ {
   static const TOO_MANY_REQUESTS =
       WebResourceErrorType_._internal("TOO_MANY_REQUESTS");
 
+  ///The URL Loading System encountered an error that it can’t interpret.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_UNKNOWN',
@@ -227,6 +241,7 @@ class WebResourceErrorType_ {
   ])
   static const UNKNOWN = WebResourceErrorType_._internal("UNKNOWN");
 
+  ///Resource load was canceled by Safe Browsing.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_UNSAFE_RESOURCE',
@@ -237,6 +252,7 @@ class WebResourceErrorType_ {
   static const UNSAFE_RESOURCE =
       WebResourceErrorType_._internal("UNSAFE_RESOURCE");
 
+  ///Unsupported authentication scheme (not basic or digest).
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_UNSUPPORTED_AUTH_SCHEME',
@@ -247,6 +263,8 @@ class WebResourceErrorType_ {
   static const UNSUPPORTED_AUTH_SCHEME =
       WebResourceErrorType_._internal("UNSUPPORTED_AUTH_SCHEME");
 
+  ///Unsupported URI scheme.
+  ///Typically this occurs when there is no available protocol handler for the URL.
   @EnumSupportedPlatforms(platforms: [
     EnumAndroidPlatform(
         apiName: 'WebViewClient.ERROR_UNSUPPORTED_SCHEME',
@@ -267,6 +285,7 @@ class WebResourceErrorType_ {
   static const UNSUPPORTED_SCHEME =
       WebResourceErrorType_._internal("UNSUPPORTED_SCHEME");
 
+  ///An asynchronous load has been canceled.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cancelled',
@@ -286,6 +305,7 @@ class WebResourceErrorType_ {
   ])
   static const CANCELLED = WebResourceErrorType_._internal("CANCELLED");
 
+  ///A client or server connection was severed in the middle of an in-progress load.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.networkConnectionLost',
@@ -306,6 +326,8 @@ class WebResourceErrorType_ {
   static const NETWORK_CONNECTION_LOST =
       WebResourceErrorType_._internal("NETWORK_CONNECTION_LOST");
 
+  ///A requested resource couldn't be retrieved.
+  ///This error can indicate a file-not-found situation, or decoding problems that prevent data from being processed correctly.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.resourceUnavailable',
@@ -321,6 +343,7 @@ class WebResourceErrorType_ {
   static const RESOURCE_UNAVAILABLE =
       WebResourceErrorType_._internal("RESOURCE_UNAVAILABLE");
 
+  ///A network resource was requested, but an internet connection hasn’t been established and can’t be established automatically.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.notConnectedToInternet',
@@ -336,6 +359,7 @@ class WebResourceErrorType_ {
   static const NOT_CONNECTED_TO_INTERNET =
       WebResourceErrorType_._internal("NOT_CONNECTED_TO_INTERNET");
 
+  ///A redirect was specified by way of server response code, but the server didn’t accompany this code with a redirect URL.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.redirectToNonExistentLocation',
@@ -351,6 +375,7 @@ class WebResourceErrorType_ {
   static const REDIRECT_TO_NON_EXISTENT_LOCATION =
       WebResourceErrorType_._internal("REDIRECT_TO_NON_EXISTENT_LOCATION");
 
+  ///The URL Loading System received bad data from the server.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.badServerResponse',
@@ -372,6 +397,8 @@ class WebResourceErrorType_ {
   static const BAD_SERVER_RESPONSE =
       WebResourceErrorType_._internal("BAD_SERVER_RESPONSE");
 
+  ///An asynchronous request for authentication has been canceled by the user.
+  ///This error typically occurs when a user clicks a "Cancel" button in a username/password dialog, rather than attempting to authenticate.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.userCancelledAuthentication',
@@ -387,6 +414,7 @@ class WebResourceErrorType_ {
   static const USER_CANCELLED_AUTHENTICATION =
       WebResourceErrorType_._internal("USER_CANCELLED_AUTHENTICATION");
 
+  ///Authentication is required to access a resource.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.userAuthenticationRequired',
@@ -408,6 +436,7 @@ class WebResourceErrorType_ {
   static const USER_AUTHENTICATION_REQUIRED =
       WebResourceErrorType_._internal("USER_AUTHENTICATION_REQUIRED");
 
+  ///A server reported that a URL has a non-zero content length, but terminated the network connection gracefully without sending any data.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.zeroByteResource',
@@ -423,6 +452,7 @@ class WebResourceErrorType_ {
   static const ZERO_BYTE_RESOURCE =
       WebResourceErrorType_._internal("ZERO_BYTE_RESOURCE");
 
+  ///Content data received during a connection request couldn’t be decoded for a known content encoding.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotDecodeRawData',
@@ -438,6 +468,7 @@ class WebResourceErrorType_ {
   static const CANNOT_DECODE_RAW_DATA =
       WebResourceErrorType_._internal("CANNOT_DECODE_RAW_DATA");
 
+  ///Content data received during a connection request couldn’t be decoded for a known content encoding.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotDecodeContentData',
@@ -453,6 +484,7 @@ class WebResourceErrorType_ {
   static const CANNOT_DECODE_CONTENT_DATA =
       WebResourceErrorType_._internal("CANNOT_DECODE_CONTENT_DATA");
 
+  ///A task could not parse a response.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotParseResponse',
@@ -468,6 +500,7 @@ class WebResourceErrorType_ {
   static const CANNOT_PARSE_RESPONSE =
       WebResourceErrorType_._internal("CANNOT_PARSE_RESPONSE");
 
+  ///App Transport Security disallowed a connection because there is no secure network connection.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.appTransportSecurityRequiresSecureConnection',
@@ -484,6 +517,7 @@ class WebResourceErrorType_ {
       WebResourceErrorType_._internal(
           "APP_TRANSPORT_SECURITY_REQUIRES_SECURE_CONNECTION");
 
+  ///A request for an FTP file resulted in the server responding that the file is not a plain file, but a directory.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.fileIsDirectory',
@@ -499,6 +533,7 @@ class WebResourceErrorType_ {
   static const FILE_IS_DIRECTORY =
       WebResourceErrorType_._internal("FILE_IS_DIRECTORY");
 
+  ///A resource couldn’t be read because of insufficient permissions.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.noPermissionsToReadFile',
@@ -514,6 +549,7 @@ class WebResourceErrorType_ {
   static const NO_PERMISSIONS_TO_READ_FILE =
       WebResourceErrorType_._internal("NO_PERMISSIONS_TO_READ_FILE");
 
+  ///The length of the resource data exceeds the maximum allowed.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.dataLengthExceedsMaximum',
@@ -529,6 +565,7 @@ class WebResourceErrorType_ {
   static const DATA_LENGTH_EXCEEDS_MAXIMUM =
       WebResourceErrorType_._internal("DATA_LENGTH_EXCEEDS_MAXIMUM");
 
+  ///An attempt to establish a secure connection failed for reasons that can’t be expressed more specifically.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.secureConnectionFailed',
@@ -544,6 +581,7 @@ class WebResourceErrorType_ {
   static const SECURE_CONNECTION_FAILED =
       WebResourceErrorType_._internal("SECURE_CONNECTION_FAILED");
 
+  ///A server certificate had a date which indicates it has expired, or is not yet valid.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.serverCertificateHasBadDate',
@@ -559,6 +597,7 @@ class WebResourceErrorType_ {
   static const SERVER_CERTIFICATE_HAS_BAD_DATE =
       WebResourceErrorType_._internal("SERVER_CERTIFICATE_HAS_BAD_DATE");
 
+  ///A server certificate was signed by a root server that isn’t trusted.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.serverCertificateUntrusted',
@@ -574,6 +613,7 @@ class WebResourceErrorType_ {
   static const SERVER_CERTIFICATE_UNTRUSTED =
       WebResourceErrorType_._internal("SERVER_CERTIFICATE_UNTRUSTED");
 
+  ///A server certificate was not signed by any root server.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.serverCertificateHasUnknownRoot',
@@ -589,6 +629,7 @@ class WebResourceErrorType_ {
   static const SERVER_CERTIFICATE_HAS_UNKNOWN_ROOT =
       WebResourceErrorType_._internal("SERVER_CERTIFICATE_HAS_UNKNOWN_ROOT");
 
+  ///A server certificate is not yet valid.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.serverCertificateNotYetValid',
@@ -604,6 +645,7 @@ class WebResourceErrorType_ {
   static const SERVER_CERTIFICATE_NOT_YET_VALID =
       WebResourceErrorType_._internal("SERVER_CERTIFICATE_NOT_YET_VALID");
 
+  ///A server certificate was rejected.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.clientCertificateRejected',
@@ -619,6 +661,7 @@ class WebResourceErrorType_ {
   static const CLIENT_CERTIFICATE_REJECTED =
       WebResourceErrorType_._internal("CLIENT_CERTIFICATE_REJECTED");
 
+  ///A client certificate was required to authenticate an SSL connection during a request.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.clientCertificateRequired',
@@ -634,6 +677,7 @@ class WebResourceErrorType_ {
   static const CLIENT_CERTIFICATE_REQUIRED =
       WebResourceErrorType_._internal("CLIENT_CERTIFICATE_REQUIRED");
 
+  ///A request to load an item only from the cache could not be satisfied.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotLoadFromNetwork',
@@ -649,6 +693,7 @@ class WebResourceErrorType_ {
   static const CANNOT_LOAD_FROM_NETWORK =
       WebResourceErrorType_._internal("CANNOT_LOAD_FROM_NETWORK");
 
+  ///A download task couldn’t create the downloaded file on disk because of an I/O failure.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotCreateFile',
@@ -664,6 +709,7 @@ class WebResourceErrorType_ {
   static const CANNOT_CREATE_FILE =
       WebResourceErrorType_._internal("CANNOT_CREATE_FILE");
 
+  ///A download task was unable to open the downloaded file on disk.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotOpenFile',
@@ -679,6 +725,7 @@ class WebResourceErrorType_ {
   static const CANNOT_OPEN_FILE =
       WebResourceErrorType_._internal("CANNOT_OPEN_FILE");
 
+  ///A download task couldn’t close the downloaded file on disk.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotCloseFile',
@@ -694,6 +741,7 @@ class WebResourceErrorType_ {
   static const CANNOT_CLOSE_FILE =
       WebResourceErrorType_._internal("CANNOT_CLOSE_FILE");
 
+  ///A download task was unable to write to the downloaded file on disk.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotWriteToFile',
@@ -709,6 +757,7 @@ class WebResourceErrorType_ {
   static const CANNOT_WRITE_TO_FILE =
       WebResourceErrorType_._internal("CANNOT_WRITE_TO_FILE");
 
+  ///A download task was unable to remove a downloaded file from disk.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotRemoveFile',
@@ -724,6 +773,7 @@ class WebResourceErrorType_ {
   static const CANNOT_REMOVE_FILE =
       WebResourceErrorType_._internal("CANNOT_REMOVE_FILE");
 
+  ///A download task was unable to move a downloaded file on disk.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.cannotMoveFile',
@@ -739,6 +789,7 @@ class WebResourceErrorType_ {
   static const CANNOT_MOVE_FILE =
       WebResourceErrorType_._internal("CANNOT_MOVE_FILE");
 
+  ///A download task failed to decode an encoded file during the download.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.downloadDecodingFailedMidStream',
@@ -754,6 +805,7 @@ class WebResourceErrorType_ {
   static const DOWNLOAD_DECODING_FAILED_MID_STREAM =
       WebResourceErrorType_._internal("DOWNLOAD_DECODING_FAILED_MID_STREAM");
 
+  ///A download task failed to decode an encoded file after downloading.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.downloadDecodingFailedToComplete',
@@ -769,6 +821,7 @@ class WebResourceErrorType_ {
   static const DOWNLOAD_DECODING_FAILED_TO_COMPLETE =
       WebResourceErrorType_._internal("DOWNLOAD_DECODING_FAILED_TO_COMPLETE");
 
+  ///The attempted connection required activating a data context while roaming, but international roaming is disabled.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.internationalRoamingOff',
@@ -784,6 +837,7 @@ class WebResourceErrorType_ {
   static const INTERNATIONAL_ROAMING_OFF =
       WebResourceErrorType_._internal("INTERNATIONAL_ROAMING_OFF");
 
+  ///A connection was attempted while a phone call is active on a network that does not support simultaneous phone and data communication (EDGE or GPRS).
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.callIsActive',
@@ -799,6 +853,7 @@ class WebResourceErrorType_ {
   static const CALL_IS_ACTIVE =
       WebResourceErrorType_._internal("CALL_IS_ACTIVE");
 
+  ///The cellular network disallowed a connection.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.dataNotAllowed',
@@ -814,6 +869,7 @@ class WebResourceErrorType_ {
   static const DATA_NOT_ALLOWED =
       WebResourceErrorType_._internal("DATA_NOT_ALLOWED");
 
+  ///A body stream is needed but the client did not provide one.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.requestBodyStreamExhausted',
@@ -829,6 +885,7 @@ class WebResourceErrorType_ {
   static const REQUEST_BODY_STREAM_EXHAUSTED =
       WebResourceErrorType_._internal("REQUEST_BODY_STREAM_EXHAUSTED");
 
+  ///The shared container identifier of the URL session configuration is needed but has not been set.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.backgroundSessionRequiresSharedContainer',
@@ -845,6 +902,7 @@ class WebResourceErrorType_ {
       WebResourceErrorType_._internal(
           "BACKGROUND_SESSION_REQUIRES_SHARED_CONTAINER");
 
+  ///An app or app extension attempted to connect to a background session that is already connected to a process.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.backgroundSessionInUseByAnotherProcess',
@@ -861,6 +919,7 @@ class WebResourceErrorType_ {
       WebResourceErrorType_._internal(
           "BACKGROUND_SESSION_IN_USE_BY_ANOTHER_PROCESS");
 
+  ///The app is suspended or exits while a background data task is processing.
   @EnumSupportedPlatforms(platforms: [
     EnumIOSPlatform(
         apiName: 'URLError.backgroundSessionWasDisconnected',
@@ -876,6 +935,7 @@ class WebResourceErrorType_ {
   static const BACKGROUND_SESSION_WAS_DISCONNECTED =
       WebResourceErrorType_._internal("BACKGROUND_SESSION_WAS_DISCONNECTED");
 
+  ///Indicates that the host is unreachable.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName: 'COREWEBVIEW2_WEB_ERROR_STATUS_SERVER_UNREACHABLE',
@@ -886,6 +946,7 @@ class WebResourceErrorType_ {
   static const SERVER_UNREACHABLE =
       WebResourceErrorType_._internal("SERVER_UNREACHABLE");
 
+  ///Indicates that the connection was stopped.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName: 'COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED',
@@ -896,6 +957,7 @@ class WebResourceErrorType_ {
   static const CONNECTION_ABORTED =
       WebResourceErrorType_._internal("CONNECTION_ABORTED");
 
+  ///Indicates that the connection was reset.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName: 'COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_RESET',
@@ -905,6 +967,7 @@ class WebResourceErrorType_ {
   ])
   static const RESET = WebResourceErrorType_._internal("RESET");
 
+  ///Indicates that the request redirect failed.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName: 'COREWEBVIEW2_WEB_ERROR_STATUS_REDIRECT_FAILED',
@@ -915,6 +978,7 @@ class WebResourceErrorType_ {
   static const REDIRECT_FAILED =
       WebResourceErrorType_._internal("REDIRECT_FAILED");
 
+  ///Indicates that an unexpected error occurred.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName: 'COREWEBVIEW2_WEB_ERROR_STATUS_UNEXPECTED_ERROR',
@@ -925,6 +989,7 @@ class WebResourceErrorType_ {
   static const UNEXPECTED_ERROR =
       WebResourceErrorType_._internal("UNEXPECTED_ERROR");
 
+  ///Indicates that user lacks proper authentication credentials for a proxy server.
   @EnumSupportedPlatforms(platforms: [
     EnumWindowsPlatform(
         apiName:

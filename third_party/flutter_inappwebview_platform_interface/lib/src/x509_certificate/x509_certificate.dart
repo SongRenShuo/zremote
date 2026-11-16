@@ -9,10 +9,16 @@ import 'x509_public_key.dart';
 import 'x509_extension.dart';
 import 'asn1_distinguished_names.dart';
 
+///Class that represents a X.509 certificate.
+///This provides a standard way to access all the attributes of an X.509 certificate.
 class X509Certificate {
   List<ASN1Object>? asn1;
   ASN1Object? block1;
 
+  ///Returns the encoded form of this certificate. It is
+  ///assumed that each certificate type would have only a single
+  ///form of encoding; for example, X.509 certificates would
+  ///be encoded as ASN.1 DER.
   Uint8List? encoded;
 
   static const beginPemBlock = "-----BEGIN CERTIFICATE-----";
@@ -59,6 +65,7 @@ class X509Certificate {
     return X509Certificate.fromDerData(der: derData);
   }
 
+  ///Read possible PEM encoding
   static Uint8List? decodeToDER({required pemData}) {
     var pem = String.fromCharCodes(pemData);
     if (pem.contains(X509Certificate.beginPemBlock)) {
@@ -93,6 +100,7 @@ class X509Certificate {
           "", (value, element) => (value ?? '') + element.description + '\n') ??
       '';
 
+  ///Checks that the given date is within the certificate's validity period.
   bool checkValidity({DateTime? date}) {
     if (date == null) {
       date = DateTime.now();
@@ -103,6 +111,7 @@ class X509Certificate {
     return false;
   }
 
+  ///Gets the version (version number) value from the certificate.
   int? get version {
     if (block1 != null) {
       var v = firstLeafValue(block: block1!);
@@ -116,11 +125,13 @@ class X509Certificate {
     return null;
   }
 
+  ///Gets the serialNumber value from the certificate.
   List<int>? get serialNumber {
     var data = block1?.atIndex(X509BlockPosition.serialNumber)?.value;
     return data is List<int> ? data : null;
   }
 
+  ///Returns the issuer (issuer distinguished name) value from the certificate as a String.
   String? get issuerDistinguishedName {
     var issuerBlock = block1?.atIndex(X509BlockPosition.issuer);
     if (issuerBlock != null) {
@@ -164,6 +175,7 @@ class X509Certificate {
     return null;
   }
 
+  ///Returns the subject (subject distinguished name) value from the certificate as a String.
   String? get subjectDistinguishedName {
     var subjectBlock = block1?.atIndex(X509BlockPosition.subject);
     if (subjectBlock != null) {
@@ -207,32 +219,52 @@ class X509Certificate {
     return null;
   }
 
+  ///Gets the notBefore date from the validity period of the certificate.
   DateTime? get notBefore {
     var data =
         block1?.atIndex(X509BlockPosition.dateValidity)?.subAtIndex(0)?.value;
     return data is DateTime ? data : null;
   }
 
+  ///Gets the notAfter date from the validity period of the certificate.
   DateTime? get notAfter {
     var data =
         block1?.atIndex(X509BlockPosition.dateValidity)?.subAtIndex(1)?.value;
     return data is DateTime ? data : null;
   }
 
+  ///Gets the signature value (the raw signature bits) from the certificate.
   List<int>? get signature {
     var data = asn1?[0].subAtIndex(2)?.value;
     return data is List<int> ? data : null;
   }
 
+  ///Gets the signature algorithm name for the certificate signature algorithm.
   String? get sigAlgName => OID.fromValue(sigAlgOID ?? '')?.name();
 
+  ///Gets the signature algorithm OID string from the certificate.
   String? get sigAlgOID {
     var data = block1?.subAtIndex(2)?.subAtIndex(0)?.value;
     return data is String ? data : null;
   }
 
+  ///Gets the DER-encoded signature algorithm parameters from this certificate's signature algorithm.
   List<int>? get sigAlgParams => null;
 
+  ///Gets a boolean array representing bits of the KeyUsage extension, (OID = 2.5.29.15).
+  ///```
+  ///KeyUsage ::= BIT STRING {
+  ///digitalSignature        (0),
+  ///nonRepudiation          (1),
+  ///keyEncipherment         (2),
+  ///dataEncipherment        (3),
+  ///keyAgreement            (4),
+  ///keyCertSign             (5),
+  ///cRLSign                 (6),
+  ///encipherOnly            (7),
+  ///decipherOnly            (8)
+  ///}
+  ///```
   List<bool> get keyUsage {
     var result = <bool>[];
     var oidBlock = block1?.findOid(oid: OID.keyUsage);
@@ -250,17 +282,22 @@ class X509Certificate {
     return result;
   }
 
+  ///Gets a list of Strings representing the OBJECT IDENTIFIERs of the ExtKeyUsageSyntax field of
+  ///the extended key usage extension, (OID = 2.5.29.37).
   List<String> get extendedKeyUsage =>
       extensionObject(oid: OID.extKeyUsage)?.valueAsStrings ?? <String>[];
 
+  ///Gets a collection of subject alternative names from the SubjectAltName extension, (OID = 2.5.29.17).
   List<String> get subjectAlternativeNames =>
       extensionObject(oid: OID.subjectAltName)?.alternativeNameAsStrings ??
       <String>[];
 
+  ///Gets a collection of issuer alternative names from the IssuerAltName extension, (OID = 2.5.29.18).
   List<String> get issuerAlternativeNames =>
       extensionObject(oid: OID.issuerAltName)?.alternativeNameAsStrings ??
       <String>[];
 
+  ///Gets the informations of the public key from this certificate.
   X509PublicKey? get publicKey {
     var pkBlock = block1?.atIndex(X509BlockPosition.publicKey);
     if (pkBlock != null) {
@@ -269,6 +306,7 @@ class X509Certificate {
     return null;
   }
 
+  ///Get a list of critical extension OID codes
   List<String> get criticalExtensionOIDs {
     var extensionBlocks = this.extensionBlocks;
     if (extensionBlocks == null) {
@@ -281,6 +319,7 @@ class X509Certificate {
         .toList();
   }
 
+  ///Get a list of non critical extension OID codes
   List<String> get nonCriticalExtensionOIDs {
     var extensionBlocks = this.extensionBlocks;
     if (extensionBlocks == null) {
@@ -293,25 +332,34 @@ class X509Certificate {
         .toList();
   }
 
+  ///Gets the certificate constraints path length from the
+  ///critical BasicConstraints extension, (OID = 2.5.29.19).
   BasicConstraintExtension? get basicConstraints =>
       extensionObject(oid: OID.basicConstraints) as BasicConstraintExtension?;
 
+  ///Gets the raw bits from the Subject Key Identifier (SKID) extension, (OID = 2.5.29.14).
   SubjectKeyIdentifierExtension? get subjectKeyIdentifier =>
       extensionObject(oid: OID.subjectKeyIdentifier)
           as SubjectKeyIdentifierExtension?;
 
+  ///Gets the raw bits from the Authority Key Identifier extension, (OID = 2.5.29.35).
   AuthorityKeyIdentifierExtension? get authorityKeyIdentifier =>
       extensionObject(oid: OID.authorityKeyIdentifier)
           as AuthorityKeyIdentifierExtension?;
 
+  ///Gets the list of certificate policies from the CertificatePolicies extension, (OID = 2.5.29.32).
   CertificatePoliciesExtension? get certificatePolicies =>
       extensionObject(oid: OID.certificatePolicies)
           as CertificatePoliciesExtension?;
 
+  ///Gets the list of CRL distribution points from the CRLDistributionPoints extension, (OID = 2.5.29.31).
   CRLDistributionPointsExtension? get cRLDistributionPoints =>
       extensionObject(oid: OID.cRLDistributionPoints)
           as CRLDistributionPointsExtension?;
 
+  ///Gets the map of the format (as a key) and location (as a value) of additional information
+  ///about the CA who issued the certificate in which this extension appears
+  ///from the AuthorityInfoAccess extension, (OID = 1.3.6.1.5.5.5.7.1.1).
   AuthorityInfoAccessExtension? get authorityInfoAccess =>
       extensionObject(oid: OID.authorityInfoAccess)
           as AuthorityInfoAccessExtension?;
@@ -319,6 +367,7 @@ class X509Certificate {
   List<ASN1Object>? get extensionBlocks =>
       block1?.atIndex(X509BlockPosition.extensions)?.subAtIndex(0)?.sub;
 
+  ///Gets the extension information of the given OID code or enum string value.
   X509Extension? extensionObject({String? oidValue, OID? oid}) {
     if (oidValue == null && oid != null) {
       oidValue = oid.toValue();

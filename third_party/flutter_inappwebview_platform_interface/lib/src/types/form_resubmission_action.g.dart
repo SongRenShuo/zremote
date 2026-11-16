@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'form_resubmission_action.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class that represents the action to take used by the [PlatformWebViewCreationParams.onFormResubmission] event.
 class FormResubmissionAction {
   final int _value;
   final int _nativeValue;
@@ -10,15 +16,19 @@ class FormResubmissionAction {
           int value, Function nativeValue) =>
       FormResubmissionAction._internal(value, nativeValue());
 
+  ///Don't resend data
   static const DONT_RESEND = FormResubmissionAction._internal(1, 1);
 
+  ///Resend data
   static const RESEND = FormResubmissionAction._internal(0, 0);
 
+  ///Set of all values of [FormResubmissionAction].
   static final Set<FormResubmissionAction> values = [
     FormResubmissionAction.DONT_RESEND,
     FormResubmissionAction.RESEND,
   ].toSet();
 
+  ///Gets a possible [FormResubmissionAction] instance from [int] value.
   static FormResubmissionAction? fromValue(int? value) {
     if (value != null) {
       try {
@@ -31,6 +41,7 @@ class FormResubmissionAction {
     return null;
   }
 
+  ///Gets a possible [FormResubmissionAction] instance from a native value.
   static FormResubmissionAction? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -43,8 +54,10 @@ class FormResubmissionAction {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override

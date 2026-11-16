@@ -6,8 +6,10 @@ import 'fetch_request_password_credential.dart';
 
 part 'fetch_request_credential.g.dart';
 
+///Class that is an interface for [FetchRequestCredentialDefault], [FetchRequestFederatedCredential] and [FetchRequestPasswordCredential] classes.
 @ExchangeableObject()
 class FetchRequestCredential_ {
+  ///Type of credentials.
   String? type;
 
   FetchRequestCredential_({this.type});

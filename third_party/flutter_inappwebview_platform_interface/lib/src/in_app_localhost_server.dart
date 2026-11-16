@@ -8,20 +8,29 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'mime_type_resolver.dart';
 import 'platform_in_app_localhost_server.dart';
 
+/// Object specifying creation parameters for creating a [DefaultInAppLocalhostServer].
+///
+/// When adding additional fields make sure they can be null or have a default
+/// value to avoid breaking changes. See [PlatformInAppLocalhostServerCreationParams] for
+/// more information.
 @immutable
 class DefaultInAppLocalhostServerCreationParams
     extends PlatformInAppLocalhostServerCreationParams {
+  /// Creates a new [DefaultInAppLocalhostServerCreationParams] instance.
   const DefaultInAppLocalhostServerCreationParams(
+    // This parameter prevents breaking changes later.
     // ignore: avoid_unused_constructor_parameters
     PlatformInAppLocalhostServerCreationParams params,
   ) : super();
 
+  /// Creates a [DefaultInAppLocalhostServerCreationParams] instance based on [PlatformInAppLocalhostServerCreationParams].
   factory DefaultInAppLocalhostServerCreationParams.fromPlatformInAppLocalhostServerCreationParams(
       PlatformInAppLocalhostServerCreationParams params) {
     return DefaultInAppLocalhostServerCreationParams(params);
   }
 }
 
+///{@macro flutter_inappwebview_platform_interface.PlatformInAppLocalhostServer}
 class DefaultInAppLocalhostServer extends PlatformInAppLocalhostServer {
   bool _started = false;
   HttpServer? _server;
@@ -30,6 +39,7 @@ class DefaultInAppLocalhostServer extends PlatformInAppLocalhostServer {
   String _directoryIndex = 'index.html';
   String _documentRoot = './';
 
+  /// Creates a new [DefaultInAppLocalhostServer].
   DefaultInAppLocalhostServer(PlatformInAppLocalhostServerCreationParams params)
       : super.implementation(
           params is DefaultInAppLocalhostServerCreationParams
@@ -79,6 +89,7 @@ class DefaultInAppLocalhostServer extends PlatformInAppLocalhostServer {
           path = (path.startsWith('/')) ? path.substring(1) : path;
           path += (path.endsWith('/')) ? _directoryIndex : '';
           if (path == '') {
+            // if the path still empty, try to load the index file
             path = _directoryIndex;
           }
           path = _documentRoot + path;
@@ -90,7 +101,10 @@ class DefaultInAppLocalhostServer extends PlatformInAppLocalhostServer {
           } catch (e) {
             print(Uri.decodeFull(path));
             print(e.toString());
-            request.response.close();
+            request.response.statusCode = HttpStatus.notFound;
+            request.response.reasonPhrase = 'Not Found';
+            request.response.write('Not Found');
+            await request.response.close();
             return;
           }
 

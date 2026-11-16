@@ -1,14 +1,24 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'request_focus_node_href_result.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the result used by the [PlatformInAppWebViewController.requestFocusNodeHref] method.
 class RequestFocusNodeHrefResult {
+  ///The image's src attribute.
   String? src;
 
+  ///The anchor's text.
   String? title;
 
+  ///The anchor's href attribute.
   WebUri? url;
   RequestFocusNodeHrefResult({this.src, this.title, this.url});
 
+  ///Gets a possible [RequestFocusNodeHrefResult] instance from a [Map] value.
   static RequestFocusNodeHrefResult? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -21,6 +31,7 @@ class RequestFocusNodeHrefResult {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "src": src,
@@ -29,6 +40,7 @@ class RequestFocusNodeHrefResult {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

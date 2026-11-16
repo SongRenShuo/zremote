@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'safe_browsing_response_action.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class used by [SafeBrowsingResponse] class.
 class SafeBrowsingResponseAction {
   final int _value;
   final int _nativeValue;
@@ -10,18 +16,23 @@ class SafeBrowsingResponseAction {
           int value, Function nativeValue) =>
       SafeBrowsingResponseAction._internal(value, nativeValue());
 
+  ///Act as if the user clicked the "back to safety" button.
   static const BACK_TO_SAFETY = SafeBrowsingResponseAction._internal(0, 0);
 
+  ///Act as if the user clicked the "visit this unsafe site" button.
   static const PROCEED = SafeBrowsingResponseAction._internal(1, 1);
 
+  ///Display the default interstitial.
   static const SHOW_INTERSTITIAL = SafeBrowsingResponseAction._internal(2, 2);
 
+  ///Set of all values of [SafeBrowsingResponseAction].
   static final Set<SafeBrowsingResponseAction> values = [
     SafeBrowsingResponseAction.BACK_TO_SAFETY,
     SafeBrowsingResponseAction.PROCEED,
     SafeBrowsingResponseAction.SHOW_INTERSTITIAL,
   ].toSet();
 
+  ///Gets a possible [SafeBrowsingResponseAction] instance from [int] value.
   static SafeBrowsingResponseAction? fromValue(int? value) {
     if (value != null) {
       try {
@@ -34,6 +45,7 @@ class SafeBrowsingResponseAction {
     return null;
   }
 
+  ///Gets a possible [SafeBrowsingResponseAction] instance from a native value.
   static SafeBrowsingResponseAction? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -46,8 +58,10 @@ class SafeBrowsingResponseAction {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int] native value.
   int toNativeValue() => _nativeValue;
 
   @override

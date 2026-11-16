@@ -25,33 +25,47 @@ FetchRequestCredential? _fetchRequestCredentialDeserializer(dynamic value) {
   return credentials;
 }
 
+///Class that represents a HTTP request created with JavaScript using the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
 @ExchangeableObject()
 class FetchRequest_ {
+  ///The URL of the request.
   WebUri? url;
 
+  ///The HTTP request method used of the request.
   String? method;
 
+  ///The HTTP request headers.
   Map<String, dynamic>? headers;
 
+  ///Body of the request.
   dynamic body;
 
+  ///The mode used by the request.
   String? mode;
 
+  ///The request credentials used by the request.
   @ExchangeableObjectProperty(deserializer: _fetchRequestCredentialDeserializer)
   FetchRequestCredential_? credentials;
 
+  ///The cache mode used by the request.
   String? cache;
 
+  ///The redirect mode used by the request.
   String? redirect;
 
+  ///A String specifying no-referrer, client, or a URL.
   String? referrer;
 
+  ///The value of the referer HTTP header.
   ReferrerPolicy_? referrerPolicy;
 
+  ///Contains the subresource integrity value of the request.
   String? integrity;
 
+  ///The keepalive option used to allow the request to outlive the page.
   bool? keepalive;
 
+  ///Indicates the [FetchRequestAction] that can be used to control the request.
   FetchRequestAction_? action;
 
   FetchRequest_(

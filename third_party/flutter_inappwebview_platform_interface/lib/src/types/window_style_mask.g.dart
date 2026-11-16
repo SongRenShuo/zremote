@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'window_style_mask.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///Class that represents the flags that describe the browser window’s current style, such as if it’s resizable or in full-screen mode.
 class WindowStyleMask {
   final int _value;
   final int? _nativeValue;
@@ -10,6 +16,10 @@ class WindowStyleMask {
           int value, Function nativeValue) =>
       WindowStyleMask._internal(value, nativeValue());
 
+  ///The window displays none of the usual peripheral elements. Useful only for display or caching purposes.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.borderless](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644698-borderless))
   static final BORDERLESS = WindowStyleMask._internalMultiPlatform(0, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -20,6 +30,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window displays a close button.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.closable](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644610-closable))
   static final CLOSABLE = WindowStyleMask._internalMultiPlatform(2, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -30,6 +44,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window is a document-modal panel.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.docModalWindow](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644253-docmodalwindow))
   static final DOC_MODAL_WINDOW =
       WindowStyleMask._internalMultiPlatform(64, () {
     switch (defaultTargetPlatform) {
@@ -41,6 +59,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window can appear full screen. A fullscreen window does not draw its title bar, and may have special handling for its toolbar.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.fullScreen](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644530-fullscreen))
   static final FULLSCREEN = WindowStyleMask._internalMultiPlatform(16384, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -51,6 +73,12 @@ class WindowStyleMask {
     return null;
   });
 
+  ///When set, the window’s contentView consumes the full size of the window.
+  ///Although you can combine this constant with other window style masks, it is respected only for windows with a title bar.
+  ///Note that using this mask opts in to layer-backing.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.fullSizeContentView](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644646-fullsizecontentview))
   static final FULL_SIZE_CONTENT_VIEW =
       WindowStyleMask._internalMultiPlatform(32768, () {
     switch (defaultTargetPlatform) {
@@ -62,6 +90,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window is a HUD panel.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.hudWindow](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644653-hudwindow))
   static final HUD_WINDOW = WindowStyleMask._internalMultiPlatform(8192, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -72,6 +104,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window displays a minimize button.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.miniaturizable](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644650-miniaturizable))
   static final MINIATURIZABLE = WindowStyleMask._internalMultiPlatform(4, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -82,6 +118,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window is a panel that does not activate the owning app.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.nonactivatingPanel](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644696-nonactivatingpanel))
   static final NONACTIVATING_PANEL =
       WindowStyleMask._internalMultiPlatform(128, () {
     switch (defaultTargetPlatform) {
@@ -93,6 +133,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window can be resized by the user.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.miniaturizable](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644717-resizable))
   static final RESIZABLE = WindowStyleMask._internalMultiPlatform(8, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -103,6 +147,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window displays a title bar.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.titled](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644724-titled))
   static final TITLED = WindowStyleMask._internalMultiPlatform(1, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -113,6 +161,10 @@ class WindowStyleMask {
     return null;
   });
 
+  ///The window is a panel.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- MacOS ([Official API - NSWindow.StyleMask.utilityWindow](https://developer.apple.com/documentation/appkit/nswindow/stylemask/1644672-utilitywindow))
   static final UTILITY_WINDOW = WindowStyleMask._internalMultiPlatform(16, () {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
@@ -123,6 +175,7 @@ class WindowStyleMask {
     return null;
   });
 
+  ///Set of all values of [WindowStyleMask].
   static final Set<WindowStyleMask> values = [
     WindowStyleMask.BORDERLESS,
     WindowStyleMask.CLOSABLE,
@@ -137,6 +190,7 @@ class WindowStyleMask {
     WindowStyleMask.UTILITY_WINDOW,
   ].toSet();
 
+  ///Gets a possible [WindowStyleMask] instance from [int] value.
   static WindowStyleMask? fromValue(int? value) {
     if (value != null) {
       try {
@@ -149,6 +203,7 @@ class WindowStyleMask {
     return null;
   }
 
+  ///Gets a possible [WindowStyleMask] instance from a native value.
   static WindowStyleMask? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -161,8 +216,10 @@ class WindowStyleMask {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int?] native value.
   int? toNativeValue() => _nativeValue;
 
   @override

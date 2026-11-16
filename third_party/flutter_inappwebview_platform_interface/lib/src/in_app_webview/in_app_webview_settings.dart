@@ -33,6 +33,7 @@ import '../in_app_webview/platform_inappwebview_controller.dart';
 import '../context_menu/context_menu.dart';
 import '../in_app_browser/platform_in_app_browser.dart';
 import 'platform_webview.dart';
+import '../types/layout_mode.dart';
 
 part 'in_app_webview_settings.g.dart';
 
@@ -49,8 +50,14 @@ List<ContentBlocker> _deserializeContentBlockers(
   return contentBlockers;
 }
 
+///This class represents all the WebView settings available.
 @ExchangeableObject(copyMethod: true)
 class InAppWebViewSettings_ {
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldOverrideUrlLoading] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.shouldOverrideUrlLoading] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(),
@@ -59,19 +66,31 @@ class InAppWebViewSettings_ {
   ])
   bool? useShouldOverrideUrlLoading;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.onLoadResource] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.onLoadResource] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? useOnLoadResource;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.onDownloadStartRequest] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.onDownloadStartRequest] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? useOnDownloadStart;
 
+  ///Use [PlatformInAppWebViewController.clearAllCache] instead.
   @Deprecated("Use InAppWebViewController.clearAllCache instead")
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? clearCache;
 
+  ///Sets the user-agent for the WebView.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setUserAgentString",
@@ -88,10 +107,15 @@ class InAppWebViewSettings_ {
     WindowsPlatform(
         apiName: 'ICoreWebView2Settings2.put_UserAgent',
         apiUrl:
-            'https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings2?view=webview2-1.0.2210.55#put_useragent')
+            'https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings2?view=webview2-1.0.2210.55#put_useragent'),
+    OhosPlatform(
+        apiName: "WebviewController.setCustomUserAgent",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/js-apis-webview.md#setcustomuseragent")
   ])
   String? userAgent;
 
+  ///Append to the existing user-agent. Setting userAgent will override this.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(
@@ -105,11 +129,16 @@ class InAppWebViewSettings_ {
   ])
   String? applicationNameForUserAgent;
 
+  ///Set to `true` to enable JavaScript. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setJavaScriptEnabled",
         apiUrl:
             "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setJavaScriptEnabled(boolean)"),
+    OhosPlatform(
+        apiName: "javaScriptAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#javascriptaccess"),
     IOSPlatform(
         apiName: "WKWebpagePreferences.allowsContentJavaScript",
         apiUrl:
@@ -126,11 +155,16 @@ class InAppWebViewSettings_ {
   ])
   bool? javaScriptEnabled;
 
+  ///Set to `true` to allow JavaScript open windows without user interaction. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setJavaScriptCanOpenWindowsAutomatically",
         apiUrl:
             "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setJavaScriptCanOpenWindowsAutomatically(boolean)"),
+    OhosPlatform(
+        apiName: "allowWindowOpenMethod",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#allowwindowopenmethod10"),
     IOSPlatform(
         apiName: "WKPreferences.javaScriptCanOpenWindowsAutomatically",
         apiUrl:
@@ -143,11 +177,16 @@ class InAppWebViewSettings_ {
   ])
   bool? javaScriptCanOpenWindowsAutomatically;
 
+  ///Set to `true` to prevent HTML5 audio or video from autoplaying. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setMediaPlaybackRequiresUserGesture",
         apiUrl:
             "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMediaPlaybackRequiresUserGesture(boolean)"),
+    OhosPlatform(
+        apiName: "mediaPlayGestureAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#mediaplaygestureaccess"),
     IOSPlatform(
         apiName:
             "WKWebViewConfiguration.mediaTypesRequiringUserActionForPlayback",
@@ -162,11 +201,16 @@ class InAppWebViewSettings_ {
   ])
   bool? mediaPlaybackRequiresUserGesture;
 
+  ///Sets the minimum font size. The default value is `8` for Android, `0` for iOS.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setMinimumFontSize",
         apiUrl:
             "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMinimumFontSize(int)"),
+    OhosPlatform(
+        apiName: "minFontSize",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#minfontsize9"),
     IOSPlatform(
         apiName: "WKPreferences.minimumFontSize",
         apiUrl:
@@ -178,11 +222,16 @@ class InAppWebViewSettings_ {
   ])
   int? minimumFontSize;
 
+  ///Define whether the vertical scrollbar should be drawn or not. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setVerticalScrollBarEnabled",
         apiUrl:
             "https://developer.android.com/reference/android/view/View#setVerticalScrollBarEnabled(boolean)"),
+    OhosPlatform(
+        apiName: "verticalScrollBarAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#verticalscrollbaraccess9"),
     IOSPlatform(
         apiName: "UIScrollView.showsVerticalScrollIndicator",
         apiUrl:
@@ -193,11 +242,16 @@ class InAppWebViewSettings_ {
   ])
   bool? verticalScrollBarEnabled;
 
+  ///Define whether the horizontal scrollbar should be drawn or not. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setHorizontalScrollBarEnabled",
         apiUrl:
             "https://developer.android.com/reference/android/view/View#setHorizontalScrollBarEnabled(boolean)"),
+    OhosPlatform(
+        apiName: "horizontalScrollBarAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#horizontalscrollbaraccess9"),
     IOSPlatform(
         apiName: "UIScrollView.showsHorizontalScrollIndicator",
         apiUrl:
@@ -208,6 +262,7 @@ class InAppWebViewSettings_ {
   ])
   bool? horizontalScrollBarEnabled;
 
+  ///List of custom schemes that the WebView must handle. Use the [PlatformWebViewCreationParams.onLoadResourceWithCustomScheme] event to intercept resource requests with custom scheme.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(available: "11.0"),
@@ -215,14 +270,17 @@ class InAppWebViewSettings_ {
   ])
   List<String>? resourceCustomSchemes;
 
+  ///List of [ContentBlocker] that are a set of rules used to block content in the browser window.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(available: "11.0"),
-    MacOSPlatform(available: "10.13")
+    MacOSPlatform(available: "10.13"),
+    OhosPlatform()
   ])
   @ExchangeableObjectProperty(deserializer: _deserializeContentBlockers)
   List<ContentBlocker>? contentBlockers;
 
+  ///Sets the content mode that the WebView needs to use when loading and rendering a webpage. The default value is [UserPreferredContentMode.RECOMMENDED].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(
@@ -238,18 +296,40 @@ class InAppWebViewSettings_ {
   ])
   UserPreferredContentMode_? preferredContentMode;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldInterceptAjaxRequest] event.
+  ///
+  ///Due to the async nature of [PlatformWebViewCreationParams.shouldInterceptAjaxRequest] event implementation,
+  ///it will intercept only async `XMLHttpRequest`s ([AjaxRequest.isAsync] with `true`).
+  ///To be able to intercept sync `XMLHttpRequest`s, use [InAppWebViewSettings.interceptOnlyAsyncAjaxRequests] to `false`.
+  ///
+  ///If the [PlatformWebViewCreationParams.shouldInterceptAjaxRequest] event or
+  ///any other Ajax event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? useShouldInterceptAjaxRequest;
 
+  ///Set to `false` to be able to listen to also sync `XMLHttpRequest`s at the
+  ///[PlatformWebViewCreationParams.shouldInterceptAjaxRequest] event.
+  ///
+  ///**NOTE**: Using `false` will cause the `XMLHttpRequest.send()` method for sync
+  ///requests to not wait on the JavaScript code the response synchronously,
+  ///as if it was an async `XMLHttpRequest`.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? interceptOnlyAsyncAjaxRequests;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldInterceptFetchRequest] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.shouldInterceptFetchRequest] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? useShouldInterceptFetchRequest;
 
+  ///Set to `true` to open a browser window with incognito mode. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         note:
@@ -264,10 +344,12 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? incognito;
 
+  ///Sets whether WebView should use browser caching. The default value is `true`.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), MacOSPlatform()])
   bool? cacheEnabled;
 
+  ///Set to `true` to make the background of the WebView transparent. If your app has a dark theme, this can prevent a white flash on initialization. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(),
@@ -280,14 +362,17 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? transparentBackground;
 
+  ///Set to `true` to disable vertical scroll. The default value is `false`.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), WebPlatform()])
   bool? disableVerticalScroll;
 
+  ///Set to `true` to disable horizontal scroll. The default value is `false`.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(), IOSPlatform(), WebPlatform()])
   bool? disableHorizontalScroll;
 
+  ///Set to `true` to disable context menu. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(),
     IOSPlatform(),
@@ -299,11 +384,16 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? disableContextMenu;
 
+  ///Set to `false` if the WebView should not support zooming using its on-screen zoom controls and gestures. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setSupportZoom",
         apiUrl:
             "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSupportZoom(boolean)"),
+    OhosPlatform(
+        apiName: "zoomAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#zoomaccess"),
     IOSPlatform(),
     MacOSPlatform(),
     WindowsPlatform(
@@ -313,6 +403,15 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? supportZoom;
 
+  ///Sets whether cross-origin requests in the context of a file scheme URL should be allowed to access content from other file scheme URLs.
+  ///Note that some accesses such as image HTML elements don't follow same-origin rules and aren't affected by this setting.
+  ///
+  ///Don't enable this setting if you open files that may be created or altered by external sources.
+  ///Enabling this setting allows malicious scripts loaded in a `file://` context to access arbitrary local files including WebView cookies and app private data.
+  ///
+  ///Note that the value of this setting is ignored if the value of [allowUniversalAccessFromFileURLs] is `true`.
+  ///
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setAllowFileAccessFromFileURLs",
@@ -323,6 +422,15 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? allowFileAccessFromFileURLs;
 
+  ///Sets whether cross-origin requests in the context of a file scheme URL should be allowed to access content from any origin.
+  ///This includes access to content from other file scheme URLs or web contexts.
+  ///Note that some access such as image HTML elements doesn't follow same-origin rules and isn't affected by this setting.
+  ///
+  ///Don't enable this setting if you open files that may be created or altered by external sources.
+  ///Enabling this setting allows malicious scripts loaded in a `file://` context to launch cross-site scripting attacks,
+  ///either accessing arbitrary local files including WebView cookies, app private data or even credentials used on arbitrary web sites.
+  ///
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setAllowUniversalAccessFromFileURLs",
@@ -333,24 +441,40 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? allowUniversalAccessFromFileURLs;
 
+  ///Set to `true` to allow audio playing when the app goes in background or the screen is locked or another app is opened.
+  ///However, there will be no controls in the notification bar or on the lockscreen.
+  ///Also, make sure to not call [PlatformInAppWebViewController.pause], otherwise it will stop audio playing.
+  ///The default value is `false`.
+  ///
+  ///**IMPORTANT NOTE**: if you use this setting, your app could be rejected by the Google Play Store.
+  ///For example, if you allow background playing of YouTube videos, which is a violation of the YouTube API Terms of Service.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   bool? allowBackgroundAudioPlaying;
 
+  ///Use a [WebViewAssetLoader] instance to load local files including application's static assets and resources using http(s):// URLs.
+  ///Loading local files using web-like URLs instead of `file://` is desirable as it is compatible with the Same-Origin policy.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   WebViewAssetLoader_? webViewAssetLoader;
 
+  ///Sets the text zoom of the page in percent. The default value is `100`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setTextZoom",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setTextZoom(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setTextZoom(int)"),
+    OhosPlatform(
+        apiName: "textZoomRatio",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#textzoomratio9")
   ])
   int? textZoom;
 
+  ///Use [PlatformCookieManager.removeSessionCookies] instead.
   @Deprecated("Use CookieManager.removeSessionCookies instead")
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   bool? clearSessionCache;
 
+  ///Set to `true` if the WebView should use its built-in zoom mechanisms. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setBuiltInZoomControls",
@@ -359,6 +483,7 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? builtInZoomControls;
 
+  ///Set to `true` if the WebView should display on-screen zoom controls when using the built-in zoom mechanisms. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDisplayZoomControls",
@@ -367,22 +492,36 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? displayZoomControls;
 
+  ///Set to `true` if you want the database storage API is enabled. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDatabaseEnabled",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setDatabaseEnabled(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setDatabaseEnabled(boolean)"),
+    OhosPlatform(
+        apiName: "databaseAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#databaseaccess")
   ])
   bool? databaseEnabled;
 
+  ///Set to `true` if you want the DOM storage API is enabled. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDomStorageEnabled",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setDomStorageEnabled(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setDomStorageEnabled(boolean)"),
+    OhosPlatform(
+        apiName: "domStorageAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#domstorageaccess"),
   ])
   bool? domStorageEnabled;
 
+  ///Set to `true` if the WebView should enable support for the "viewport" HTML meta tag or should use a wide viewport.
+  ///When the value of the setting is false, the layout width is always set to the width of the WebView control in device-independent (CSS) pixels.
+  ///When the value is true and the page contains the viewport meta tag, the value of the width specified in the tag is used.
+  ///If the page does not contain the tag or does not provide a width, then a wide viewport will be used. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setUseWideViewPort",
@@ -391,6 +530,8 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? useWideViewPort;
 
+  ///Sets whether Safe Browsing is enabled. Safe Browsing allows WebView to protect against malware and phishing attacks by verifying the links.
+  ///Safe Browsing is enabled by default for devices which support it.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "26",
@@ -400,15 +541,21 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? safeBrowsingEnabled;
 
+  ///Configures the WebView's behavior when a secure origin attempts to load a resource from an insecure origin.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "21",
         apiName: "WebSettings.setMixedContentMode",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMixedContentMode(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMixedContentMode(int)"),
+    OhosPlatform(
+        apiName: "mixedMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#mixedmode")
   ])
   MixedContentMode_? mixedContentMode;
 
+  ///Enables or disables content URL access within WebView. Content URL access allows WebView to load content from a content provider installed in the system. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setAllowContentAccess",
@@ -417,66 +564,106 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? allowContentAccess;
 
+  ///Enables or disables file access within WebView. Note that this enables or disables file system access only.
+  ///Assets and resources are still accessible using `file:///android_asset` and `file:///android_res`. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setAllowFileAccess",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setAllowFileAccess(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setAllowFileAccess(boolean)"),
+    OhosPlatform(
+        apiName: "fileAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#fileaccess")
   ])
   bool? allowFileAccess;
 
+  ///Sets the path to the Application Caches files. In order for the Application Caches API to be enabled, this option must be set a path to which the application can write.
+  ///This option is used one time: repeated calls are ignored.
   @SupportedPlatforms(
       platforms: [AndroidPlatform(apiName: "WebSettings.setAppCachePath")])
   String? appCachePath;
 
+  ///Sets whether the WebView should not load image resources from the network (resources accessed via http and https URI schemes). The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setBlockNetworkImage",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setBlockNetworkImage(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setBlockNetworkImage(boolean)"),
+    OhosPlatform(
+        apiName: "onlineImageAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#onlineimageaccess")      
   ])
   bool? blockNetworkImage;
 
+  ///Sets whether the WebView should not load resources from the network. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setBlockNetworkLoads",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setBlockNetworkLoads(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setBlockNetworkLoads(boolean)"),
+    OhosPlatform(
+        apiName: "blockNetwork",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#blocknetwork9")
   ])
   bool? blockNetworkLoads;
 
+  ///Overrides the way the cache is used. The way the cache is used is based on the navigation type. For a normal page load, the cache is checked and content is re-validated as needed.
+  ///When navigating back, content is not revalidated, instead the content is just retrieved from the cache. The default value is [CacheMode.LOAD_DEFAULT].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setCacheMode",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setCacheMode(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setCacheMode(int)"),
+    OhosPlatform(
+        apiName: "cacheMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#cachemode")
   ])
   CacheMode_? cacheMode;
 
+  ///Sets the cursive font family name. The default value is `"cursive"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setCursiveFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setCursiveFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setCursiveFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webCursiveFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#webcursivefont9")
   ])
   String? cursiveFontFamily;
 
+  ///Sets the default fixed font size. The default value is `16`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDefaultFixedFontSize",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setDefaultFixedFontSize(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setDefaultFixedFontSize(int)"),
+    OhosPlatform(
+        apiName: "defaultFixedFontSize",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#defaultfixedfontsize9")
   ])
   int? defaultFixedFontSize;
 
+  ///Sets the default font size. The default value is `16`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDefaultFontSize",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setDefaultFontSize(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setDefaultFontSize(int)"),
+    OhosPlatform(
+        apiName: "defaultFontSize",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#defaultfontsize9")
   ])
   int? defaultFontSize;
 
+  ///Sets the default text encoding name to use when decoding html pages. The default value is `"UTF-8"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setDefaultTextEncodingName",
@@ -485,6 +672,7 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   String? defaultTextEncodingName;
 
+  ///Disables the action mode menu items according to menuItems flag.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "24",
@@ -494,31 +682,50 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   ActionModeMenuItem_? disabledActionModeMenuItems;
 
+  ///Sets the fantasy font family name. The default value is `"fantasy"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setFantasyFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setFantasyFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setFantasyFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webFantasyFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#webfantasyfont9")
   ])
   String? fantasyFontFamily;
 
+  ///Sets the fixed font family name. The default value is `"monospace"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setFixedFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setFixedFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setFixedFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webFixedFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#webfixedfont9")
   ])
   String? fixedFontFamily;
 
+  ///Set the force dark mode for this WebView. The default value is [ForceDark.OFF].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
         apiName: "WebSettings.setForceDark",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings#setForceDark(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings#setForceDark(int)"),
+    OhosPlatform(
+        apiName: "darkMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#darkmode9")
   ])
   ForceDark_? forceDark;
 
+  ///Sets whether Geolocation API is enabled. The default value is `true`.
+
+  ///Set how WebView content should be darkened.
+  ///The default value is [ForceDarkStrategy.PREFER_WEB_THEME_OVER_USER_AGENT_DARKENING].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettingsCompat.setForceDarkStrategy",
@@ -529,6 +736,7 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   ForceDarkStrategy_? forceDarkStrategy;
 
+  ///Sets whether Geolocation is enabled. The default is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setGeolocationEnabled",
@@ -537,10 +745,15 @@ because there isn't any way to make the website data store non-persistent for th
         note:
             """Please note that in order for the Geolocation API to be usable by a page in the WebView, the following requirements must be met:
 - an application must have permission to access the device location, see [Manifest.permission.ACCESS_COARSE_LOCATION](https://developer.android.com/reference/android/Manifest.permission#ACCESS_COARSE_LOCATION), [Manifest.permission.ACCESS_FINE_LOCATION](https://developer.android.com/reference/android/Manifest.permission#ACCESS_FINE_LOCATION);
-- an application must provide an implementation of the [PlatformWebViewCreationParams.onGeolocationPermissionsShowPrompt] callback to receive notifications that a page is requesting access to location via the JavaScript Geolocation API.""")
+- an application must provide an implementation of the [PlatformWebViewCreationParams.onGeolocationPermissionsShowPrompt] callback to receive notifications that a page is requesting access to location via the JavaScript Geolocation API."""),
+    OhosPlatform(
+        apiName: "geolocationAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#geolocationaccess")
   ])
   bool? geolocationEnabled;
 
+  ///Sets the underlying layout algorithm. This will cause a re-layout of the WebView.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setLayoutAlgorithm",
@@ -549,38 +762,68 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   LayoutAlgorithm_? layoutAlgorithm;
 
+  ///Sets whether the WebView loads pages in overview mode, that is, zooms out the content to fit on screen by width.
+  ///This setting is taken into account when the content width is greater than the width of the WebView control, for example, when [useWideViewPort] is enabled.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setLoadWithOverviewMode",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setLoadWithOverviewMode(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setLoadWithOverviewMode(boolean)"),
+    OhosPlatform(
+        apiName: "overviewModeAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#overviewmodeaccess")
   ])
   bool? loadWithOverviewMode;
 
+  ///Sets whether the WebView should load image resources. Note that this method controls loading of all images, including those embedded using the data URI scheme.
+  ///Note that if the value of this setting is changed from false to true, all images resources referenced by content currently displayed by the WebView are loaded automatically.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setLoadsImagesAutomatically",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setLoadsImagesAutomatically(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setLoadsImagesAutomatically(boolean)"),
+    OhosPlatform(
+        apiName: "imageAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#imageaccess")
   ])
   bool? loadsImagesAutomatically;
 
+  ///Sets the minimum logical font size. The default is `8`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setMinimumLogicalFontSize",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMinimumLogicalFontSize(int)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setMinimumLogicalFontSize(int)"),
+    OhosPlatform(
+        apiName: "minLogicalFontSize",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#minlogicalfontsize9")
   ])
   int? minimumLogicalFontSize;
 
+  ///Sets the initial scale for this WebView. 0 means default. The behavior for the default scale depends on the state of [useWideViewPort] and [loadWithOverviewMode].
+  ///If the content fits into the WebView control by width, then the zoom is set to 100%. For wide content, the behavior depends on the state of [loadWithOverviewMode].
+  ///If its value is true, the content will be zoomed out to be fit by width into the WebView control, otherwise not.
+  ///If initial scale is greater than 0, WebView starts with this value as initial scale.
+  ///Please note that unlike the scale properties in the viewport meta tag, this method doesn't take the screen density into account.
+  ///The default is `0`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebView.setInitialScale",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebView#setInitialScale(int)")
+            "https://developer.android.com/reference/android/webkit/WebView#setInitialScale(int)"),
+    OhosPlatform(
+        apiName: "initialScale",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#initialscale9")
   ])
   int? initialScale;
 
+  ///Tells the WebView whether it needs to set a node. The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setNeedInitialFocus",
@@ -589,6 +832,9 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? needInitialFocus;
 
+  ///Sets whether this WebView should raster tiles when it is offscreen but attached to a window.
+  ///Turning this on can avoid rendering artifacts when animating an offscreen WebView on-screen.
+  ///Offscreen WebViews in this mode use more memory. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "23",
@@ -598,30 +844,48 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? offscreenPreRaster;
 
+  ///Sets the sans-serif font family name. The default value is `"sans-serif"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setSansSerifFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSansSerifFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSansSerifFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webSansSerifFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#websansseriffont9")
   ])
   String? sansSerifFontFamily;
 
+  ///Sets the serif font family name. The default value is `"sans-serif"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setSerifFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSerifFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSerifFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webSerifFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#webseriffont9")
   ])
   String? serifFontFamily;
 
+  ///Sets the standard font family name. The default value is `"sans-serif"`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setStandardFontFamily",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setStandardFontFamily(java.lang.String)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setStandardFontFamily(java.lang.String)"),
+    OhosPlatform(
+        apiName: "webStandardFont",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#webstandardfont9")
   ])
   String? standardFontFamily;
 
+  ///Sets whether the WebView should save form data. In Android O, the platform has implemented a fully functional Autofill feature to store form data.
+  ///Therefore, the Webview form data save feature is disabled. Note that the feature will continue to be supported on older versions of Android as before.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setSaveFormData",
@@ -630,6 +894,9 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? saveFormData;
 
+  ///Boolean value to enable third party cookies in the WebView.
+  ///Used on Android Lollipop and above only as third party cookies are enabled by default on Android Kitkat and below and on iOS.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "21",
@@ -639,6 +906,8 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? thirdPartyCookiesEnabled;
 
+  ///Boolean value to enable Hardware Acceleration in the WebView.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebView.setLayerType",
@@ -647,17 +916,27 @@ because there isn't any way to make the website data store non-persistent for th
   ])
   bool? hardwareAcceleration;
 
+  ///Sets whether the WebView supports multiple windows.
+  ///If set to `true`, [PlatformWebViewCreationParams.onCreateWindow] event must be implemented by the host application. The default value is `false`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettings.setSupportMultipleWindows",
         apiUrl:
-            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSupportMultipleWindows(boolean)")
+            "https://developer.android.com/reference/android/webkit/WebSettings?hl=en#setSupportMultipleWindows(boolean)"),
+    OhosPlatform(
+        apiName: "multiWindowAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#multiwindowaccess9")
   ])
   bool? supportMultipleWindows;
 
+  ///Regular expression used by [PlatformWebViewCreationParams.shouldOverrideUrlLoading] event to cancel navigation requests for frames that are not the main frame.
+  ///If the url request of a subframe matches the regular expression, then the request of that subframe is canceled.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   String? regexToCancelSubFramesLoading;
 
+  ///Set to `false` to disable Flutter Hybrid Composition. The default value is `true`.
+  ///Hybrid Composition is supported starting with Flutter v1.20+.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         note:
@@ -666,20 +945,39 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? useHybridComposition;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldInterceptRequest] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.shouldInterceptRequest] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   bool? useShouldInterceptRequest;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.onRenderProcessGone] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.onRenderProcessGone] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   bool? useOnRenderProcessGone;
 
+  ///Sets the WebView's over-scroll mode.
+  ///Setting the over-scroll mode of a WebView will have an effect only if the WebView is capable of scrolling.
+  ///The default value is [OverScrollMode.IF_CONTENT_SCROLLS].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setOverScrollMode",
         apiUrl:
-            "https://developer.android.com/reference/android/view/View#setOverScrollMode(int)")
+            "https://developer.android.com/reference/android/view/View#setOverScrollMode(int)"),
+    OhosPlatform(
+        apiName: "overScrollMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#overscrollmode11")
   ])
   OverScrollMode_? overScrollMode;
 
+  ///Informs WebView of the network state.
+  ///This is used to set the JavaScript property `window.navigator.isOnline` and generates the online/offline event as specified in HTML5, sec. 5.7.7.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebView.setNetworkAvailable",
@@ -688,6 +986,12 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? networkAvailable;
 
+  ///Specifies the style of the scrollbars. The scrollbars can be overlaid or inset.
+  ///When inset, they add to the padding of the view. And the scrollbars can be drawn inside the padding area or on the edge of the view.
+  ///For example, if a view has a background drawable and you want to draw the scrollbars inside the padding specified by the drawable,
+  ///you can use SCROLLBARS_INSIDE_OVERLAY or SCROLLBARS_INSIDE_INSET. If you want them to appear at the edge of the view, ignoring the padding,
+  ///then you can use SCROLLBARS_OUTSIDE_OVERLAY or SCROLLBARS_OUTSIDE_INSET.
+  ///The default value is [ScrollBarStyle.SCROLLBARS_INSIDE_OVERLAY].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebView.setScrollBarStyle",
@@ -696,6 +1000,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   ScrollBarStyle_? scrollBarStyle;
 
+  ///Sets the position of the vertical scroll bar.
+  ///The default value is [VerticalScrollbarPosition.SCROLLBAR_POSITION_DEFAULT].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setVerticalScrollbarPosition",
@@ -704,6 +1010,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   VerticalScrollbarPosition_? verticalScrollbarPosition;
 
+  ///Defines the delay in milliseconds that a scrollbar waits before fade out.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setScrollBarDefaultDelayBeforeFade",
@@ -712,6 +1019,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   int? scrollBarDefaultDelayBeforeFade;
 
+  ///Defines whether scrollbars will fade when the view is not scrolling.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setScrollbarFadingEnabled",
@@ -720,6 +1029,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? scrollbarFadingEnabled;
 
+  ///Defines the scrollbar fade duration in milliseconds.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "View.setScrollBarFadeDuration",
@@ -728,6 +1038,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   int? scrollBarFadeDuration;
 
+  ///Sets the renderer priority policy for this WebView.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebView.setRendererPriorityPolicy",
@@ -736,9 +1047,12 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   RendererPriorityPolicy_? rendererPriorityPolicy;
 
+  ///Sets whether the default Android WebView’s internal error page should be suppressed or displayed for bad navigations.
+  ///`true` means suppressed (not shown), `false` means it will be displayed. The default value is `false`.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   bool? disableDefaultErrorPage;
 
+  ///Sets the vertical scrollbar thumb color.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
@@ -748,6 +1062,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Color_? verticalScrollbarThumbColor;
 
+  ///Sets the vertical scrollbar track color.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
@@ -757,6 +1072,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Color_? verticalScrollbarTrackColor;
 
+  ///Sets the horizontal scrollbar thumb color.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
@@ -766,6 +1082,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Color_? horizontalScrollbarThumbColor;
 
+  ///Sets the horizontal scrollbar track color.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
@@ -775,6 +1092,17 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Color_? horizontalScrollbarTrackColor;
 
+  ///Control whether algorithmic darkening is allowed.
+  ///
+  ///WebView always sets the media query `prefers-color-scheme` according to the app's theme attribute `isLightTheme`,
+  ///i.e. `prefers-color-scheme` is light if `isLightTheme` is `true` or not specified, otherwise it is `dark`.
+  ///This means that the web content's light or dark style will be applied automatically to match the app's theme if the content supports it.
+  ///
+  ///Algorithmic darkening is disallowed by default.
+  ///
+  ///If the app's theme is dark and it allows algorithmic darkening,
+  ///WebView will attempt to darken web content using an algorithm,
+  ///if the content doesn't define its own dark styles and doesn't explicitly disable darkening.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         available: "29",
@@ -786,9 +1114,14 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? algorithmicDarkeningAllowed;
 
-  @SupportedPlatforms(platforms: [AndroidPlatform()])
-  String? androidWebProfile;
-
+  ///Sets whether EnterpriseAuthenticationAppLinkPolicy if set by admin is allowed to have any
+  ///effect on WebView.
+  ///
+  ///EnterpriseAuthenticationAppLinkPolicy in WebView allows admins to specify authentication
+  ///urls. When WebView is redirected to authentication url, and an app on the device has
+  ///registered as the default handler for the url, that app is launched.
+  ///
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         note:
@@ -796,9 +1129,20 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? enterpriseAuthenticationAppLinkPolicyEnabled;
 
+  ///When not playing, video elements are represented by a 'poster' image.
+  ///The image to use can be specified by the poster attribute of the video tag in HTML.
+  ///If the attribute is absent, then a default poster will be used.
+  ///This property allows the WebView to provide that default image.
   @SupportedPlatforms(platforms: [AndroidPlatform()])
   Uint8List? defaultVideoPoster;
 
+  ///Set an allow-list of origins to receive the X-Requested-With HTTP header from the WebView owning the passed [InAppWebViewSettings].
+  ///
+  ///Historically, this header was sent on all requests from WebView, containing the app package name of the embedding app. Depending on the version of installed WebView, this may no longer be the case, as the header was deprecated in late 2022, and its use discontinued.
+  ///
+  ///Apps can use this method to restore the legacy behavior for servers that still rely on the deprecated header, but it should not be used to identify the webview to first-party servers under the control of the app developer.
+  ///
+  ///The format of the strings in the allow-list follows the origin rules of [PlatformInAppWebViewController.addWebMessageListener].
   @SupportedPlatforms(platforms: [
     AndroidPlatform(
         apiName: "WebSettingsCompat.setRequestedWithHeaderOriginAllowList",
@@ -809,12 +1153,15 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Set<String>? requestedWithHeaderOriginAllowList;
 
+  ///Set to `true` to disable the bouncing of the WebView when the scrolling has reached an edge of the content. The default value is `false`.
   @SupportedPlatforms(platforms: [IOSPlatform()])
   bool? disallowOverScroll;
 
+  ///Set to `true` to allow a viewport meta tag to either disable or restrict the range of user scaling. The default value is `false`.
   @SupportedPlatforms(platforms: [IOSPlatform(), MacOSPlatform()])
   bool? enableViewportScale;
 
+  ///Set to `true` if you want the WebView suppresses content rendering until it is fully loaded into memory. The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.suppressesIncrementalRendering",
@@ -827,6 +1174,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? suppressesIncrementalRendering;
 
+  ///Set to `true` to allow AirPlay. The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.allowsAirPlayForMediaPlayback",
@@ -839,6 +1187,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? allowsAirPlayForMediaPlayback;
 
+  ///Set to `true` to allow the horizontal swipe gestures trigger back-forward list navigations. The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebView.allowsBackForwardNavigationGestures",
@@ -851,6 +1200,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? allowsBackForwardNavigationGestures;
 
+  ///Set to `true` to allow that pressing on a link displays a preview of the destination for the link. The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebView.allowsLinkPreview",
@@ -863,6 +1213,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? allowsLinkPreview;
 
+  ///Set to `true` if you want that the WebView should always allow scaling of the webpage, regardless of the author's intent.
+  ///The ignoresViewportScaleLimits property overrides the `user-scalable` HTML property in a webpage. The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.ignoresViewportScaleLimits",
@@ -871,6 +1223,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? ignoresViewportScaleLimits;
 
+  ///Set to `true` to allow HTML5 media playback to appear inline within the screen layout, using browser-supplied controls rather than native controls.
+  ///For this to work, add the `webkit-playsinline` attribute to any `<video>` elements. The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.allowsInlineMediaPlayback",
@@ -879,6 +1233,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? allowsInlineMediaPlayback;
 
+  ///Set to `true` to allow HTML5 videos play picture-in-picture. The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.allowsPictureInPictureMediaPlayback",
@@ -887,6 +1242,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? allowsPictureInPictureMediaPlayback;
 
+  ///A Boolean value indicating whether warnings should be shown for suspected fraudulent content such as phishing or malware.
+  ///According to the official documentation, this feature is currently available in the following region: China.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "13.0",
@@ -901,6 +1259,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isFraudulentWebsiteWarningEnabled;
 
+  ///The level of granularity with which the user can interactively select content in the web view.
+  ///The default value is [SelectionGranularity.DYNAMIC].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "WKWebViewConfiguration.selectionGranularity",
@@ -909,6 +1269,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   SelectionGranularity_? selectionGranularity;
 
+  ///Specifying a dataDetectoryTypes value adds interactivity to web content that matches the value.
+  ///For example, Safari adds a link to “apple.com” in the text “Visit apple.com” if the dataDetectorTypes property is set to [DataDetectorTypes.LINK].
+  ///The default value is [DataDetectorTypes.NONE].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "10",
@@ -918,12 +1281,16 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   List<DataDetectorTypes_>? dataDetectorTypes;
 
+  ///Set `true` if shared cookies from `HTTPCookieStorage.shared` should used for every load request in the WebView.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(available: "11.0"),
     MacOSPlatform(available: "10.13")
   ])
   bool? sharedCookiesEnabled;
 
+  ///Configures whether the scroll indicator insets are automatically adjusted by the system.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "13.0",
@@ -933,6 +1300,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? automaticallyAdjustsScrollIndicatorInsets;
 
+  ///A Boolean value indicating whether the WebView ignores an accessibility request to invert its colors.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "11.0",
@@ -942,6 +1311,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? accessibilityIgnoresInvertColors;
 
+  ///A [ScrollViewDecelerationRate] value that determines the rate of deceleration after the user lifts their finger.
+  ///The default value is [ScrollViewDecelerationRate.NORMAL].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.decelerationRate",
@@ -950,6 +1321,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   ScrollViewDecelerationRate_? decelerationRate;
 
+  ///A Boolean value that determines whether bouncing always occurs when vertical scrolling reaches the end of the content.
+  ///If this property is set to `true` and [InAppWebViewSettings.disallowOverScroll] is `false`,
+  ///vertical dragging is allowed even if the content is smaller than the bounds of the scroll view.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.alwaysBounceVertical",
@@ -958,6 +1333,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? alwaysBounceVertical;
 
+  ///A Boolean value that determines whether bouncing always occurs when horizontal scrolling reaches the end of the content view.
+  ///If this property is set to `true` and [InAppWebViewSettings.disallowOverScroll] is `false`,
+  ///horizontal dragging is allowed even if the content is smaller than the bounds of the scroll view.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.alwaysBounceHorizontal",
@@ -966,6 +1345,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? alwaysBounceHorizontal;
 
+  ///A Boolean value that controls whether the scroll-to-top gesture is enabled.
+  ///The scroll-to-top gesture is a tap on the status bar. When a user makes this gesture,
+  ///the system asks the scroll view closest to the status bar to scroll to the top.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.scrollsToTop",
@@ -974,6 +1357,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? scrollsToTop;
 
+  ///A Boolean value that determines whether paging is enabled for the scroll view.
+  ///If the value of this property is true, the scroll view stops on multiples of the scroll view’s bounds when the user scrolls.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.isPagingEnabled",
@@ -982,6 +1368,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isPagingEnabled;
 
+  ///A floating-point value that specifies the maximum scale factor that can be applied to the scroll view's content.
+  ///This value determines how large the content can be scaled.
+  ///It must be greater than the minimum zoom scale for zooming to be enabled.
+  ///The default value is `1.0`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.maximumZoomScale",
@@ -990,6 +1380,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   double? maximumZoomScale;
 
+  ///A floating-point value that specifies the minimum scale factor that can be applied to the scroll view's content.
+  ///This value determines how small the content can be scaled.
+  ///The default value is `1.0`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.minimumZoomScale",
@@ -998,6 +1391,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   double? minimumZoomScale;
 
+  ///Configures how safe area insets are added to the adjusted content inset.
+  ///The default value is [ScrollViewContentInsetAdjustmentBehavior.NEVER].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "11.0",
@@ -1007,6 +1402,12 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   ScrollViewContentInsetAdjustmentBehavior_? contentInsetAdjustmentBehavior;
 
+  ///A Boolean value that determines whether scrolling is disabled in a particular direction.
+  ///If this property is `false`, scrolling is permitted in both horizontal and vertical directions.
+  ///If this property is `true` and the user begins dragging in one general direction (horizontally or vertically),
+  ///the scroll view disables scrolling in the other direction.
+  ///If the drag direction is diagonal, then scrolling will not be locked and the user can drag in any direction until the drag completes.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         apiName: "UIScrollView.isDirectionalLockEnabled",
@@ -1015,6 +1416,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isDirectionalLockEnabled;
 
+  ///The media type for the contents of the web view.
+  ///When the value of this property is `null`, the web view derives the current media type from the CSS media property of its content.
+  ///If you assign a value other than `null` to this property, the web view uses the value you provide instead.
+  ///The default value of this property is `null`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "14.0",
@@ -1029,6 +1434,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   String? mediaType;
 
+  ///The scale factor by which the web view scales content relative to its bounds.
+  ///The default value of this property is `1.0`, which displays the content without any scaling.
+  ///Changing the value of this property is equivalent to setting the CSS `zoom` property on all page content.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "14.0",
@@ -1043,6 +1451,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   double? pageZoom;
 
+  ///A Boolean value that indicates whether the web view limits navigation to pages within the app’s domain.
+  ///Check [App-Bound Domains](https://webkit.org/blog/10882/app-bound-domains/) for more details.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "14.0",
@@ -1057,24 +1468,110 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? limitsNavigationsToAppBoundDomains;
 
+  ///Set to `true` to be able to listen to the [PlatformWebViewCreationParams.onNavigationResponse] event.
+  ///
+  ///If the [PlatformWebViewCreationParams.onNavigationResponse] event is implemented and this value is `null`,
+  ///it will be automatically inferred as `true`, otherwise, the default value is `false`.
+  ///This logic will not be applied for [PlatformInAppBrowser], where you must set the value manually.
   @SupportedPlatforms(platforms: [IOSPlatform(), MacOSPlatform()])
   bool? useOnNavigationResponse;
 
+  ///Set to `true` to enable Apple Pay API for the `WebView` at its first page load or on the next page load (using [PlatformInAppWebViewController.setOptions]). The default value is `false`.
+  ///
+  ///**IMPORTANT NOTE**: As written in the official [Safari 13 Release Notes](https://developer.apple.com/documentation/safari-release-notes/safari-13-release-notes#Payment-Request-API),
+  ///it won't work if any script injection APIs are used (such as [PlatformInAppWebViewController.evaluateJavascript] or [UserScript]).
+  ///So, when this attribute is `true`, all the methods, options, and events implemented using JavaScript won't be called or won't do anything and the result will always be `null`.
+  ///
+  ///Methods affected:
+  ///- [PlatformInAppWebViewController.addUserScript]
+  ///- [PlatformInAppWebViewController.addUserScripts]
+  ///- [PlatformInAppWebViewController.removeUserScript]
+  ///- [PlatformInAppWebViewController.removeUserScripts]
+  ///- [PlatformInAppWebViewController.removeAllUserScripts]
+  ///- [PlatformInAppWebViewController.evaluateJavascript]
+  ///- [PlatformInAppWebViewController.callAsyncJavaScript]
+  ///- [PlatformInAppWebViewController.injectJavascriptFileFromUrl]
+  ///- [PlatformInAppWebViewController.injectJavascriptFileFromAsset]
+  ///- [PlatformInAppWebViewController.injectCSSCode]
+  ///- [PlatformInAppWebViewController.injectCSSFileFromUrl]
+  ///- [PlatformInAppWebViewController.injectCSSFileFromAsset]
+  ///- [PlatformInAppWebViewController.findAllAsync]
+  ///- [PlatformInAppWebViewController.findNext]
+  ///- [PlatformInAppWebViewController.clearMatches]
+  ///- [PlatformInAppWebViewController.pauseTimers]
+  ///- [PlatformInAppWebViewController.getSelectedText]
+  ///- [PlatformInAppWebViewController.getHitTestResult]
+  ///- [PlatformInAppWebViewController.requestFocusNodeHref]
+  ///- [PlatformInAppWebViewController.requestImageRef]
+  ///- [PlatformInAppWebViewController.postWebMessage]
+  ///- [PlatformInAppWebViewController.createWebMessageChannel]
+  ///- [PlatformInAppWebViewController.addWebMessageListener]
+  ///
+  ///Also, on MacOS:
+  ///- [PlatformInAppWebViewController.getScrollX]
+  ///- [PlatformInAppWebViewController.getScrollY]
+  ///- [PlatformInAppWebViewController.scrollTo]
+  ///- [PlatformInAppWebViewController.scrollBy]
+  ///- [PlatformInAppWebViewController.getContentHeight]
+  ///- [PlatformInAppWebViewController.getContentWidth]
+  ///- [PlatformInAppWebViewController.canScrollVertically]
+  ///- [PlatformInAppWebViewController.canScrollHorizontally]
+  ///
+  ///Settings affected:
+  ///- [PlatformWebViewCreationParams.initialUserScripts]
+  ///- [InAppWebViewSettings.supportZoom]
+  ///- [InAppWebViewSettings.useOnLoadResource]
+  ///- [InAppWebViewSettings.useShouldInterceptAjaxRequest]
+  ///- [InAppWebViewSettings.useShouldInterceptFetchRequest]
+  ///- [InAppWebViewSettings.enableViewportScale]
+  ///
+  ///Events affected:
+  ///- the `hitTestResult` argument of [PlatformWebViewCreationParams.onLongPressHitTestResult] will be empty
+  ///- the `hitTestResult` argument of [ContextMenu.onCreateContextMenu] will be empty
+  ///- [PlatformWebViewCreationParams.onLoadResource]
+  ///- [PlatformWebViewCreationParams.shouldInterceptAjaxRequest]
+  ///- [PlatformWebViewCreationParams.onAjaxReadyStateChange]
+  ///- [PlatformWebViewCreationParams.onAjaxProgress]
+  ///- [PlatformWebViewCreationParams.shouldInterceptFetchRequest]
+  ///- [PlatformWebViewCreationParams.onConsoleMessage]
+  ///- [PlatformWebViewCreationParams.onPrintRequest]
+  ///- [PlatformWebViewCreationParams.onWindowFocus]
+  ///- [PlatformWebViewCreationParams.onWindowBlur]
+  ///- [PlatformWebViewCreationParams.onFindResultReceived]
+  ///- [FindInteractionController.onFindResultReceived]
+  ///
+  ///Also, on MacOS:
+  ///- [PlatformWebViewCreationParams.onScrollChanged]
   @SupportedPlatforms(platforms: [
     IOSPlatform(available: "13.0"),
     MacOSPlatform(available: "10.15")
   ])
   bool? applePayAPIEnabled;
 
+  ///Used in combination with [PlatformWebViewCreationParams.initialUrlRequest] or [PlatformWebViewCreationParams.initialData] (using the `file://` scheme), it represents the URL from which to read the web content.
+  ///This URL must be a file-based URL (using the `file://` scheme).
+  ///Specify the same value as the [URLRequest.url] if you are using it with the [PlatformWebViewCreationParams.initialUrlRequest] parameter or
+  ///the [InAppWebViewInitialData.baseUrl] if you are using it with the [PlatformWebViewCreationParams.initialData] parameter to prevent WebView from reading any other content.
+  ///Specify a directory to give WebView permission to read additional files in the specified directory.
   @SupportedPlatforms(platforms: [IOSPlatform(), MacOSPlatform()])
   WebUri? allowingReadAccessTo;
 
+  ///Set to `true` to disable the context menu (copy, select, etc.) that is shown when the user emits a long press event on a HTML link.
+  ///This is implemented using also JavaScript, so it must be enabled or it won't work.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [IOSPlatform()])
   bool? disableLongPressContextMenuOnLinks;
 
+  ///Set to `true` to disable the [inputAccessoryView](https://developer.apple.com/documentation/uikit/uiresponder/1621119-inputaccessoryview) above system keyboard.
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [IOSPlatform()])
   bool? disableInputAccessoryView;
 
+  ///The color the web view displays behind the active page, visible when the user scrolls beyond the bounds of the page.
+  ///
+  ///The web view derives the default value of this property from the content of the page,
+  ///using the background colors of the `<html>` and `<body>` elements with the background color of the web view.
+  ///To override the default color, set this property to a new color.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.0",
@@ -1089,6 +1586,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Color_? underPageBackgroundColor;
 
+  ///A Boolean value indicating whether text interaction is enabled or not.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.0",
@@ -1103,6 +1602,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isTextInteractionEnabled;
 
+  ///A Boolean value indicating whether WebKit will apply built-in workarounds (quirks)
+  ///to improve compatibility with certain known websites. You can disable site-specific quirks
+  ///to help test your website without these workarounds. The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.4",
@@ -1117,6 +1619,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isSiteSpecificQuirksModeEnabled;
 
+  ///A Boolean value indicating whether HTTP requests to servers known to support HTTPS should be automatically upgraded to HTTPS requests.
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.0",
@@ -1131,6 +1635,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? upgradeKnownHostsToHTTPS;
 
+  ///Sets whether fullscreen API is enabled or not.
+  ///
+  ///The default value is `true`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.4",
@@ -1145,6 +1652,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isElementFullscreenEnabled;
 
+  ///Sets whether the web view's built-in find interaction native UI is enabled or not.
+  ///
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "16.0",
@@ -1154,6 +1664,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isFindInteractionEnabled;
 
+  ///Set minimum viewport inset to the smallest inset a webpage may experience in your app's maximally collapsed UI configuration.
+  ///Values must be either zero or positive. It must be smaller than [maximumViewportInset].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.5",
@@ -1163,6 +1675,8 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   EdgeInsets? minimumViewportInset;
 
+  ///Set maximum viewport inset to the largest inset a webpage may experience in your app's maximally expanded UI configuration.
+  ///Values must be either zero or positive. It must be larger than [minimumViewportInset].
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "15.5",
@@ -1172,6 +1686,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   EdgeInsets? maximumViewportInset;
 
+  ///Controls whether this WebView is inspectable in Web Inspector.
+  ///
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "16.4",
@@ -1190,6 +1707,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? isInspectable;
 
+  ///A Boolean value that indicates whether to include any background color or graphics when printing content.
+  ///
+  ///The default value is `false`.
   @SupportedPlatforms(platforms: [
     IOSPlatform(
         available: "16.4",
@@ -1204,6 +1724,9 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? shouldPrintBackgrounds;
 
+  ///Specifies a feature policy for the `<iframe>`.
+  ///The policy defines what features are available to the `<iframe>` based on the origin of the request
+  ///(e.g. access to the microphone, camera, battery, web-share API, etc.).
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1213,6 +1736,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   String? iframeAllow;
 
+  ///Set to true if the `<iframe>` can activate fullscreen mode by calling the `requestFullscreen()` method.
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1222,6 +1746,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   bool? iframeAllowFullscreen;
 
+  ///Applies extra restrictions to the content in the frame.
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1231,6 +1756,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   Set<Sandbox_>? iframeSandbox;
 
+  ///A string that reflects the `referrerpolicy` HTML attribute indicating which referrer to use when fetching the linked resource.
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1240,6 +1766,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   ReferrerPolicy_? iframeReferrerPolicy;
 
+  ///A string that reflects the `name` HTML attribute, containing a name by which to refer to the frame.
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1249,6 +1776,7 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   ])
   String? iframeName;
 
+  ///A Content Security Policy enforced for the embedded resource.
   @SupportedPlatforms(platforms: [
     WebPlatform(
         requiresSameOrigin: false,
@@ -1257,6 +1785,42 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
             "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-csp")
   ])
   String? iframeCsp;
+
+  ///设置网页是否开启强制深色模式。默认关闭。该属性仅在darkMode开启深色模式时生效。
+  @SupportedPlatforms(platforms: [
+    OhosPlatform(
+        apiName: "forceDarkAccess",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#forcedarkaccess9")
+  ])
+  bool? forceDarkAccess;
+
+  ///设置网页是否开启捏合流畅模式，默认不开启。
+  @SupportedPlatforms(platforms: [
+    OhosPlatform(
+        apiName: "pinchSmooth",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#pinchsmooth9")
+  ])
+  bool? pinchSmooth;
+
+ ///设置Web布局模式。
+  @SupportedPlatforms(platforms: [
+    OhosPlatform(
+        apiName: "layoutMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#layoutmode11")
+  ])
+  LayoutMode_? layoutMode;
+
+  ///设置是否开启同层渲染功能，默认不开启。
+  @SupportedPlatforms(platforms: [
+    OhosPlatform(
+        apiName: "enableNativeEmbedMode",
+        apiUrl:
+            "https://docs.openharmony.cn/pages/v4.1/zh-cn/application-dev/reference/apis-arkweb/ts-basic-components-web.md#enablenativeembedmode11")
+  ])
+  bool? enableNativeEmbedMode;
 
   @ExchangeableObjectConstructor()
   InAppWebViewSettings_({
@@ -1329,7 +1893,6 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
     this.supportMultipleWindows = false,
     this.regexToCancelSubFramesLoading,
     this.useHybridComposition = true,
-    this.androidWebProfile,
     this.useShouldInterceptRequest,
     this.useOnRenderProcessGone,
     this.overScrollMode = OverScrollMode_.IF_CONTENT_SCROLLS,
@@ -1401,6 +1964,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
     this.iframeReferrerPolicy,
     this.iframeName,
     this.iframeCsp,
+    this.pinchSmooth = false,
+    this.forceDarkAccess = false,
+    this.layoutMode = LayoutMode_.NONE,
+    this.enableNativeEmbedMode = false
   }) {
     if (this.minimumFontSize == null)
       this.minimumFontSize = Util.isAndroid ? 8 : 0;
@@ -1424,12 +1991,17 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   }
 }
 
+///Class that represents the options that can be used for a `WebView`.
+///Use [InAppWebViewSettings] instead.
 @Deprecated('Use InAppWebViewSettings instead')
 class InAppWebViewGroupOptions {
+  ///Cross-platform options.
   late InAppWebViewOptions crossPlatform;
 
+  ///Android-specific options.
   late AndroidInAppWebViewOptions android;
 
+  ///iOS-specific options.
   late IOSInAppWebViewOptions ios;
 
   InAppWebViewGroupOptions(
@@ -1503,59 +2075,120 @@ class WebViewOptions {
   }
 }
 
+///Use [InAppWebViewSettings] instead.
 @Deprecated('Use InAppWebViewSettings instead')
 class InAppWebViewOptions
     implements WebViewOptions, BrowserOptions, AndroidOptions, IosOptions {
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldOverrideUrlLoading] event. The default value is `false`.
   bool useShouldOverrideUrlLoading;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.onLoadResource] event. The default value is `false`.
   bool useOnLoadResource;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.onDownloadStart] event. The default value is `false`.
   bool useOnDownloadStart;
 
+  ///Set to `true` to have all the browser's cache cleared before the new WebView is opened. The default value is `false`.
   bool clearCache;
 
+  ///Sets the user-agent for the WebView.
+  ///
+  ///**NOTE**: available on iOS 9.0+.
   String userAgent;
 
+  ///Append to the existing user-agent. Setting userAgent will override this.
+  ///
+  ///**NOTE**: available on Android 17+ and on iOS 9.0+.
   String applicationNameForUserAgent;
 
+  ///Set to `true` to enable JavaScript. The default value is `true`.
   bool javaScriptEnabled;
 
+  ///Set to `true` to allow JavaScript open windows without user interaction. The default value is `false`.
   bool javaScriptCanOpenWindowsAutomatically;
 
+  ///Set to `true` to prevent HTML5 audio or video from autoplaying. The default value is `true`.
+  ///
+  ///**NOTE**: available on iOS 10.0+.
   bool mediaPlaybackRequiresUserGesture;
 
+  ///Sets the minimum font size. The default value is `8` for Android, `0` for iOS.
   int? minimumFontSize;
 
+  ///Define whether the vertical scrollbar should be drawn or not. The default value is `true`.
   bool verticalScrollBarEnabled;
 
+  ///Define whether the horizontal scrollbar should be drawn or not. The default value is `true`.
   bool horizontalScrollBarEnabled;
 
+  ///List of custom schemes that the WebView must handle. Use the [PlatformWebViewCreationParams.onLoadResourceCustomScheme] event to intercept resource requests with custom scheme.
+  ///
+  ///**NOTE**: available on iOS 11.0+.
   List<String> resourceCustomSchemes;
 
+  ///List of [ContentBlocker] that are a set of rules used to block content in the browser window.
+  ///
+  ///**NOTE**: available on iOS 11.0+.
   List<ContentBlocker> contentBlockers;
 
+  ///Sets the content mode that the WebView needs to use when loading and rendering a webpage. The default value is [UserPreferredContentMode.RECOMMENDED].
+  ///
+  ///**NOTE**: available on iOS 13.0+.
   UserPreferredContentMode? preferredContentMode;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldInterceptAjaxRequest] event. The default value is `false`.
   bool useShouldInterceptAjaxRequest;
 
+  ///Set to `true` to be able to listen at the [PlatformWebViewCreationParams.shouldInterceptFetchRequest] event. The default value is `false`.
   bool useShouldInterceptFetchRequest;
 
+  ///Set to `true` to open a browser window with incognito mode. The default value is `false`.
+  ///
+  ///**NOTE**: available on iOS 9.0+.
+  ///On Android, by setting this option to `true`, it will clear all the cookies of all WebView instances,
+  ///because there isn't any way to make the website data store non-persistent for the specific WebView instance such as on iOS.
   bool incognito;
 
+  ///Sets whether WebView should use browser caching. The default value is `true`.
+  ///
+  ///**NOTE**: available on iOS 9.0+.
   bool cacheEnabled;
 
+  ///Set to `true` to make the background of the WebView transparent. If your app has a dark theme, this can prevent a white flash on initialization. The default value is `false`.
   bool transparentBackground;
 
+  ///Set to `true` to disable vertical scroll. The default value is `false`.
   bool disableVerticalScroll;
 
+  ///Set to `true` to disable horizontal scroll. The default value is `false`.
   bool disableHorizontalScroll;
 
+  ///Set to `true` to disable context menu. The default value is `false`.
   bool disableContextMenu;
 
+  ///Set to `false` if the WebView should not support zooming using its on-screen zoom controls and gestures. The default value is `true`.
   bool supportZoom;
 
+  ///Sets whether cross-origin requests in the context of a file scheme URL should be allowed to access content from other file scheme URLs.
+  ///Note that some accesses such as image HTML elements don't follow same-origin rules and aren't affected by this setting.
+  ///
+  ///Don't enable this setting if you open files that may be created or altered by external sources.
+  ///Enabling this setting allows malicious scripts loaded in a `file://` context to access arbitrary local files including WebView cookies and app private data.
+  ///
+  ///Note that the value of this setting is ignored if the value of [allowUniversalAccessFromFileURLs] is `true`.
+  ///
+  ///The default value is `false`.
   bool allowFileAccessFromFileURLs;
 
+  ///Sets whether cross-origin requests in the context of a file scheme URL should be allowed to access content from any origin.
+  ///This includes access to content from other file scheme URLs or web contexts.
+  ///Note that some access such as image HTML elements doesn't follow same-origin rules and isn't affected by this setting.
+  ///
+  ///Don't enable this setting if you open files that may be created or altered by external sources.
+  ///Enabling this setting allows malicious scripts loaded in a `file://` context to launch cross-site scripting attacks,
+  ///either accessing arbitrary local files including WebView cookies, app private data or even credentials used on arbitrary web sites.
+  ///
+  ///The default value is `false`.
   bool allowUniversalAccessFromFileURLs;
 
   InAppWebViewOptions(

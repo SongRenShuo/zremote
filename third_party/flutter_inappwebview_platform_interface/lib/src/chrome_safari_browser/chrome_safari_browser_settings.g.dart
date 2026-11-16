@@ -1,61 +1,216 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'chrome_safari_browser_settings.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the settings that can be used for an [ChromeSafariBrowser] window.
 class ChromeSafariBrowserSettings implements ChromeSafariBrowserOptions {
+  ///An additional button to be shown in `SFSafariViewController`'s toolbar.
+  ///This allows the user to access powerful functionality from your extension without needing to first show the `UIActivityViewController`.
+  ///
+  ///**NOTE**: available on iOS 15.0+.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   ActivityButton? activityButton;
 
+  ///Sets a list of additional trusted origins that the user may navigate or be redirected to from the starting uri.
+  ///
+  ///**NOTE**: Available only in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   List<String>? additionalTrustedOrigins;
 
+  ///Adds the necessary flags and extras to signal any browser supporting custom tabs to use the browser UI
+  ///at all times and avoid showing custom tab like UI.
+  ///Calling this with an intent will override any custom tabs related customizations.
+  ///The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? alwaysUseBrowserUI;
 
+  ///Set to `true` to enable bar collapsing. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   bool? barCollapsingEnabled;
 
+  ///Set the custom style for the dismiss button. The default value is [DismissButtonStyle.DONE].
+  ///
+  ///**NOTE**: available on iOS 11.0+.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   DismissButtonStyle? dismissButtonStyle;
 
+  ///Sets a display mode of a Trusted Web Activity.
+  ///
+  ///**NOTE**: Available only in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   TrustedWebActivityDisplayMode? displayMode;
 
+  ///Set to `true` to enable the url bar to hide as the user scrolls down on the page. The default value is `false`.
+  ///
+  ///**NOTE**: Not available in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? enableUrlBarHiding;
 
+  ///Set to `true` if Reader mode should be entered automatically when it is available for the webpage. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   bool? entersReaderIfAvailable;
 
+  ///An event attribution associated with a click that caused this `SFSafariViewController` to be opened.
+  ///This attribute is ignored if the `SFSafariViewController` url has a scheme of 'http'.
+  ///
+  ///**NOTE**: available on iOS 15.2+.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   UIEventAttribution? eventAttribution;
 
+  ///Sets the exit animations.
+  ///It must contain 2 [AndroidResource], where the first one represents the "enter" animation for the application
+  ///and the second one represents the "exit" animation for the browser.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   List<AndroidResource>? exitAnimations;
 
+  ///Set to `true` to enable Instant Apps. The default value is `false`.
+  ///
+  ///**NOTE**: Not available in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? instantAppsEnabled;
 
+  ///Set to `true` to launch the Android activity in `singleInstance` mode. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? isSingleInstance;
 
+  ///Set to `true` to launch the Custom Tab as a Trusted Web Activity. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? isTrustedWebActivity;
 
+  ///Set to `true` to enable Keep Alive. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? keepAliveEnabled;
 
+  ///Sets the navigation bar color. Has no effect on Android API versions below L.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   Color? navigationBarColor;
 
+  ///Sets the navigation bar divider color. Has no effect on Android API versions below P.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   Color? navigationBarDividerColor;
 
+  ///Set to `true` to launch the Android intent with the flag `FLAG_ACTIVITY_NO_HISTORY`. The default value is `false`.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? noHistory;
 
+  ///Set an explicit application package name that limits
+  ///the components this Intent will resolve to.  If left to the default
+  ///value of null, all components in all applications will considered.
+  ///If non-null, the Intent can only match the components in the given
+  ///application package.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   String? packageName;
 
+  ///Set the custom background color of the navigation bar and the toolbar.
+  ///
+  ///**NOTE**: available on iOS 10.0+.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   Color? preferredBarTintColor;
 
+  ///Set the custom color of the control buttons on the navigation bar and the toolbar.
+  ///
+  ///**NOTE**: available on iOS 10.0+.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   Color? preferredControlTintColor;
 
+  ///Set the custom modal presentation style when presenting the WebView. The default value is [ModalPresentationStyle.FULL_SCREEN].
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   ModalPresentationStyle? presentationStyle;
 
+  ///Sets a screen orientation. This can be used e.g. to enable the locking of an orientation lock type.
+  ///
+  ///**NOTE**: Available only in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   TrustedWebActivityScreenOrientation? screenOrientation;
 
+  ///Sets the color of the secondary toolbar.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   Color? secondaryToolbarColor;
 
+  ///The share state that should be applied to the custom tab. The default value is [CustomTabsShareState.SHARE_STATE_DEFAULT].
+  ///
+  ///**NOTE**: Not available in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   CustomTabsShareState? shareState;
 
+  ///Set to `false` if the title shouldn't be shown in the custom tab. The default value is `true`.
+  ///
+  ///**NOTE**: Not available in a Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   bool? showTitle;
 
+  ///Sets the start animations.
+  ///It must contain 2 [AndroidResource], where the first one represents the "enter" animation for the browser
+  ///and the second one represents the "exit" animation for the application.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   List<AndroidResource>? startAnimations;
 
+  ///Set the custom background color of the toolbar.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android
   Color? toolbarBackgroundColor;
 
+  ///Set to the custom transition style when presenting the WebView. The default value is [ModalTransitionStyle.COVER_VERTICAL].
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS
   ModalTransitionStyle? transitionStyle;
   ChromeSafariBrowserSettings(
       {this.shareState = CustomTabsShareState.SHARE_STATE_DEFAULT,
@@ -96,6 +251,7 @@ class ChromeSafariBrowserSettings implements ChromeSafariBrowserOptions {
     }
   }
 
+  ///Gets a possible [ChromeSafariBrowserSettings] instance from a [Map] value.
   static ChromeSafariBrowserSettings? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -161,6 +317,7 @@ class ChromeSafariBrowserSettings implements ChromeSafariBrowserOptions {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "activityButton": activityButton?.toMap(),
@@ -194,10 +351,12 @@ class ChromeSafariBrowserSettings implements ChromeSafariBrowserOptions {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }
 
+  ///Returns a copy of ChromeSafariBrowserSettings.
   ChromeSafariBrowserSettings copy() {
     return ChromeSafariBrowserSettings.fromMap(toMap()) ??
         ChromeSafariBrowserSettings();

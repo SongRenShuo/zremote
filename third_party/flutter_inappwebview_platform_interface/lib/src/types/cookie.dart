@@ -6,8 +6,10 @@ import 'http_cookie_same_site_policy.dart';
 
 part 'cookie.g.dart';
 
+///Class that represents a cookie returned by the [PlatformCookieManager].
 @ExchangeableObject()
 class Cookie_ {
+  ///The cookie name.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -17,6 +19,7 @@ class Cookie_ {
   ])
   String name;
 
+  ///The cookie value.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -26,6 +29,7 @@ class Cookie_ {
   ])
   dynamic value;
 
+  ///The cookie expiration date in milliseconds.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -36,10 +40,12 @@ class Cookie_ {
   ])
   int? expiresDate;
 
+  ///Indicates if the cookie is a session only cookie.
   @SupportedPlatforms(
       platforms: [IOSPlatform(), MacOSPlatform(), WindowsPlatform()])
   bool? isSessionOnly;
 
+  ///The cookie domain.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -50,6 +56,7 @@ class Cookie_ {
   ])
   String? domain;
 
+  ///The cookie same site policy.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -60,6 +67,7 @@ class Cookie_ {
   ])
   HTTPCookieSameSitePolicy_? sameSite;
 
+  ///Indicates if the cookie is secure or not.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -70,6 +78,7 @@ class Cookie_ {
   ])
   bool? isSecure;
 
+  ///Indicates if the cookie is a http only cookie.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),
@@ -80,6 +89,7 @@ class Cookie_ {
   ])
   bool? isHttpOnly;
 
+  ///The cookie path.
   @SupportedPlatforms(platforms: [
     IOSPlatform(),
     MacOSPlatform(),

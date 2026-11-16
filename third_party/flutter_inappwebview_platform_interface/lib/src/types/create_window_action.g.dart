@@ -1,17 +1,36 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'create_window_action.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the navigation request used by the [PlatformWebViewCreationParams.onCreateWindow] event.
 class CreateWindowAction extends NavigationAction {
+  ///Use [isDialog] instead.
   @Deprecated('Use isDialog instead')
   bool? androidIsDialog;
 
+  ///Use [windowFeatures] instead.
   @Deprecated('Use windowFeatures instead')
   IOSWKWindowFeatures? iosWindowFeatures;
 
+  ///Indicates if the new window should be a dialog, rather than a full-size window.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   bool? isDialog;
 
+  ///Window features requested by the webpage.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - WKWindowFeatures](https://developer.apple.com/documentation/webkit/wkwindowfeatures))
+  ///- MacOS ([Official API - WKWindowFeatures](https://developer.apple.com/documentation/webkit/wkwindowfeatures))
+  ///- Windows ([Official API - ICoreWebView2WindowFeatures](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2windowfeatures?view=webview2-1.0.2210.55))
   WindowFeatures? windowFeatures;
 
+  ///The window id. Used by `WebView` to create a new WebView.
   int windowId;
   CreateWindowAction(
       {@Deprecated('Use isDialog instead') this.androidIsDialog,
@@ -52,6 +71,7 @@ class CreateWindowAction extends NavigationAction {
         windowFeatures ?? WindowFeatures.fromMap(iosWindowFeatures?.toMap());
   }
 
+  ///Gets a possible [CreateWindowAction] instance from a [Map] value.
   static CreateWindowAction? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -87,6 +107,7 @@ class CreateWindowAction extends NavigationAction {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "request": request.toMap(),
@@ -103,6 +124,7 @@ class CreateWindowAction extends NavigationAction {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

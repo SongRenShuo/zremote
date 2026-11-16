@@ -64,6 +64,20 @@ class X509Extension {
     return result;
   }
 
+  // Used for SubjectAltName and IssuerAltName
+  // Every name can be one of these subtype:
+  //  - otherName      [0] INSTANCE OF OTHER-NAME,
+  //  - rfc822Name     [1] IA5String,
+  //  - dNSName        [2] IA5String,
+  //  - x400Address    [3] ORAddress,
+  //  - directoryName  [4] Name,
+  //  - ediPartyName   [5] EDIPartyName,
+  //  - uniformResourceIdentifier [6] IA5String,
+  //  - IPAddress      [7] OCTET STRING,
+  //  - registeredID   [8] OBJECT IDENTIFIER
+  //
+  // Result does not support: x400Address and ediPartyName
+  //
   List<String> get alternativeNameAsStrings {
     List<String> result = [];
     var sub = <ASN1Object>[];
@@ -121,6 +135,7 @@ class X509Extension {
   }
 }
 
+/// Recognition for Basic Constraint Extension (2.5.29.19)
 class BasicConstraintExtension extends X509Extension {
   BasicConstraintExtension({required block}) : super(block: block);
 
@@ -154,6 +169,7 @@ class BasicConstraintExtension extends X509Extension {
   }
 }
 
+/// Recognition for Subject Key Identifier Extension (2.5.29.14)
 class SubjectKeyIdentifierExtension extends X509Extension {
   SubjectKeyIdentifierExtension({required block}) : super(block: block);
 
@@ -205,6 +221,7 @@ class AuthorityInfoAccess {
   }
 }
 
+/// Recognition for Authority Info Access Extension (1.3.6.1.5.5.7.1.1)
 class AuthorityInfoAccessExtension extends X509Extension {
   AuthorityInfoAccessExtension({required block}) : super(block: block);
 
@@ -245,9 +262,14 @@ class AuthorityInfoAccessExtension extends X509Extension {
   }
 }
 
+/// Recognition for Authority Key Identifier Extension (2.5.29.35)
 class AuthorityKeyIdentifierExtension extends X509Extension {
   AuthorityKeyIdentifierExtension({required block}) : super(block: block);
 
+  ///AuthorityKeyIdentifier ::= SEQUENCE {
+  ///   keyIdentifier             [0] KeyIdentifier           OPTIONAL,
+  ///   authorityCertIssuer       [1] GeneralNames            OPTIONAL,
+  ///   authorityCertSerialNumber [2] CertificateSerialNumber OPTIONAL  }
   List<int>? get keyIdentifier {
     var sequence = valueAsBlock?.subAtIndex(0)?.sub;
     if (sequence == null) {
@@ -364,6 +386,7 @@ class CertificatePolicy {
   }
 }
 
+/// Recognition for Certificate Policies Extension (2.5.29.32)
 class CertificatePoliciesExtension extends X509Extension {
   CertificatePoliciesExtension({required block}) : super(block: block);
 

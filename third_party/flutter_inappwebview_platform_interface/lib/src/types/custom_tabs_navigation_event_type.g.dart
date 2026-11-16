@@ -1,6 +1,12 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'custom_tabs_navigation_event_type.dart';
 
+// **************************************************************************
+// ExchangeableEnumGenerator
+// **************************************************************************
+
+///The type corresponding to the navigation event of [PlatformChromeSafariBrowserEvents.onNavigationEvent].
 class CustomTabsNavigationEventType {
   final int _value;
   final int? _nativeValue;
@@ -10,6 +16,10 @@ class CustomTabsNavigationEventType {
           int value, Function nativeValue) =>
       CustomTabsNavigationEventType._internal(value, nativeValue());
 
+  ///Sent when loading was aborted by a user action before it finishes like clicking on a link or refreshing the page.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final ABORTED =
       CustomTabsNavigationEventType._internalMultiPlatform(4, () {
     switch (defaultTargetPlatform) {
@@ -21,6 +31,10 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Sent when the tab couldn't finish loading due to a failure.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final FAILED =
       CustomTabsNavigationEventType._internalMultiPlatform(3, () {
     switch (defaultTargetPlatform) {
@@ -32,6 +46,10 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Sent when the tab has finished loading a page.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final FINISHED =
       CustomTabsNavigationEventType._internalMultiPlatform(2, () {
     switch (defaultTargetPlatform) {
@@ -43,6 +61,10 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Sent when the tab has started loading a page.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final STARTED =
       CustomTabsNavigationEventType._internalMultiPlatform(1, () {
     switch (defaultTargetPlatform) {
@@ -54,6 +76,10 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Sent when the tab becomes hidden.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final TAB_HIDDEN =
       CustomTabsNavigationEventType._internalMultiPlatform(6, () {
     switch (defaultTargetPlatform) {
@@ -65,6 +91,10 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Sent when the tab becomes visible.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
   static final TAB_SHOWN =
       CustomTabsNavigationEventType._internalMultiPlatform(5, () {
     switch (defaultTargetPlatform) {
@@ -76,6 +106,7 @@ class CustomTabsNavigationEventType {
     return null;
   });
 
+  ///Set of all values of [CustomTabsNavigationEventType].
   static final Set<CustomTabsNavigationEventType> values = [
     CustomTabsNavigationEventType.ABORTED,
     CustomTabsNavigationEventType.FAILED,
@@ -85,6 +116,7 @@ class CustomTabsNavigationEventType {
     CustomTabsNavigationEventType.TAB_SHOWN,
   ].toSet();
 
+  ///Gets a possible [CustomTabsNavigationEventType] instance from [int] value.
   static CustomTabsNavigationEventType? fromValue(int? value) {
     if (value != null) {
       try {
@@ -97,6 +129,7 @@ class CustomTabsNavigationEventType {
     return null;
   }
 
+  ///Gets a possible [CustomTabsNavigationEventType] instance from a native value.
   static CustomTabsNavigationEventType? fromNativeValue(int? value) {
     if (value != null) {
       try {
@@ -109,8 +142,10 @@ class CustomTabsNavigationEventType {
     return null;
   }
 
+  ///Gets [int] value.
   int toValue() => _value;
 
+  ///Gets [int?] native value.
   int? toNativeValue() => _nativeValue;
 
   @override

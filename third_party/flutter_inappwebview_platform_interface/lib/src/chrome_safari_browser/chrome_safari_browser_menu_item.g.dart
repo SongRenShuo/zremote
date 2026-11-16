@@ -1,18 +1,41 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'chrome_safari_browser_menu_item.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents a custom menu item for a [PlatformChromeSafariBrowser] instance.
+///
+///**NOTE for Android native WebView**: Not available in an Android Trusted Web Activity.
+///
+///**Officially Supported Platforms/Implementations**:
+///- Android native WebView
+///- iOS
 class ChromeSafariBrowserMenuItem {
+  ///Use onClick instead.
   @Deprecated('Use onClick instead')
   void Function(String, String)? action;
 
+  ///The menu item id. It should be different from [ChromeSafariBrowserActionButton.id].
   int id;
 
+  ///Item image.
   UIImage? image;
 
+  ///The label of the menu item.
   String label;
 
+  ///Callback function to be invoked when the menu item is clicked
   void Function(WebUri?, String)? onClick;
 
+  ///
+  ///**NOTE for Android native WebView**: Not available in an Android Trusted Web Activity.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView
+  ///- iOS
   ChromeSafariBrowserMenuItem(
       {required this.id,
       required this.label,
@@ -20,6 +43,7 @@ class ChromeSafariBrowserMenuItem {
       @Deprecated("Use onClick instead") this.action,
       this.onClick});
 
+  ///Gets a possible [ChromeSafariBrowserMenuItem] instance from a [Map] value.
   static ChromeSafariBrowserMenuItem? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -32,6 +56,7 @@ class ChromeSafariBrowserMenuItem {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "id": id,
@@ -40,6 +65,7 @@ class ChromeSafariBrowserMenuItem {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

@@ -1,62 +1,143 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'url_request.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///A URL load request that is independent of protocol or URL scheme.
 class URLRequest {
+  ///A Boolean value indicating whether the request is allowed to use the built-in cellular radios to satisfy the request.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.allowsCellularAccess](https://developer.apple.com/documentation/foundation/urlrequest/2011607-allowscellularaccess/))
+  ///- MacOS ([Official API - URLRequest.allowsCellularAccess](https://developer.apple.com/documentation/foundation/urlrequest/2011607-allowscellularaccess/))
   bool? allowsCellularAccess;
 
+  ///A Boolean value that indicates whether the request may use the network when the user has specified Low Data Mode.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS 13.0+ ([Official API - URLRequest.allowsConstrainedNetworkAccess](https://developer.apple.com/documentation/foundation/urlrequest/3358304-allowsconstrainednetworkaccess))
+  ///- MacOS 10.15+ ([Official API - URLRequest.allowsConstrainedNetworkAccess](https://developer.apple.com/documentation/foundation/urlrequest/3358304-allowsconstrainednetworkaccess))
   bool? allowsConstrainedNetworkAccess;
 
+  ///A Boolean value that indicates whether connections may use a network interface that the system considers expensive.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS 13.0+ ([Official API - URLRequest.allowsExpensiveNetworkAccess](https://developer.apple.com/documentation/foundation/urlrequest/3358305-allowsexpensivenetworkaccess))
+  ///- MacOS 10.15+ ([Official API - URLRequest.allowsExpensiveNetworkAccess](https://developer.apple.com/documentation/foundation/urlrequest/3358305-allowsexpensivenetworkaccess))
   bool? allowsExpensiveNetworkAccess;
 
+  ///`true` if server endpoint is known to support HTTP/3. Enables QUIC racing
+  ///without HTTP/3 service discovery. Defaults to `false`.
+  ///The default may be `true` in a future OS update.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS 14.5+ ([Official API - URLRequest.assumesHTTP3Capable](https://developer.apple.com/documentation/foundation/urlrequest/3738175-assumeshttp3capable))
+  ///- MacOS 11.3+ ([Official API - URLRequest.assumesHTTP3Capable](https://developer.apple.com/documentation/foundation/urlrequest/3738175-assumeshttp3capable))
   bool? assumesHTTP3Capable;
 
+  ///The entities that can make a network request.
+  ///
+  ///If you don’t set a value, the system assumes [URLRequestAttribution.DEVELOPER].
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS 15.0+ ([Official API - URLRequest.attribution](https://developer.apple.com/documentation/foundation/urlrequest/3767318-attribution))
+  ///- MacOS 12.0+ ([Official API - URLRequest.attribution](https://developer.apple.com/documentation/foundation/urlrequest/3767318-attribution))
   URLRequestAttribution? attribution;
 
+  ///The data sent as the message body of a request, such as for an HTTP POST request.
   Uint8List? body;
 
+  ///The request’s cache policy.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.cachePolicy](https://developer.apple.com/documentation/foundation/urlrequest/2011593-cachepolicy))
+  ///- MacOS ([Official API - URLRequest.cachePolicy](https://developer.apple.com/documentation/foundation/urlrequest/2011593-cachepolicy))
   URLRequestCachePolicy? cachePolicy;
 
+  ///A dictionary containing all of the HTTP header fields for a request.
   Map<String, String>? headers;
 
+  ///A Boolean value indicating whether cookies will be sent with and set for this request.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.httpShouldHandleCookies](https://developer.apple.com/documentation/foundation/urlrequest/2011548-httpshouldhandlecookies))
+  ///- MacOS ([Official API - URLRequest.httpShouldHandleCookies](https://developer.apple.com/documentation/foundation/urlrequest/2011548-httpshouldhandlecookies))
   bool? httpShouldHandleCookies;
 
+  ///A Boolean value indicating whether the request should transmit before the previous response is received.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.httpShouldUsePipelining](https://developer.apple.com/documentation/foundation/urlrequest/2011508-httpshouldusepipelining))
+  ///- MacOS ([Official API - URLRequest.httpShouldUsePipelining](https://developer.apple.com/documentation/foundation/urlrequest/2011508-httpshouldusepipelining))
   bool? httpShouldUsePipelining;
 
+  ///Use [allowsCellularAccess] instead.
   @Deprecated('Use allowsCellularAccess instead')
   bool? iosAllowsCellularAccess;
 
+  ///Use [allowsConstrainedNetworkAccess] instead.
   @Deprecated('Use allowsConstrainedNetworkAccess instead')
   bool? iosAllowsConstrainedNetworkAccess;
 
+  ///Use [allowsExpensiveNetworkAccess] instead.
   @Deprecated('Use allowsExpensiveNetworkAccess instead')
   bool? iosAllowsExpensiveNetworkAccess;
 
+  ///Use [cachePolicy] instead.
   @Deprecated('Use cachePolicy instead')
   IOSURLRequestCachePolicy? iosCachePolicy;
 
+  ///Use [httpShouldHandleCookies] instead.
   @Deprecated('Use httpShouldHandleCookies instead')
   bool? iosHttpShouldHandleCookies;
 
+  ///Use [httpShouldUsePipelining] instead.
   @Deprecated('Use httpShouldUsePipelining instead')
   bool? iosHttpShouldUsePipelining;
 
+  ///Use [mainDocumentURL] instead.
   @Deprecated('Use mainDocumentURL instead')
   Uri? iosMainDocumentURL;
 
+  ///Use [networkServiceType] instead.
   @Deprecated('Use networkServiceType instead')
   IOSURLRequestNetworkServiceType? iosNetworkServiceType;
 
+  ///Use [timeoutInterval] instead.
   @Deprecated('Use timeoutInterval instead')
   double? iosTimeoutInterval;
 
+  ///The main document URL associated with this request.
+  ///This URL is used for the cookie “same domain as main document” policy.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.mainDocumentURL](https://developer.apple.com/documentation/foundation/urlrequest/2011552-maindocumenturl))
+  ///- MacOS ([Official API - URLRequest.mainDocumentURL](https://developer.apple.com/documentation/foundation/urlrequest/2011552-maindocumenturl))
   WebUri? mainDocumentURL;
 
+  ///The HTTP request method.
+  ///
+  ///**NOTE for Android**: it supports only "GET" and "POST" methods.
   String? method;
 
+  ///The service type associated with this request.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.networkServiceType](https://developer.apple.com/documentation/foundation/urlrequest/2011409-networkservicetype))
+  ///- MacOS ([Official API - URLRequest.networkServiceType](https://developer.apple.com/documentation/foundation/urlrequest/2011409-networkservicetype))
   URLRequestNetworkServiceType? networkServiceType;
 
+  ///The timeout interval of the request.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- iOS ([Official API - URLRequest.timeoutInterval](https://developer.apple.com/documentation/foundation/urlrequest/2011509-timeoutinterval))
+  ///- MacOS ([Official API - URLRequest.timeoutInterval](https://developer.apple.com/documentation/foundation/urlrequest/2011509-timeoutinterval))
   double? timeoutInterval;
 
+  ///The URL of the request. Setting this to `null` will load `about:blank`.
   WebUri? url;
   URLRequest(
       {this.allowsCellularAccess,
@@ -107,6 +188,7 @@ class URLRequest {
     timeoutInterval = timeoutInterval ?? iosTimeoutInterval;
   }
 
+  ///Gets a possible [URLRequest] instance from a [Map] value.
   static URLRequest? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -149,6 +231,7 @@ class URLRequest {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "allowsCellularAccess": allowsCellularAccess,
@@ -169,6 +252,7 @@ class URLRequest {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

@@ -1,17 +1,33 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'web_history_item.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///A convenience class for accessing fields in an entry in the back/forward list of a `WebView`.
+///Each [WebHistoryItem] is a snapshot of the requested history item.
 class WebHistoryItem {
+  ///Unique id of the navigation history entry.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Windows
   int? entryId;
 
+  ///0-based position index in the back-forward [WebHistory.list].
   int? index;
 
+  ///Position offset respect to the currentIndex of the back-forward [WebHistory.list].
   int? offset;
 
+  ///Original url of this history item.
   WebUri? originalUrl;
 
+  ///Document title of this history item.
   String? title;
 
+  ///Url of this history item.
   WebUri? url;
   WebHistoryItem(
       {this.entryId,
@@ -21,6 +37,7 @@ class WebHistoryItem {
       this.title,
       this.url});
 
+  ///Gets a possible [WebHistoryItem] instance from a [Map] value.
   static WebHistoryItem? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -37,6 +54,7 @@ class WebHistoryItem {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "entryId": entryId,
@@ -48,6 +66,7 @@ class WebHistoryItem {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

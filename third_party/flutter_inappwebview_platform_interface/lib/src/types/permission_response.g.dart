@@ -1,13 +1,24 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'permission_response.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the response used by the [PlatformWebViewCreationParams.onPermissionRequest] event.
 class PermissionResponse {
+  ///Indicate the [PermissionResponseAction] to take in response of a permission request.
   PermissionResponseAction? action;
 
+  ///Resources granted to be accessed by origin.
+  ///
+  ///**NOTE for iOS, macOS and Windows**: not used. The [action] taken is based on the [PermissionRequest.resources].
   List<PermissionResourceType> resources;
   PermissionResponse(
       {this.action = PermissionResponseAction.DENY, this.resources = const []});
 
+  ///Gets a possible [PermissionResponse] instance from a [Map] value.
   static PermissionResponse? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -19,6 +30,7 @@ class PermissionResponse {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "action": action?.toNativeValue(),
@@ -26,6 +38,7 @@ class PermissionResponse {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }
@@ -36,15 +49,20 @@ class PermissionResponse {
   }
 }
 
+///Class that represents the response used by the [PlatformWebViewCreationParams.androidOnPermissionRequest] event.
+///Use [PermissionResponse] instead.
 @Deprecated('Use PermissionResponse instead')
 class PermissionRequestResponse {
+  ///Indicate the [PermissionRequestResponseAction] to take in response of a permission request.
   PermissionRequestResponseAction? action;
 
+  ///Resources granted to be accessed by origin.
   List<String> resources;
   PermissionRequestResponse(
       {this.action = PermissionRequestResponseAction.DENY,
       this.resources = const []});
 
+  ///Gets a possible [PermissionRequestResponse] instance from a [Map] value.
   static PermissionRequestResponse? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -56,6 +74,7 @@ class PermissionRequestResponse {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "action": action?.toNativeValue(),
@@ -63,6 +82,7 @@ class PermissionRequestResponse {
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

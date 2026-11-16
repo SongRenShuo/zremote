@@ -1,10 +1,18 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'request_image_ref_result.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the result used by the [PlatformInAppWebViewController.requestImageRef] method.
 class RequestImageRefResult {
+  ///The image's url.
   WebUri? url;
   RequestImageRefResult({this.url});
 
+  ///Gets a possible [RequestImageRefResult] instance from a [Map] value.
   static RequestImageRefResult? fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
@@ -15,12 +23,14 @@ class RequestImageRefResult {
     return instance;
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "url": url?.toString(),
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }

@@ -1,14 +1,24 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'trusted_web_activity_immersive_display_mode.dart';
 
+// **************************************************************************
+// ExchangeableObjectGenerator
+// **************************************************************************
+
+///Class that represents the default display mode of a Trusted Web Activity.
+///The system UI (status bar, navigation bar) is shown, and the browser toolbar is hidden while the user is on a verified origin.
 class TrustedWebActivityImmersiveDisplayMode
     implements TrustedWebActivityDisplayMode {
   static final String _type = "IMMERSIVE_MODE";
 
+  ///The constant defining how to deal with display cutouts.
   LayoutInDisplayCutoutMode displayCutoutMode;
 
+  ///Whether the Trusted Web Activity should be in sticky immersive mode.
   bool isSticky;
 
+  ///Use [displayCutoutMode] instead.
   @Deprecated('Use displayCutoutMode instead')
   AndroidLayoutInDisplayCutoutMode? layoutInDisplayCutoutMode;
   TrustedWebActivityImmersiveDisplayMode(
@@ -21,6 +31,7 @@ class TrustedWebActivityImmersiveDisplayMode
         : this.displayCutoutMode;
   }
 
+  ///Gets a possible [TrustedWebActivityImmersiveDisplayMode] instance from a [Map] value.
   static TrustedWebActivityImmersiveDisplayMode? fromMap(
       Map<String, dynamic>? map) {
     if (map == null) {
@@ -42,6 +53,7 @@ class TrustedWebActivityImmersiveDisplayMode
     return {"type": _type};
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toMap() {
     return {
       "displayCutoutMode": displayCutoutMode.toNativeValue(),
@@ -50,6 +62,7 @@ class TrustedWebActivityImmersiveDisplayMode
     };
   }
 
+  ///Converts instance to a map.
   Map<String, dynamic> toJson() {
     return toMap();
   }
