@@ -59,7 +59,7 @@ class ZRemoteApp extends ConsumerWidget {
     final appearance = ref.watch(appearanceProvider);
     final relockSeconds = ref.watch(relockDelayProvider);
     return MaterialApp(
-      title: 'ZRemote',
+      title: 'ZRemoteX',
       debugShowCheckedModeBanner: false,
       theme: ZT.theme(Brightness.light),
       // P3-3：oled 档 = dark 亮度 + 纯黑调色板。

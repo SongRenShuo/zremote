@@ -1398,7 +1398,7 @@ class _VersionFooter extends StatelessWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      'ZRemote',
+                      'ZRemoteX',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

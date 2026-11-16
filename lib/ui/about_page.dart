@@ -59,7 +59,7 @@ class AboutPage extends StatelessWidget {
                               width: 28, height: 28),
                           const SizedBox(width: 10),
                           Text(
-                            'ZRemote',
+                            'ZRemoteX',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,

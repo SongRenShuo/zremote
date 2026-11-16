@@ -62,7 +62,7 @@ class ManagePage extends ConsumerWidget {
                     Image.asset('assets/brand/mark.png', width: 24, height: 24),
                     const SizedBox(width: 10),
                     Text(
-                      'ZREMOTE',
+                      'ZREMOTEX',
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
@@ -1054,7 +1054,7 @@ class _TopologyFigure extends StatelessWidget {
             ],
           ),
         ),
-        node(Icons.phone_iphone, 'ZRemote', accent: true),
+        node(Icons.phone_iphone, 'ZRemoteX', accent: true),
       ],
     );
   }

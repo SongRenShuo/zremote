@@ -1,4 +1,4 @@
-# ZRemote
+# ZRemoteX
 
 **中文** | [English](README.en.md)
 
@@ -76,7 +76,7 @@ flutter build ios --release --no-codesign
 
 ## 声明
 
-ZRemote 是社区开发的开源项目，非官方工具，与 Z.ai 无关联。ZCode 及相关名称与商标归其各自所有者。
+ZRemoteX 是社区开发的开源项目（ZRemote 的二次开发分支），非官方工具，与 Z.ai 无关联。ZCode 及相关名称与商标归其各自所有者。
 
 本项目是 [pjpv/zremote](https://github.com/pjpv/zremote) 的**二次开发分支**：上游原版由其作者与贡献者维护，本分支在其基础上做功能增强与问题修复，**上游代码与署名权归原作者所有**；如与上游行为不一致，请先向上游反馈。
 

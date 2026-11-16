@@ -1,4 +1,4 @@
-# ZRemote
+# ZRemoteX
 
 [中文](README.md) | **English**
 
@@ -76,7 +76,7 @@ flutter build ios --release --no-codesign
 
 ## Disclaimer
 
-ZRemote is a community-driven open-source project and is not an official tool; it is not affiliated with Z.ai. ZCode and related names and trademarks belong to their respective owners.
+ZRemoteX is a community-driven open-source project (a fork with extra development of ZRemote) and is not an official tool; it is not affiliated with Z.ai. ZCode and related names and trademarks belong to their respective owners.
 
 This project is a **fork with additional development** of [pjpv/zremote](https://github.com/pjpv/zremote): the original upstream is maintained by its author and contributors, and this fork only adds features and fixes on top. **Upstream code and its attribution remain with the original author.** If something behaves differently from upstream, please report it upstream first.
 

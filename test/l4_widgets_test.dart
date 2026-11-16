@@ -359,7 +359,7 @@ void main() {
         devices: const [],
       );
       await tester.pumpAndSettle();
-      expect(find.text('ZREMOTE'), findsOneWidget);
+      expect(find.text('ZREMOTEX'), findsOneWidget);
       expect(find.text('扫码导入'), findsOneWidget, reason: '左栏底部添加入口');
       // 无设备：右栏空面板标题 = 空态标题（非「从左侧选择设备」——那是有设备时）
       expect(find.text('从左侧选择设备'), findsNothing);
@@ -373,7 +373,7 @@ void main() {
         devices: const [],
       );
       await tester.pumpAndSettle();
-      expect(find.text('ZREMOTE'), findsOneWidget, reason: '窄屏顶部品牌仍在');
+      expect(find.text('ZREMOTEX'), findsOneWidget, reason: '窄屏顶部品牌仍在');
       expect(find.byType(VerticalDivider), findsNothing);
       // ManagePage 空态可见（粘贴入口）
       expect(find.textContaining('粘贴'), findsWidgets);

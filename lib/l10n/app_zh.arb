@@ -209,7 +209,7 @@
   "@scannerPermTitle": {
     "description": "Scanner permission denied error title"
   },
-  "scannerPermBody": "扫码导入需要相机权限。请在系统设置中允许 ZRemote 使用相机后返回。",
+  "scannerPermBody": "扫码导入需要相机权限。请在系统设置中允许 ZRemoteX 使用相机后返回。",
   "@scannerPermBody": {
     "description": "Scanner permission denied error body"
   },
@@ -370,7 +370,7 @@
       }
     }
   },
-  "lockTitle": "ZRemote",
+  "lockTitle": "ZRemoteX",
   "@lockTitle": {
     "description": "Biometric lock screen heading (brand name)"
   },
@@ -390,15 +390,15 @@
   "@unlockButton": {
     "description": "Biometric lock screen button (legacy, kept for compatibility)"
   },
-  "unlockReason": "验证以解锁 ZRemote",
+  "unlockReason": "验证以解锁 ZRemoteX",
   "@unlockReason": {
     "description": "localizedReason passed to system biometric prompt for unlocking"
   },
-  "biometricEnableReason": "验证以开启 ZRemote 生物识别锁",
+  "biometricEnableReason": "验证以开启 ZRemoteX 生物识别锁",
   "@biometricEnableReason": {
     "description": "localizedReason when toggling the lock on"
   },
-  "biometricDisableReason": "验证以关闭 ZRemote 生物识别锁",
+  "biometricDisableReason": "验证以关闭 ZRemoteX 生物识别锁",
   "@biometricDisableReason": {
     "description": "localizedReason when toggling the lock off"
   },

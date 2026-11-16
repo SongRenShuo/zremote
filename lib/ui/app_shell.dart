@@ -360,7 +360,7 @@ class _WideDeviceRail extends ConsumerWidget {
               Image.asset('assets/brand/mark.png', width: 20, height: 20),
               const SizedBox(width: 8),
               Text(
-                'ZREMOTE',
+                'ZREMOTEX',
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,

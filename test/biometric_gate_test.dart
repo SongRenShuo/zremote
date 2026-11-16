@@ -210,6 +210,6 @@ void main() {
     expect(visibleLock, findsOneWidget);
     expect(find.text('轻触面容 / 指纹解锁'), findsOneWidget);
     expect(find.text('凭据加密存储于本机'), findsOneWidget);
-    expect(find.text('ZRemote'), findsOneWidget, reason: '标题即品牌名');
+    expect(find.text('ZRemoteX'), findsOneWidget, reason: '标题即品牌名');
   });
 }
