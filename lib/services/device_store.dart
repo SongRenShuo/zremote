@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/device.dart';
@@ -29,7 +29,13 @@ class DeviceStore {
   final _secure = const FlutterSecureStorage();
 
   Future<List<RemoteDevice>> loadAll() async {
+    if (kDebugMode) debugPrint('[device-store] loadAll: begin');
     final indexRaw = await _secure.read(key: _indexKey);
+    if (kDebugMode) {
+      debugPrint(
+        '[device-store] loadAll: index=${indexRaw ?? "null"}',
+      );
+    }
     if (indexRaw == null) return [];
     final ids = (jsonDecode(indexRaw) as List).cast<String>();
     final devices = <RemoteDevice>[];
@@ -47,6 +53,7 @@ class DeviceStore {
   }
 
   Future<void> add(RemoteDevice device) async {
+    if (kDebugMode) debugPrint('[device-store] add: begin ${device.id}');
     final ids = await _readIndex();
     if (!ids.contains(device.id)) ids.add(device.id);
     await _secure.write(
@@ -54,6 +61,7 @@ class DeviceStore {
       value: jsonEncode(device.toJson()),
     );
     await _secure.write(key: _indexKey, value: jsonEncode(ids));
+    if (kDebugMode) debugPrint('[device-store] add: done ${device.id}');
   }
 
   Future<void> update(RemoteDevice device) => _secure.write(
