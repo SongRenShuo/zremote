@@ -247,5 +247,48 @@ void main() {
       expect(stored.enabled, isTrue);
       expect(stored.silentEndMinutes, 6 * 60);
     });
+
+    test('全局总闸（zremote.claimGlobal）：默认开 + 往返 + 脏值回落开（M5）',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      expect(
+        await DeviceStore.instance.claimGlobalEnabled(),
+        isTrue,
+        reason: '无键 → 默认开（升级零回归）',
+      );
+
+      await DeviceStore.instance.saveClaimGlobalEnabled(false);
+      expect(await DeviceStore.instance.claimGlobalEnabled(), isFalse);
+
+      SharedPreferences.setMockInitialValues({
+        'zremote.claimGlobal': 'garbage',
+      });
+      expect(
+        await DeviceStore.instance.claimGlobalEnabled(),
+        isTrue,
+        reason: '脏值 → 回落开',
+      );
+    });
+
+    test('ClaimGlobalEnabledNotifier：setEnabled 即时态 + 落盘 + load 回读',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(claimGlobalEnabledProvider.notifier);
+      expect(container.read(claimGlobalEnabledProvider), isTrue);
+
+      await notifier.setEnabled(false);
+      expect(container.read(claimGlobalEnabledProvider), isFalse);
+      await notifier.lastSave;
+      expect(await DeviceStore.instance.claimGlobalEnabled(), isFalse);
+
+      // 新容器模拟重启：load 读盘回读 false。
+      final container2 = ProviderContainer();
+      addTearDown(container2.dispose);
+      final notifier2 = container2.read(claimGlobalEnabledProvider.notifier);
+      await notifier2.load();
+      expect(container2.read(claimGlobalEnabledProvider), isFalse);
+    });
   });
 }

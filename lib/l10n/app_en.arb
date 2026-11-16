@@ -617,6 +617,30 @@
   "@claimBlockedAccountNotConfigured": {
     "description": "History blocked record: account has no plan configured"
   },
+  "claimGlobalOffHint": "Global auto claim is off — enable it in Settings",
+  "@claimGlobalOffHint": {
+    "description": "Claim page hint when the global auto-claim master switch is off (20261117-0024 G4)"
+  },
+  "settingsClaimAutoSection": "Auto claim",
+  "@settingsClaimAutoSection": {
+    "description": "Settings section label for global auto claim (20261117-0024 G3)"
+  },
+  "settingsClaimAutoTitle": "Global auto claim",
+  "@settingsClaimAutoTitle": {
+    "description": "Settings tile title: global auto-claim master switch"
+  },
+  "settingsClaimAutoOn": "On: each device follows its own claim-page switch",
+  "@settingsClaimAutoOn": {
+    "description": "Settings tile subtitle when global switch is on"
+  },
+  "settingsClaimAutoOff": "Off: auto claim stopped on all devices",
+  "@settingsClaimAutoOff": {
+    "description": "Settings tile subtitle when global switch is off"
+  },
+  "settingsClaimAutoHint": "This master switch applies to all devices; device-level switches live on each device's claim page",
+  "@settingsClaimAutoHint": {
+    "description": "Settings section footnote under global auto claim"
+  },
   "claimAutoTabLabel": "Plans",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

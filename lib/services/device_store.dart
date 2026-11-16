@@ -318,6 +318,8 @@ class DeviceStore {
 
   static const _claimConfigPrefix = 'zremote.claimConfig.';
 
+  static const _claimGlobalKey = 'zremote.claimGlobal';
+
   /// 自动领取配置（P2-5）：enabled/silentStart/silentEnd；缺省=开关关 +
   /// 默认静默 23:00–08:00。读取失败回落默认配置。
   Future<ClaimAutoConfig> claimAutoConfig(String deviceId) async {
@@ -341,6 +343,26 @@ class DeviceStore {
       '$_claimConfigPrefix$deviceId',
       jsonEncode(config.toJson()),
     );
+  }
+
+  /// 全局自动领取总闸（20261117-0024，zcode-switch auto_claim 同语义）：
+  /// `zremote.claimGlobal`，实际自动领取 = 全局 && 设备开关。
+  /// **默认开**——避免既有已开设备的升级回归；读取失败同样回落开。
+  Future<bool> claimGlobalEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_claimGlobalKey);
+      if (raw == null || raw.isEmpty) return true;
+      return jsonDecode(raw) == true;
+    } catch (e) {
+      debugPrint('[claim-config] global load failed: $e');
+      return true;
+    }
+  }
+
+  Future<void> saveClaimGlobalEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_claimGlobalKey, jsonEncode(enabled));
   }
 
   static const _quotaAlertPrefix = 'zremote.quotaAlert.';
