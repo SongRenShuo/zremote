@@ -57,11 +57,12 @@ jobs:
   # 关键路径实测：近 10 轮 ios 墙钟 43~348s（均值约 230s），其中 Xcode build 约 80~260s、
   # Flutter SDK 缓存恢复约 20~67s。这条腿是整轮 CI 的地板，故不裁（裁了等于放弃 iOS 可构建性验证）。
   ios:
-    # macOS arm64 托管池容量紧张时，任务会排队 15 分钟仍「not acquired by Runner」
-    # （infra 失败，与代码无关）。改走 Intel 池 macos-15-intel 绕开 arm64 拥堵；
-    # 并把 iOS 巡检设为不阻塞——硬门禁是 check(ubuntu)+hap，iOS 可构建性从
-    # 「每次 push 必验」降为「尽力巡检」，避免日常提交被托管容量卡红。
-    runs-on: macos-15-intel
+    # 必须用 arm64 的 macos-latest：device_info_plus 13.3.0 调用
+    # NSProcessInfo.isiOSAppOnVision（iOS 26.1 SDK / Xcode 26 才声明该 selector，
+    # 运行时 @available 守卫无法规避编译期缺失），Intel 镜像 Xcode 较旧会编译失败。
+    # 容量紧张时该 job 可能排队失败（infra）——故设 continue-on-error 不阻塞：
+    # 硬门禁是 check(ubuntu)+hap，iOS 可构建性为「尽力巡检」，避免日常提交被容量卡红。
+    runs-on: macos-latest
     continue-on-error: true
     timeout-minutes: 30
     steps:

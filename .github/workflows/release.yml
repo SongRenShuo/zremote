@@ -116,9 +116,9 @@ jobs:
 
   # iOS 出未签名 IPA：无 Apple 开发者账号也可分发，用户自行签名侧载。
   ipa:
-    # 走 Intel 池（macos-15-intel）绕开 arm64 托管池容量拥堵；Intel 为桥接（~2027 停用），
-    # 后续需迁回 arm64 标签。ipa 是发行资产，保持必过。
-    runs-on: macos-15-intel
+    # 必须 arm64 的 macos-latest：device_info_plus 13.3.0 的 isiOSAppOnVision
+    # 依赖 iOS 26.1 SDK（Xcode 26），Intel 镜像编译失败。容量紧张时若拿不到运行器需重试。
+    runs-on: macos-latest
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
