@@ -81,10 +81,9 @@ class ClaimRecord {
     final blockedReason = claimBlockedReasonOf(
       j['blockedReason'] as String?,
     );
-    final planId = j['planId'];
-    if (planId is! String || (planId.isEmpty && blockedReason == null)) {
-      return null;
-    }
+    final planIdRaw = j['planId'];
+    final planId = planIdRaw is String ? planIdRaw : '';
+    if (planId.isEmpty && blockedReason == null) return null;
     return ClaimRecord(
       at: DateTime.fromMillisecondsSinceEpoch(at.toInt()),
       planId: planId,
