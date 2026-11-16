@@ -101,7 +101,7 @@
   "biometricLockTitle": "Biometric lock",
   "biometricLockSubtitle": "Verify on return after cold start or long absence",
   "keepAliveTitle": "Background keep-alive channel",
-  "keepAliveOn": "Keep receiving session events in background",
+  "keepAliveOn": "Best-effort background session monitoring and completion alerts (may be delayed by power-saving policies)",
   "keepAliveOff": "May be frozen by the system in background",
   "batteryWhitelistTitle": "Battery optimization whitelist",
   "batteryBlocked": "Guard service restricted by the system: open the power policy and set \"No restrictions\"",

@@ -78,6 +78,11 @@
 - **L35 跨平台 SDK 的 schema 校验是构建前置门禁，自定义字段要用官方名字**。证据：`module.json5` 的 `pathPrefix` 不被 HarmonyOS hvigor 识别（正确 `pathStartWith`，`00303038` schema 错误）；`ohos.permission.FOREGROUND_SERVICE` 在旧 SDK 未预定义（`00303221`，须 definePermissions 或移除）。判据：**新平台脚手架先跑一次官方 `flutter create --platforms <平台>` 生成模板逐字对齐**，自定义字段（权限/深链）以模板 schema 为准，别照搬 Android manifest 直觉。**Seen 1× (11-16)**
 - **L36 社区 fork 的嵌入层可能引用未进入公开 SDK 的 API，需可重复补丁**。证据：CPF-Flutter 3.41 的 `OhosAutoFillHelper.ets` 引用 `autoFillManager.AutoFillType/ViewData` 等类型，所有公开 SDK（API 12/23/24）都没有（15 个 ArkTS 编译错误），但代码用 `AUTOFILL_SUPPORT_API=26` 运行时短路——`tool/patch_ohos_autofill.py` 把类型降级为 `any` 即编译通过且不改真机行为。判据：**fork 构建失败先分清「我方配置错」还是「fork 用了超前 API」**；后者补丁要幂等、每次 pub get 后重跑（生成物会被覆盖）、CI 串接。**Seen 1× (11-16)**
 
+## 2026-11-16 后台完成通知失效定位轮
+
+- **L37 方案选型进入实施前必须读真实调用链验证前提，别按概念设计投入**。证据：后台推送失效计划原提 D2（Dart 独立轮询宿主）/D5（原生直连宿主）看似根治，读代码发现全仓宿主数据访问都走 `RpcBridge.call → LoopbackDispatchServer.push → 注入 WebView 的 JS poll → callHandler 回传`（`rpc_bridge.dart:152-228`、`rpc_dispatch.dart:56-95`），Dart/原生无法绕过 JS 直连宿主 → D2/D5 地基不存在，当场否决改走 D1（后台心跳唤醒 JS）。判据：**任何"绕过某层直连"的方案，先 grep 该层是不是唯一通道**；实施前先证伪再投入工时（S2 反向验证在选型上的延伸）。**Seen 1× (11-16)**
+- **L38 "保活"与"事件→通知"是两条链路：进程存活不等于后台事件能被观察**。证据：完成通知完全寄生在 WebView 注入 JS 观察者上，`KeepAliveService.kt` 前台服务+WakeLock 只保 Dart 进程，切后台后 JS 被省电策略冻结即丢完成事件，回前台 reload 靠 `StateDiffer` 全量快照 diff 才补发（用户"重连后才推送"）；`NotificationGate` 后台放行、通知插件正常，断点在事件产生/回传而非显示。判据：**后台收不到通知先分清是"事件没产生"还是"通知没显示"**；寄生在 WebView JS 上的事件链路必须配后台唤醒（如 `evaluateJavascript` 心跳）+ 去重持久化兜底，且文案不可绝对承诺。**Seen 1× (11-16)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。

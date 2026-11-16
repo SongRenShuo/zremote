@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import 'models/device_label.dart';
 import 'services/biometric.dart';
 import 'services/device_store.dart';
 import 'services/log_buffer.dart';
+import 'services/notified_event_store.dart';
 import 'services/notifier.dart';
 import 'state/appearance.dart';
 import 'state/keepalive.dart';
@@ -23,6 +26,7 @@ Future<void> main() async {
   // P3-2：诊断日志环形缓冲装配（debugPrint 流捕获 + 原样输出）。
   LogBuffer.installDebugPrintCapture();
   await NotifierService.instance.init();
+  unawaited(NotifiedEventStore.instance.load());
   final store = DeviceStore.instance;
   final initialLocale = await store.localeSetting();
   final initialBiometric = await store.biometricEnabled();

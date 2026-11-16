@@ -479,7 +479,7 @@
   "@keepAliveTitle": {
     "description": "Keep-alive switch title"
   },
-  "keepAliveOn": "切后台仍保持实时会话事件监听",
+  "keepAliveOn": "切后台尽力保持会话监听与完成通知（受系统省电策略限制，可能延迟）",
   "@keepAliveOn": {
     "description": "Keep-alive subtitle when enabled"
   },

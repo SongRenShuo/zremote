@@ -12,10 +12,12 @@ import '../models/device.dart';
 import '../services/account_vault.dart';
 import '../services/approval_extractor.dart';
 import '../services/auth_popup_policy.dart';
+import '../services/background_heartbeat.dart';
 import '../services/event_observer.dart';
 import '../services/git_overview.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
+import '../services/notified_event_store.dart';
 import '../services/rpc_bridge.dart';
 import '../services/rpc_codec.dart';
 import '../services/rpc_dispatch.dart';
@@ -35,6 +37,7 @@ import '../state/claim_config.dart';
 import '../state/claim_entry.dart';
 import '../state/claim_scheduler_hub.dart';
 import '../state/event_feed.dart';
+import '../state/keepalive.dart';
 import '../state/notification_prefs.dart';
 import '../state/resume_reload.dart';
 import '../state/service_readiness.dart';
@@ -112,6 +115,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   final StateDiffer _stateDiffer = StateDiffer();
 
+  /// D1 后台保活心跳：后台时按周期用 evaluateJavascript 唤醒注入 JS 的轮询，
+  /// 让任务完成事件在后台仍能被观察到并即时弹通知（保活只保进程，不保 JS）。
+  final BackgroundHeartbeat _backgroundHeartbeat = BackgroundHeartbeat();
+  Timer? _backgroundHeartbeatTimer;
+
   String? _activeSessionId;
 
   bool _probeArmed = true;
@@ -139,6 +147,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     // dispose 里还要用：ref 在 unmount 时不可用，先缓存（同其余 notifier）。
     _claimSchedulerHubNotifier ??= ref.read(claimSchedulerHubProvider.notifier);
     _startDispatch();
+    _startBackgroundHeartbeat();
   }
 
   void _startDispatch() {
@@ -157,6 +166,42 @@ class _SessionViewState extends ConsumerState<SessionView> {
         .catchError((Object e) {
           debugPrint('[zr-diag] dispatch server bind failed: $e');
         });
+  }
+
+  /// D1：启动后台心跳定时器。只在定时器为空时装配；生命周期切换时
+  /// 由 [_syncBackgroundHeartbeat] 决定是否处于激活态。
+  void _startBackgroundHeartbeat() {
+    if (_backgroundHeartbeatTimer != null) return;
+    _backgroundHeartbeatTimer = Timer.periodic(
+      BackgroundHeartbeatPolicy.interval,
+      (_) => _tickBackgroundHeartbeat(),
+    );
+  }
+
+  /// D1：保活开启/生命周期变化时同步心跳节拍（回前台重置节拍避免连击）。
+  void _syncBackgroundHeartbeat() {
+    final lifecycle = ref.read(appLifecycleProvider);
+    _backgroundHeartbeat.resetOnForeground(lifecycle);
+  }
+
+  /// D1：一次后台唤醒——用 evaluateJavascript 调用注入脚本的
+  /// __zrKeepAliveTick，触发 zrPollRevive 恢复 JS 轮询与 callHandler 回传。
+  void _tickBackgroundHeartbeat() {
+    if (!mounted) return;
+    final controller = _controller;
+    if (controller == null) return;
+    final should = _backgroundHeartbeat.consider(
+      keepAliveEnabled: ref.read(keepAliveEnabledProvider),
+      hasDevices: ref.read(deviceListProvider).isNotEmpty,
+      lifecycle: ref.read(appLifecycleProvider),
+    );
+    if (!should) return;
+    debugPrint('[zr-keepalive] bg tick device=${widget.device.id}');
+    unawaited(
+      controller.evaluateJavascript(
+        source: 'window.__zrKeepAliveTick && window.__zrKeepAliveTick()',
+      ),
+    );
   }
 
   @override
@@ -372,7 +417,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
     if (approvalSignals.isNotEmpty) {
       _approvalCenterNotifier?.ingest(widget.device.id, approvalSignals);
     }
-    if (events.isEmpty) return;
+    _dispatchEvents(events);
+  }
+
+  /// 事件统一派发：gate（类型开关/前台可见性/免打扰）→ 事件流 → 本地通知。
+  /// 前台 JS 链路（_onBridgeMessage）与后台心跳快照（_onBackgroundSnapshot）共用，
+  /// 保证后台补发的完成事件走完全相同的 gate 语义。
+  void _dispatchEvents(List<ObservedEvent> events) {
+    if (events.isEmpty || !mounted) return;
     final devices = ref.read(deviceListProvider);
     final active = ref.read(activeTabProvider);
     final visibleId = active < devices.length ? devices[active].id : null;
@@ -400,6 +452,20 @@ class _SessionViewState extends ConsumerState<SessionView> {
         eventSessionId: event.taskId,
       );
       if (!notify) continue;
+      // D3：完成类事件（后台心跳/前台链路/回前台补发可能重复）按
+      // 设备+任务+类型去重，窗口期内只通知一次，防重复推送。
+      if (event.type == 'completed' || event.type == 'error') {
+        if (!NotifiedEventStore.instance.shouldNotify(
+          widget.device.id,
+          event.type,
+          event.taskId,
+        )) {
+          debugPrint(
+            '[zr-keepalive] dedup skip ${event.type} task=${event.taskId}',
+          );
+          continue;
+        }
+      }
       _feedNotifier?.ingest(widget.device.id, event);
       NotifierService.instance.notifyFrom(
         widget.device,
@@ -407,6 +473,25 @@ class _SessionViewState extends ConsumerState<SessionView> {
         l10n: AppLocalizations.of(context),
       );
     }
+  }
+
+  /// 后台心跳快照回传：注入 JS 在后台主动拉取宿主任务列表后经此 handler 回传。
+  /// 用独立 StateDiffer 比对 phase 变化 → 复用 [_dispatchEvents] 弹完成通知，
+  /// 使任务完成事件无需等回前台即可投递（D1 核心）。
+  final StateDiffer _backgroundStateDiffer = StateDiffer();
+
+  void _onBackgroundSnapshot(String body) {
+    if (!mounted) return;
+    final tasks = TaskIndexExtractor.parseResultTasks(body);
+    if (tasks == null || tasks.isEmpty) {
+      debugPrint('[zr-keepalive] bg snapshot empty/unparsed');
+      return;
+    }
+    final events = _backgroundStateDiffer.apply(tasks);
+    debugPrint(
+      '[zr-keepalive] bg snapshot tasks=${tasks.length} events=${events.length}',
+    );
+    _dispatchEvents(events);
   }
 
   Future<void> _runServiceProbe() async {
@@ -1199,6 +1284,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _rpcBridge?.dispose();
     _dispatchServer?.dispose();
     _resumeGrace?.cancel();
+    _backgroundHeartbeatTimer?.cancel();
     super.dispose();
   }
 
@@ -1270,6 +1356,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
       if (next == prev) return;
       debugPrint('[zr-resume] lifecycle $prev -> $next');
       _resumeWatch.onState(next, DateTime.now());
+      // D1：回前台重置心跳节拍，避免下次切后台立刻连击。
+      _syncBackgroundHeartbeat();
       if (next == AppLifecycleState.resumed &&
           prev != AppLifecycleState.resumed) {
         _onAppResume();
@@ -1634,6 +1722,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
                             callback: (args) {
                               final body = args.isNotEmpty ? args.first : null;
                               if (body is String) _rpcBridge?.onSvcResult(body);
+                              return null;
+                            },
+                          );
+                          controller.addJavaScriptHandler(
+                            handlerName: 'zrBgSnapshot',
+                            callback: (args) {
+                              final body = args.isNotEmpty ? args.first : null;
+                              if (body is String) _onBackgroundSnapshot(body);
                               return null;
                             },
                           );

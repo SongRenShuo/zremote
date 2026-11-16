@@ -523,6 +523,27 @@ abstract final class EventObserver {
       zrPollStart();
     }
   }
+  window.__zrKeepAliveTick = function() {
+    try { zrPollRevive(); } catch (e) {}
+    try {
+      var reg = zrFindServices();
+      var svc = reg && reg.windowControllerService;
+      if (svc && typeof svc.listTaskList === 'function') {
+        Promise.resolve(svc.listTaskList()).then(function(r) {
+          try {
+            var list = null;
+            if (Object.prototype.toString.call(r) === '[object Array]') list = r;
+            else if (r && Object.prototype.toString.call(r.result) === '[object Array]') list = r.result;
+            else if (r && r.result && Object.prototype.toString.call(r.result.tasks) === '[object Array]') list = r.result.tasks;
+            else if (r && Object.prototype.toString.call(r.tasks) === '[object Array]') list = r.tasks;
+            if (!list) return;
+            post('zrBgSnapshot', JSON.stringify({ result: { tasks: list } }));
+          } catch (e4) {}
+        }).catch(function() {});
+      }
+    } catch (e2) {}
+    return 'ok';
+  };
   zrPollStart();
 })();
 ''';
