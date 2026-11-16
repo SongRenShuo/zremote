@@ -1,0 +1,10 @@
+# Flutter-OH / DevEco 生成与本地产物（不提交）
+.ohos/
+oh_modules/
+node_modules/
+.hvigor/
+/build/
+local.properties
+/.idea
+*.iml
+.cxx/

@@ -1,0 +1,9 @@
+{
+  "name": "zremote-ohos",
+  "version": "2.0.3",
+  "private": true,
+  "description": "ZRemoteX HarmonyOS platform host",
+  "dependencies": {
+    "flutter-hvigor-plugin": "latest"
+  }
+}
