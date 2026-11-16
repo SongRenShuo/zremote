@@ -1,8 +1,20 @@
 {
   "string": [
-    { "name": "app_name", "value": "ZRemoteX" },
-    { "name": "module_desc", "value": "ZRemoteX HarmonyOS" },
-    { "name": "EntryAbility_desc", "value": "ZRemoteX" },
-    { "name": "permission_camera_reason", "value": "用于扫码导入设备" }
+    {
+      "name": "module_desc",
+      "value": "ZRemoteX HarmonyOS"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "ZRemoteX"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "ZRemoteX"
+    },
+    {
+      "name": "permission_camera_reason",
+      "value": "用于扫码导入设备"
+    }
   ]
 }

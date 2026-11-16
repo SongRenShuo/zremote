@@ -1,13 +1,13 @@
 {
+  "modelVersion": "5.0.0",
   "name": "zremotex",
   "version": "2.0.3",
-  "description": "ZRemoteX HarmonyOS",
+  "description": "ZRemoteX HarmonyOS platform host.",
   "main": "",
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {},
   "devDependencies": {
-    "@ohos/hvigor": "5.0.0",
-    "@ohos/hvigor-ohos-plugin": "5.0.0"
+    "@ohos/hypium": "1.0.6"
   }
 }

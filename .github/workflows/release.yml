@@ -176,10 +176,12 @@ jobs:
         uses: openharmony-rs/setup-ohos-sdk@v1
         with:
           version: "5.0.0"
+      # setup-ohos-sdk 导出 OHOS_BASE_SDK_HOME / OHOS_SDK_NATIVE（无 HOS_SDK_HOME）。
+      # TODO(OH-CI)：与 ohos.yml 同口径，首跑校准 SDK home 形态。
       - name: 暴露 DEVECO_SDK_HOME
         run: |
-          echo "DEVECO_SDK_HOME=$HOS_SDK_HOME" >> "$GITHUB_ENV"
-          echo "PATH=$HOS_SDK_HOME:$PATH" >> "$GITHUB_ENV"
+          echo "DEVECO_SDK_HOME=$OHOS_BASE_SDK_HOME" >> "$GITHUB_ENV"
+          echo "PATH=$OHOS_SDK_NATIVE:$PATH" >> "$GITHUB_ENV"
 
       - name: 准备 Flutter-OH SDK（锁 tag）
         env:
@@ -189,7 +191,7 @@ jobs:
           git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
             https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
-          flutter config --ohos-sdk "$HOS_SDK_HOME"
+          flutter config --ohos-sdk "$OHOS_BASE_SDK_HOME"
 
       - name: flutter pub get（含重试）
         run: |
