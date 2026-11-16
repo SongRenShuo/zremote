@@ -1345,6 +1345,30 @@
   "@claimBlockedAccountNotConfigured": {
     "description": "History blocked record: account has no plan configured"
   },
+  "claimGlobalOffHint": "全局自动领取已关闭，可在设置中开启",
+  "@claimGlobalOffHint": {
+    "description": "Claim page hint when the global auto-claim master switch is off (20261117-0024 G4)"
+  },
+  "settingsClaimAutoSection": "活动自动领取",
+  "@settingsClaimAutoSection": {
+    "description": "Settings section label for global auto claim (20261117-0024 G3)"
+  },
+  "settingsClaimAutoTitle": "全局自动领取",
+  "@settingsClaimAutoTitle": {
+    "description": "Settings tile title: global auto-claim master switch"
+  },
+  "settingsClaimAutoOn": "已开启：各设备按其领取页开关自动领取",
+  "@settingsClaimAutoOn": {
+    "description": "Settings tile subtitle when global switch is on"
+  },
+  "settingsClaimAutoOff": "已关闭：所有设备已停止自动领取",
+  "@settingsClaimAutoOff": {
+    "description": "Settings tile subtitle when global switch is off"
+  },
+  "settingsClaimAutoHint": "总闸作用于全部设备；设备级开关在各设备的领取页内",
+  "@settingsClaimAutoHint": {
+    "description": "Settings section footnote under global auto claim"
+  },
   "claimAutoTabLabel": "可领活动",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

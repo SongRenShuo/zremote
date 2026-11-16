@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/claim_scheduler.dart';
@@ -40,4 +43,39 @@ class ClaimConfigNotifier extends Notifier<Map<String, ClaimAutoConfig>> {
 final claimConfigProvider =
     NotifierProvider<ClaimConfigNotifier, Map<String, ClaimAutoConfig>>(
       ClaimConfigNotifier.new,
+    );
+
+/// 全局自动领取总闸（20261117-0024 G1，zcode-switch auto_claim 同语义）：
+/// 实际自动领取 = 全局 && 设备开关。默认开（升级零回归，计划 §3 裁定）。
+class ClaimGlobalEnabledNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  Future<void>? _lastSave;
+
+  /// 最近一次落盘 future（测试用；生产侧 fire-and-forget）。
+  @visibleForTesting
+  Future<void> get lastSave => _lastSave ?? Future<void>.value();
+
+  /// 会话挂桥/页面加载时读盘（未加载时内存态回落默认开）。
+  Future<void> load() async {
+    state = await DeviceStore.instance.claimGlobalEnabled();
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final previous = _lastSave ?? Future<void>.value();
+    _lastSave = previous
+        .then((_) => DeviceStore.instance.saveClaimGlobalEnabled(enabled))
+        .catchError((Object e) {
+      debugPrint('[claim-config] global save failed: $e');
+      return;
+    });
+    unawaited(_lastSave);
+  }
+}
+
+final claimGlobalEnabledProvider =
+    NotifierProvider<ClaimGlobalEnabledNotifier, bool>(
+      ClaimGlobalEnabledNotifier.new,
     );

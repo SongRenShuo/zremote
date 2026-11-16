@@ -17,6 +17,7 @@ import '../state/accounts.dart';
 import '../state/appearance.dart';
 import '../state/app_lifecycle.dart';
 import '../state/behavior.dart';
+import '../state/claim_config.dart';
 import '../state/locale.dart';
 import '../state/notification_prefs.dart';
 import '../state/keepalive.dart';
@@ -158,6 +159,21 @@ class SettingsPage extends ConsumerWidget {
                 _GroupDivider(),
                 _BatteryTile(),
               ],
+            ),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.settingsClaimAutoSection),
+            const _CardGroup(children: [_ClaimAutoTile()]),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
+              child: Text(
+                l10n.settingsClaimAutoHint,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.5,
+                  color: context.zt.textTertiary,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             SectionLabel(l10n.sectionNotifications),
@@ -639,6 +655,42 @@ class _BatteryTile extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<_BatteryTile> createState() => _BatteryTileState();
+}
+
+/// 全局自动领取总闸（20261117-0024 G3，zcode-switch auto_claim 同语义）：
+/// 一处开关管全部设备；设备级开关保留在各设备领取页。默认开（升级零回归），
+/// 0 设备也可操作（L27 判据）。
+class _ClaimAutoTile extends ConsumerStatefulWidget {
+  const _ClaimAutoTile();
+
+  @override
+  ConsumerState<_ClaimAutoTile> createState() => _ClaimAutoTileState();
+}
+
+class _ClaimAutoTileState extends ConsumerState<_ClaimAutoTile> {
+  @override
+  void initState() {
+    super.initState();
+    // 读盘兜底（幂等）：内存态默认开，磁盘值可能已被上次会话改过。
+    unawaited(ref.read(claimGlobalEnabledProvider.notifier).load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = ref.watch(claimGlobalEnabledProvider);
+    final l10n = AppLocalizations.of(context)!;
+    return _TileRow(
+      title: l10n.settingsClaimAutoTitle,
+      subtitle: enabled ? l10n.settingsClaimAutoOn : l10n.settingsClaimAutoOff,
+      icon: Icons.auto_mode_rounded,
+      trailing: Switch(
+        key: const Key('settings-claim-auto-switch'),
+        value: enabled,
+        onChanged: (v) =>
+            ref.read(claimGlobalEnabledProvider.notifier).setEnabled(v),
+      ),
+    );
+  }
 }
 
 class _BatteryTileState extends ConsumerState<_BatteryTile> {
