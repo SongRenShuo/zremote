@@ -61,6 +61,8 @@
 - **L29 「账号↔设备绑定」与「凭据注入」是两件事：只写绑定不写 localStorage，页面依旧取不到票**。证据：`AccountVaultPage._installAccountDevice` 只 `add(device)` + `setActiveForDevice`，设备 WebView 五键凭据仓为空 → 额度/福利取不到票，用户必须去账户库手动「应用」一次（`0ee8db2` 修复：会话页 `onLoadStop` 自检「有绑定 + 缺 `zcodejwttoken`」→ 注入并 reload 一次，按「设备 id+账号 id」防循环；换绑重检、解绑清键）。判据：凡「新增/切换账号到设备」的落点，要么**同批注入**，要么**由会话页自检补注入**，并显式防循环。**Seen 1× (11-16)**
 - **L30 一次性副作用（注入/上报/解锁）必须带「身份键」防循环，且键要随身份变化而失效**。证据：注入后 reload 会再触发 `onLoadStop`，若无键则每次加载都回读+注入+reload（`0ee8db2`）。判据：键 = 触发条件全体（此处 设备 id + 账号 id）；「已完成」与「确认无需做」都写键；身份变化（换绑/解绑）清键。**Seen 1× (11-16)**
 
+- **L31 发布资产文件名必须自带「应用名 + 版本 + 平台」——否则与上游同名产物无法区分**。证据：Release 资产长期叫 `app-release.apk` / `zremote-ios-unsigned.ipa`，应用改名 ZRemoteX 后用户仍反馈「两个包识别不出是当前应用」（应用内 `android:label`/`CFBundleDisplayName` 虽已是 ZRemoteX，但下载页与文件名看不出来）（`9ce0851` 修复：workflow 发布前重命名为 `ZRemoteX-v<版本>-android.apk` / `ZRemoteX-v<版本>-ios-unsigned.ipa`；已发布的 v2.0.3 用资产改名 API 直接重命名，无需重传 80MB）。判据：**凡对外分发的产物名，先回答「只看文件名能否认出是哪个应用、哪个版本」**；GitHub 资产可用 `PATCH /releases/assets/{id}` 改名，别为改名重跑构建。**Seen 1× (11-16)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
