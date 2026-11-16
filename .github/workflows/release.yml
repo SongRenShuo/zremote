@@ -153,10 +153,66 @@ jobs:
           path: zremote-ios-unsigned.ipa
           if-no-files-found: error
 
-  # 统一建 Release：等 verify + apk + ipa 全绿再建，避免旧版 apk/ipa 两处并发写同一 Release 的竞态，
+  # 鸿蒙 hap 构建腿（开发计划 20261116-1434 P5）：与 apk/ipa 并行。
+  # 工具链与 ohos.yml 同口径；未签名 hap 用于侧载/签名后安装。
+  hap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 安装 OpenHarmony SDK
+        uses: openharmony-rs/setup-ohos-sdk@v1
+        with:
+          version: "5.0.0"
+      - name: 暴露 DEVECO_SDK_HOME
+        run: |
+          echo "DEVECO_SDK_HOME=$HOS_SDK_HOME" >> "$GITHUB_ENV"
+          echo "PATH=$HOS_SDK_HOME:$PATH" >> "$GITHUB_ENV"
+
+      - name: 准备 Flutter-OH SDK（锁 tag）
+        env:
+          FLUTTER_OH_VERSION: 3.41.9+ohos-1.0.2
+          FLUTTER_STORAGE_BASE_URL: https://flutter-ohos.obs.cn-south-1.myhuaweicloud.com
+        run: |
+          git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
+            https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
+          echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
+          flutter config --ohos-sdk "$HOS_SDK_HOME"
+
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
+      - run: flutter build hap --release --no-codesign
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zremote-ohos-hap
+          path: build/ohos/hap/entry-default-unsigned.hap
+          if-no-files-found: error
+
+  # 统一建 Release：等 verify + apk + ipa + hap 全绿再建，避免旧版 apk/ipa 两处并发写同一 Release 的竞态，
   # 也让「验证失败 → 不建 Release」成为原子语义。
   publish:
-    needs: [verify, apk, ipa]
+    needs: [verify, apk, ipa, hap]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -172,6 +228,12 @@ jobs:
           name: zremote-ios-unsigned-ipa
           path: artifacts/ipa
 
+      - name: 下载 hap 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: zremote-ohos-hap
+          path: artifacts/ohos
+
       # 资产文件名带「应用名 + 版本 + 平台」：`app-release.apk` / `zremote-ios-unsigned.ipa`
       # 看不出是 ZRemoteX（上游同名），装机/分享时无法辨认（用户反馈）。
       - name: Rename assets（ZRemoteX + 版本 + 平台）
@@ -179,7 +241,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
           cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
-          ls -la artifacts/apk artifacts/ipa
+          cp artifacts/ohos/entry-default-unsigned.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.hap"
+          ls -la artifacts/apk artifacts/ipa artifacts/ohos
 
       - name: GitHub Release
         uses: softprops/action-gh-release@v2
@@ -190,7 +253,10 @@ jobs:
             > **iOS 包（`ZRemoteX-v<版本>-ios-unsigned.ipa`）为未签名包，无法直接安装。**
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
+            >
+            > **鸿蒙包（`ZRemoteX-v<版本>-ohos.hap`）为未签名包**，需使用华为签名证书签名后安装。
           # 用 glob 而非变量：action 的 `with:` 输入不做 env 展开（只有 `run:` 里才展开）。
           files: |
             artifacts/apk/ZRemoteX-v*-android.apk
             artifacts/ipa/ZRemoteX-v*-ios-unsigned.ipa
+            artifacts/ohos/ZRemoteX-v*-ohos.hap

@@ -1,0 +1,85 @@
+name: ohos
+
+# 鸿蒙（HarmonyOS NEXT）构建腿（开发计划 20261116-1434 P5）。
+#
+# 为什么单独一个 workflow 而不是塞进 ci.yml：
+# Flutter-OH 是社区 SDK 分叉，工具链（OpenHarmony SDK + ohpm + hvigor + CPF
+# flutter_flutter）在 runner 上的安装方式还在收敛，单独成腿可让既有
+# analyze/test/ios 绿腿不被未稳定的 OH 工具链拖红；稳定后可折叠进 ci.yml。
+#
+# 触发：push main / PR / 手动（Actions 页 Run workflow）——即「允许推送触发」。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ohos-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Flutter-OH 引擎产物镜像（FAQ：debug snapshot 不匹配时用它清缓存）
+  FLUTTER_STORAGE_BASE_URL: https://flutter-ohos.obs.cn-south-1.myhuaweicloud.com
+  # 锁到具体 tag，分叉升级期不随默认分支漂移
+  FLUTTER_OH_VERSION: 3.41.9+ohos-1.0.2
+
+jobs:
+  hap:
+    runs-on: ubuntu-latest
+    # 工具链首轮安装（SDK + ohpm + hvigor + Flutter-OH 引擎产物）较重，给足余量。
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # OpenHarmony SDK（含 ohpm / hvigor / hdc）。
+      # TODO(OH-CI)：首次跑通后把 SDK 版本与 action 版本钉死，并加缓存。
+      - name: 安装 OpenHarmony SDK
+        uses: openharmony-rs/setup-ohos-sdk@v1
+        with:
+          version: "5.0.0"
+      - name: 暴露 DEVECO_SDK_HOME
+        run: |
+          echo "DEVECO_SDK_HOME=$HOS_SDK_HOME" >> "$GITHUB_ENV"
+          echo "PATH=$HOS_SDK_HOME:$PATH" >> "$GITHUB_ENV"
+
+      - name: 准备 Flutter-OH SDK（锁 tag）
+        run: |
+          git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
+            https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
+          echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
+          flutter --version
+          flutter config --ohos-sdk "$HOS_SDK_HOME"
+
+      - name: flutter pub get（含重试）
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if flutter pub get; then ok=1; break; fi
+            echo "::warning::flutter pub get 第 ${i} 次失败，5s 后重试"
+            sleep 5
+          done
+          [ "$ok" = 1 ]
+
+      # 未签名 hap：本机/CI 只验证「可构建」；签名作为 P6 子项（需华为签名证书）。
+      - run: flutter build hap --release --no-codesign
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zremote-ohos-hap
+          path: build/ohos/hap/entry-default-unsigned.hap
+          if-no-files-found: error
