@@ -4,18 +4,50 @@
 
 The phone companion app for controlling ZCode on the desktop (a fork with extra development of ZRemote). Sign in with your ZCode account to manage your remote devices: parallel sessions for multiple devices, a session overview, automation tasks, activity benefits, quota & usage insights and a Git workspace overview — all in one place.
 
+## Screenshots
+
+Real-device UI (1080×2400, OLED pure black, Chinese), with device names, workspace names, session titles, account and plan names masked. Full gallery: [docs/screenshots/](docs/screenshots).
+
+**Devices & Sign-in**
+
 <p align="center">
-  <img src="docs/screenshots/01-devices.png" width="180" alt="Devices and sessions" />
-  <img src="docs/screenshots/02-session-panel.png" width="180" alt="Session overview panel" />
-  <img src="docs/screenshots/03-toolbox.png" width="180" alt="Toolbox" />
-</p>
-<p align="center">
-  <img src="docs/screenshots/04-quota.png" width="180" alt="Quota center" />
-  <img src="docs/screenshots/06-git-detail.png" width="180" alt="Git detail" />
-  <img src="docs/screenshots/07-git-diff.png" width="180" alt="Full-screen diff" />
+  <img src="docs/screenshots/01-devices.png" width="150" alt="Devices and sessions" />
+  <img src="docs/screenshots/18-scanner.png" width="150" alt="Scan to import" />
+  <img src="docs/screenshots/19-manage-empty.png" width="150" alt="Empty state with sign-in and vault entries" />
+  <img src="docs/screenshots/11-login-providers.png" width="150" alt="Sign-in providers" />
+  <img src="docs/screenshots/12-account-device-picker.png" width="150" alt="Pick a device from the account" />
+  <img src="docs/screenshots/08-account-vault.png" width="150" alt="Account vault" />
 </p>
 
-> Screenshots of v2.0.2 on a real device (OLED pure black, Chinese), with device names, workspace names and session titles masked. Full gallery: [docs/screenshots/](docs/screenshots).
+**Sessions & Control**
+
+<p align="center">
+  <img src="docs/screenshots/21-session-view.png" width="150" alt="Session control view" />
+  <img src="docs/screenshots/02-session-panel.png" width="150" alt="Session overview panel" />
+  <img src="docs/screenshots/03-toolbox.png" width="150" alt="Toolbox" />
+</p>
+
+**Toolbox**
+
+<p align="center">
+  <img src="docs/screenshots/04-quota.png" width="150" alt="Quota center" />
+  <img src="docs/screenshots/13-claim.png" width="150" alt="Benefits claiming" />
+  <img src="docs/screenshots/14-automation.png" width="150" alt="Automation · schedules" />
+  <img src="docs/screenshots/14b-automation-queue.png" width="150" alt="Automation · off-peak queue" />
+  <img src="docs/screenshots/05-assets.png" width="150" alt="Assets browser" />
+  <img src="docs/screenshots/06-git-detail.png" width="150" alt="Git detail" />
+  <img src="docs/screenshots/07-git-diff.png" width="150" alt="Full-screen diff" />
+</p>
+
+**Settings & Diagnostics**
+
+<p align="center">
+  <img src="docs/screenshots/09-settings.png" width="150" alt="Settings" />
+  <img src="docs/screenshots/10-settings-repos.png" width="150" alt="Settings · official and current repos" />
+  <img src="docs/screenshots/15-model-settings.png" width="150" alt="Model settings" />
+  <img src="docs/screenshots/16-desktop-settings.png" width="150" alt="Desktop settings remote" />
+  <img src="docs/screenshots/17-diagnostics.png" width="150" alt="Connection diagnostics" />
+</p>
 
 ## Quick Start
 
@@ -29,7 +61,8 @@ The phone companion app for controlling ZCode on the desktop (a fork with extra 
 - Import by QR scan / pasted link; **account-direct devices**: after signing in, list the remote devices registered to your account and add one with a tap (duplicate detection by SID / MID / name)
 - Password sign-in (Z.ai CN / Z.ai Global / BigModel, embedded official login page)
 - Account vault: save / switch / delete multiple accounts, apply one to a device, JWT expiry reminders; `.zsb` encrypted bundles compatible with the desktop zcode-switch
-- Sign-in works even with zero devices: entries in the empty state and on the Settings page
+- Sign-in works even with zero devices: entries in the empty state, on the top-bar `+`, in the "add device" card and on the Settings page
+- Adding a device from the account **picks up the login state automatically**: credentials are injected when the session opens, no manual "apply" in the vault needed
 
 **Sessions & Control**
 - Parallel sessions for all devices, switching without reconnecting; device switcher from the top bar

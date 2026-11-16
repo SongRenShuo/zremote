@@ -4,18 +4,50 @@
 
 ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登录 ZCode 账号后管理你的远控设备：多设备并行会话、会话总览、自动化任务、活动权益领取、额度与用量查看、Git 工作区概览，全部收在一个界面里。
 
+## 演示截图
+
+真机界面（1080×2400，OLED 纯黑 · 中文），已对设备名 / 工作区名 / 任务标题 / 账号与套餐名等敏感信息打码。完整图库见 [docs/screenshots/](docs/screenshots)。
+
+**设备与登录**
+
 <p align="center">
-  <img src="docs/screenshots/01-devices.png" width="180" alt="设备与会话" />
-  <img src="docs/screenshots/02-session-panel.png" width="180" alt="会话总览面板" />
-  <img src="docs/screenshots/03-toolbox.png" width="180" alt="功能工具箱" />
-</p>
-<p align="center">
-  <img src="docs/screenshots/04-quota.png" width="180" alt="额度中心" />
-  <img src="docs/screenshots/06-git-detail.png" width="180" alt="Git 详情" />
-  <img src="docs/screenshots/07-git-diff.png" width="180" alt="全屏代码对比" />
+  <img src="docs/screenshots/01-devices.png" width="150" alt="设备与会话" />
+  <img src="docs/screenshots/18-scanner.png" width="150" alt="扫码导入" />
+  <img src="docs/screenshots/19-manage-empty.png" width="150" alt="0 设备空态（登录/账号库入口）" />
+  <img src="docs/screenshots/11-login-providers.png" width="150" alt="登录方式三选" />
+  <img src="docs/screenshots/12-account-device-picker.png" width="150" alt="从账户选择设备" />
+  <img src="docs/screenshots/08-account-vault.png" width="150" alt="账号保险库" />
 </p>
 
-> 截图为 v2.0.2 真机界面（OLED 纯黑 · 中文），已对设备名 / 工作区名 / 任务标题等敏感信息打码。完整图库见 [docs/screenshots/](docs/screenshots)。
+**会话与控制**
+
+<p align="center">
+  <img src="docs/screenshots/21-session-view.png" width="150" alt="会话控制页" />
+  <img src="docs/screenshots/02-session-panel.png" width="150" alt="会话总览面板" />
+  <img src="docs/screenshots/03-toolbox.png" width="150" alt="功能工具箱" />
+</p>
+
+**工具箱**
+
+<p align="center">
+  <img src="docs/screenshots/04-quota.png" width="150" alt="额度中心" />
+  <img src="docs/screenshots/13-claim.png" width="150" alt="活动权益领取" />
+  <img src="docs/screenshots/14-automation.png" width="150" alt="自动化·定时排程" />
+  <img src="docs/screenshots/14b-automation-queue.png" width="150" alt="自动化·闲时任务" />
+  <img src="docs/screenshots/05-assets.png" width="150" alt="资产浏览" />
+  <img src="docs/screenshots/06-git-detail.png" width="150" alt="Git 详情" />
+  <img src="docs/screenshots/07-git-diff.png" width="150" alt="全屏代码对比" />
+</p>
+
+**设置与诊断**
+
+<p align="center">
+  <img src="docs/screenshots/09-settings.png" width="150" alt="设置" />
+  <img src="docs/screenshots/10-settings-repos.png" width="150" alt="设置·官方/当前仓库" />
+  <img src="docs/screenshots/15-model-settings.png" width="150" alt="模型设置" />
+  <img src="docs/screenshots/16-desktop-settings.png" width="150" alt="桌面设置遥控" />
+  <img src="docs/screenshots/17-diagnostics.png" width="150" alt="连接诊断" />
+</p>
 
 ## 快速开始
 
@@ -29,7 +61,8 @@ ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登�
 - 扫码 / 粘贴链接导入；**账户直连**：登录账号后列出本账号已注册的远控设备，选择即可添加（同 SID/同 MID/同名自动去重）
 - 账密登录（Z.ai 中国 / Z.ai 全球 / BigModel 三选，内嵌官方登录页）
 - 账号保险库：多账号保存 / 切换 / 删除、应用到设备、JWT 到期提醒；`.zsb` 加密包与桌面 zcode-switch 互导
-- 0 设备也能登录：空设备态与设置页都有登录入口
+- 0 设备也能登录：空设备态、顶栏 `+`、底部「接入新设备」与设置页均有登录入口
+- 从账户添加设备后**登录态自动跟上**：进入会话自动注入凭据，无需再去账户库手动「应用」
 
 **会话与控制**
 - 多设备并行会话，切换不重连；顶栏标题随时切设备
