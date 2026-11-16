@@ -15,6 +15,10 @@
     {
       "name": "permission_camera_reason",
       "value": "用于扫码导入设备"
+    },
+    {
+      "name": "permission_keep_background_reason",
+      "value": "保持会话监控与事件通知在后台持续运行"
     }
   ]
 }
