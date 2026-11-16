@@ -556,6 +556,67 @@
   "@claimAutoSilentReset": {
     "description": "Button to restore default silent hours in the sheet"
   },
+  "claimBatchAction": "Claim all",
+  "@claimBatchAction": {
+    "description": "Batch claim button above plan list (20261116-2341)"
+  },
+  "claimBatchSummary": "Done: {ok} claimed, {fail} failed",
+  "@claimBatchSummary": {
+    "description": "Batch claim summary snackbar",
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "fail": {
+        "type": "int"
+      }
+    }
+  },
+  "claimRunNowAction": "Run once now",
+  "@claimRunNowAction": {
+    "description": "Run-one-auto-round button in auto-claim card (20261116-2341)"
+  },
+  "claimRunNowRejected": "Cannot run now (auto claim must be enabled and device online)",
+  "@claimRunNowRejected": {
+    "description": "Snackbar when run-now is rejected by scheduler gates"
+  },
+  "claimAutoCooldown": "Cooling down until {time}",
+  "@claimAutoCooldown": {
+    "description": "Auto round failure cooldown deadline display",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimAutoRoundRunning": "Auto round in progress",
+  "@claimAutoRoundRunning": {
+    "description": "Auto round currently in flight"
+  },
+  "claimAutoSessionHint": "Runs only while the device session is connected; pauses in background",
+  "@claimAutoSessionHint": {
+    "description": "Honest-scope hint under auto-claim card (20261116-2341 D1④)"
+  },
+  "claimBlockedPreviewError": "Auto round blocked: failed to fetch claimable plans",
+  "@claimBlockedPreviewError": {
+    "description": "History blocked record: previews fetch error"
+  },
+  "claimBlockedCaptchaConfig": "Auto round blocked: failed to fetch captcha config",
+  "@claimBlockedCaptchaConfig": {
+    "description": "History blocked record: captcha config fetch error"
+  },
+  "claimBlockedActivityClosed": "Auto round blocked: activity unavailable",
+  "@claimBlockedActivityClosed": {
+    "description": "History blocked record: activity closed"
+  },
+  "claimBlockedNoPlans": "Auto round checked: nothing claimable right now",
+  "@claimBlockedNoPlans": {
+    "description": "History blocked record: no claimable plans"
+  },
+  "claimBlockedAccountNotConfigured": "Auto round blocked: no plan configured for this account",
+  "@claimBlockedAccountNotConfigured": {
+    "description": "History blocked record: account has no plan configured"
+  },
   "claimAutoTabLabel": "Plans",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

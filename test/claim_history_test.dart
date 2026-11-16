@@ -132,6 +132,37 @@ void main() {
       expect(board!.records, hasLength(1));
       expect(board.records.single.planId, 'ok');
     });
+
+    test('阻断记录（blockedReason，无 planId）：落盘往返保留（20261116-2341）',
+        () async {
+      notifier.record(
+        'd1',
+        success: false,
+        source: ClaimRecordSource.auto,
+        blockedReason: ClaimBlockedReason.activityClosed,
+        message: 'detail-x',
+      );
+      await notifier.lastSnapshotSave;
+      final saved = await DeviceStore.instance.claimHistorySnapshot('d1');
+      expect(saved, isNotNull);
+      expect(saved!.records, hasLength(1));
+      final r = saved.records.single;
+      expect(r.blockedReason, ClaimBlockedReason.activityClosed);
+      expect(r.message, 'detail-x');
+      expect(r.planId, isEmpty);
+      expect(r.source, ClaimRecordSource.auto);
+      expect(r.success, isFalse);
+
+      // 形状漂移（M5）：blockedReason 未知名 + 空 planId → 丢条目不抛。
+      SharedPreferences.setMockInitialValues({
+        'zremote.claim.d1': '{"records": ['
+            '{"at": 1788570000000, "blockedReason": "unknown-x"}, '
+            '{"at": 1788570000000, "blockedReason": "noPlans"}]}',
+      });
+      final board = await DeviceStore.instance.claimHistorySnapshot('d1');
+      expect(board!.records, hasLength(1));
+      expect(board.records.single.blockedReason, ClaimBlockedReason.noPlans);
+    });
   });
 
   group('今日计数（工具箱徽章）', () {

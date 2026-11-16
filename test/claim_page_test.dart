@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/claim.dart';
 import 'package:zremote/models/device.dart';
+import 'package:zremote/services/claim_scheduler.dart';
 import 'package:zremote/services/service_probe.dart';
+import 'package:zremote/state/claim_config.dart';
 import 'package:zremote/state/claim_entry.dart';
+import 'package:zremote/state/claim_history.dart';
 import 'package:zremote/state/session_status.dart';
 import 'package:zremote/ui/claim_page.dart';
 import 'package:zremote/ui/claim_ticket_dialog.dart';
@@ -628,6 +632,113 @@ void main() {
       expect(container.read(claimServiceProvider)['d1'], isNull);
       expect(find.text('领取失败，请稍后重试'), findsOneWidget);
       expect(find.textContaining('连接诊断'), findsNothing);
+    });
+  });
+
+  group('一键领取 + 立即执行（20261116-2341）', () {
+    testWidgets('batch：两套餐串行领取成功 + 汇总 snack + 领到后刷新', (
+      tester,
+    ) async {
+      final bridge = ScriptedBridge(script: [
+        [previewsResponse([planJson(id: 'plan-a'), planJson(id: 'plan-b')])],
+        [configJson],
+        [verifyOk],
+        [outcomeOk],
+        [configJson],
+        [verifyOk],
+        [outcomeOk],
+        [previewsResponse([])],
+      ]);
+      await pumpPage(tester, bridge: bridge);
+      expect(find.byKey(const Key('claim-all-btn')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('claim-all-btn')));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(requestOf(bridge.commands[3]).method, 'claimManualPlan');
+      expect(requestOf(bridge.commands[3]).params, {
+        'planId': 'plan-a',
+        'captchaVerifyParam': 'vp',
+        'captchaRegion': 'cn',
+      });
+      expect(requestOf(bridge.commands[6]).params, {
+        'planId': 'plan-b',
+        'captchaVerifyParam': 'vp',
+        'captchaRegion': 'cn',
+      });
+      expect(find.textContaining('领取完成'), findsOneWidget);
+      // 批量模式（Z2）不弹人工降级框/票据框。
+      expect(find.text('需要完成验证'), findsNothing);
+      expect(bridge.commands, hasLength(8), reason: '领到后刷新');
+    });
+
+    testWidgets('batch：第二个无感失败 → 不弹框记失败继续，汇总 成功1/失败1', (
+      tester,
+    ) async {
+      final bridge = ScriptedBridge(script: [
+        [previewsResponse([planJson(id: 'plan-a'), planJson(id: 'plan-b')])],
+        [configJson],
+        [verifyOk],
+        [outcomeOk],
+        [configJson],
+        [{'ok': false, 'reason': 'timeout'}],
+        [previewsResponse([planJson(id: 'plan-a')])],
+      ]);
+      await pumpPage(tester, bridge: bridge);
+
+      await tester.tap(find.byKey(const Key('claim-all-btn')));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(bridge.commands, hasLength(7), reason: 'plan-b 无感失败后不发 claim');
+      expect(find.textContaining('成功 1，失败 1'), findsOneWidget);
+      expect(find.text('需要完成验证'), findsNothing, reason: 'Z2 静默降级');
+    });
+
+    testWidgets('run-now：开关开启后可见；无代理点击 → 拒绝 snack（门控）', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final bridge = ScriptedBridge(script: [
+        [previewsResponse([])],
+      ]);
+      final container = await pumpPage(tester, bridge: bridge);
+      expect(find.byKey(const Key('claim-run-now-btn')), findsNothing);
+
+      await container
+          .read(claimConfigProvider.notifier)
+          .setEnabled('d1', true);
+      await tester.pump();
+      expect(find.byKey(const Key('claim-run-now-btn')), findsOneWidget);
+
+      // 会话未挂桥（hub 无代理）→ runNow 拒绝并给出提示。
+      await tester.tap(find.byKey(const Key('claim-run-now-btn')));
+      await tester.pump();
+      await tester.pump();
+      expect(find.textContaining('无法立即执行'), findsOneWidget);
+    });
+
+    testWidgets('阻断记录渲染：历史 tab 阻断文案 + 详情 + 自动徽章', (tester) async {
+      final bridge = ScriptedBridge(script: [
+        [previewsResponse([])],
+      ]);
+      final container = await pumpPage(tester, bridge: bridge);
+      container.read(claimHistoryProvider.notifier).record(
+            'd1',
+            success: false,
+            source: ClaimRecordSource.auto,
+            blockedReason: ClaimBlockedReason.previewError,
+            message: 'boom detail',
+          );
+      await tester.tap(find.text('历史'));
+      await tester.pump();
+
+      expect(find.text('自动轮被阻断：可领列表获取失败'), findsOneWidget);
+      expect(find.text('boom detail'), findsOneWidget);
+      expect(find.text('自动'), findsOneWidget);
     });
   });
 }
