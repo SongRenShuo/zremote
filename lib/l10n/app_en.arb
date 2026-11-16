@@ -3466,9 +3466,9 @@
   "@devicesDuplicateSwitch": {
     "description": "去重命中后可切换到已存在设备"
   },
-  "devicesAddedToast": "Added \"{name}\"",
+  "devicesAddedToast": "Added \"{name}\" and applied the sign-in",
   "@devicesAddedToast": {
-    "description": "新设备写库成功提示",
+    "description": "新设备写库成功提示（登录态由会话页自动注入）",
     "placeholders": {
       "name": {
         "type": "String"
