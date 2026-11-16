@@ -88,6 +88,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
   ClaimServiceNotifier? _claimServiceNotifier;
   ServiceReadinessNotifier? _readinessNotifier;
   ApprovalCenterNotifier? _approvalCenterNotifier;
+  ClaimSchedulerHub? _claimSchedulerHubNotifier;
 
   bool _claimEntryProbed = false;
 
@@ -119,6 +120,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   bool? _appliedWebDark;
 
+  /// 自动注入防循环键（「设备 id + 账号 id」）：已注入/已确认有票后记录，
+  /// 避免每次 reload 的 onLoadStop 都回读并重复注入（问题二十）。
+  String? _autoInjectedKey;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -131,6 +136,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _claimServiceNotifier ??= ref.read(claimServiceProvider.notifier);
     _readinessNotifier ??= ref.read(serviceReadinessProvider.notifier);
     _approvalCenterNotifier ??= ref.read(approvalCenterProvider.notifier);
+    // dispose 里还要用：ref 在 unmount 时不可用，先缓存（同其余 notifier）。
+    _claimSchedulerHubNotifier ??= ref.read(claimSchedulerHubProvider.notifier);
     _startDispatch();
   }
 
@@ -479,6 +486,42 @@ class _SessionViewState extends ConsumerState<SessionView> {
     }
     await _manualReload('vault-apply');
     return true;
+  }
+
+  /// 加载后自检：设备已绑定账号且页面 localStorage 缺 `zcodejwttoken` 时，
+  /// 自动注入一次并 reload（问题二十：从账户添加设备后登录态自动跟上）。
+  ///
+  /// 防循环：注入/确认有票后记录「设备 id + 账号 id」键，后续 onLoadStop
+  /// 直接跳过；账号换绑（键变化）才会重新自检。
+  ///
+  /// 静默降级：controller 未就绪、evaluate 失败（回读返回 null）、
+  /// 无绑定账号、注入脚本为空 → 一律跳过，不弹错、不阻塞加载。
+  Future<void> _autoInjectBoundAccountIfNeeded() async {
+    if (!mounted) return;
+    final controller = _controller;
+    if (controller == null) return;
+    final account = ref.read(accountsProvider).activeAccountOf(widget.device);
+    if (account == null) {
+      // 解绑/登出后清空一次性键，重新绑定同一账号时仍能自检注入。
+      _autoInjectedKey = null;
+      return;
+    }
+    final key = '${widget.device.id}:${account.id}';
+    if (_autoInjectedKey == key) return;
+    final raw = await _evaluateOnPage(AccountVault.credentialReadScript());
+    if (raw == null) return; // evaluate 失败/控制器不可用：静默跳过
+    final stored = AccountVault.parseReadResult(raw);
+    final jwt = stored['zcodejwttoken'];
+    if (jwt != null && jwt.isNotEmpty) {
+      _autoInjectedKey = key; // 已有票：标记已处理，后续不再回读
+      return;
+    }
+    final script = AccountVault.credentialInjectScript(account);
+    if (script.isEmpty) return;
+    await _evaluateOnPage(script);
+    _autoInjectedKey = key;
+    if (!mounted) return;
+    await _manualReload('auto-inject');
   }
 
   Future<void> _openLogin() async {
@@ -1141,9 +1184,10 @@ class _SessionViewState extends ConsumerState<SessionView> {
   @override
   void dispose() {
     // P2-1：会话销毁（设备移除/页面关闭）→ 自动领取停表。
-    ref.read(claimSchedulerHubProvider.notifier).detach(widget.device.id);
+    // ref 在 unmount 时不可用，使用 didChangeDependencies 缓存的 notifier。
+    _claimSchedulerHubNotifier?.detach(widget.device.id);
     // P1-4：审批中心解绑。
-    ref.read(approvalCenterProvider.notifier).detach(widget.device.id);
+    _approvalCenterNotifier?.detach(widget.device.id);
     _statusNotifier?.forget(widget.device.id);
     _feedNotifier?.forget(widget.device.id);
     _sessionIndexNotifier?.forget(widget.device.id);
@@ -1627,6 +1671,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
                             // 错误恢复后复查领券服务能力（灰卡自愈）。
                             unawaited(_probeClaimEntry());
                             unawaited(_ensureHostWorkspacePath());
+                            // 绑定账号的自动注入自检（问题二十）。
+                            unawaited(_autoInjectBoundAccountIfNeeded());
                           }
                         },
                         onReceivedError: (controller, request, error) async {
