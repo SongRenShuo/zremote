@@ -67,7 +67,7 @@
 
 **数据**：方案裁定 + P1 平台抽象 + P2 脚手架 + P5 CI（`3691207`/`91e971c`/`b1afa3e`/`ab2bb13`）；全量 1216 例全绿 + analyze 零问题；计划册 `docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md`。
 
-- **L32 新平台判定必须抽象成能力层，禁止散写 `Platform.isAndroid`/`isIOS` 二分**。证据：stock Flutter 3.38 **没有** `Platform.isOhos`、`TargetPlatform` **没有** `ohos` 取值，直接写编译失败；本仓 `zai_auth_client.dart`、`quota_client.dart`、`webview_profile.dart` 三处二分需改造（`3691207` 引入 `lib/services/platform_caps.dart`，用 `Platform.operatingSystem` 探测 + 测试注入；判定要尊重 `debugDefaultTargetPlatformOverride`，否则既有 iOS/Android 用例回归）。判据：**凡「按平台分支」的代码先问「新增平台时这里会不会漏」**；新平台接入先落能力层，再改分支。**Seen 1× (11-16)**
+- **L32 新平台判定必须抽象成能力层，禁止散写 `Platform.isAndroid`/`isIOS` 二分**。证据：stock Flutter 3.38 **没有** `Platform.isOhos`、`TargetPlatform` **没有** `ohos` 取值，直接写编译失败；本仓 `zai_auth_client.dart`、`quota_client.dart`、`webview_profile.dart` 三处二分需改造（`3691207` 引入 `lib/services/platform_caps.dart`，用 `Platform.operatingSystem` 探测 + 测试注入；判定要尊重 `debugDefaultTargetPlatformOverride`，否则既有 iOS/Android 用例回归）。OH 分叉实测（ref `oh-3.41.9-release`）：`Platform.operatingSystem=='ohos'`、`defaultTargetPlatform==TargetPlatform.ohos`；`Platform.isOhos` 也存在但 **CPF FAQ 明确不建议用**（会让 `flutter run/build hap/attach` 在服务端引擎产物下失败）。判据：**凡「按平台分支」的代码先问「新增平台时这里会不会漏」**；新平台接入先落能力层，再改分支。**Seen 1× (11-16)**
 - **L33 `dependency_overrides` 无平台条件——一份 pubspec 服务多端时，新平台插件 fork 替换是核心难点**。证据：本仓 `flutter_inappwebview` 有本地 Android fork（MULTI_PROFILE，`third_party/`），CPF-Flutter 的 ohos 实现是 **git fork（`-ohos-` tag，多不在 pub.dev）**；直接覆盖会连带改掉 Android/iOS 行为（计划 20261116-1434 P3）。判据：**多端工程接新平台，先列「插件 × 平台」支持矩阵与覆盖影响面**，再动 `dependency_overrides`；无法两全时优先自研抽象层而非全局覆盖。**Seen 1× (11-16)**
 
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）

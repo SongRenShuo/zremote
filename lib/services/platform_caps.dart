@@ -16,8 +16,18 @@ import 'package:flutter/foundation.dart';
 /// 3. 其余平台沿用 `defaultTargetPlatform`（**尊重测试的
 ///    `debugDefaultTargetPlatformOverride`**）与 `Platform.isXxx`。
 ///
-/// TODO(OH)：Flutter-OH 分叉若后续提供官方 `Platform.isOhos`，
-/// 把 `_detectOhos` 收敛为单一来源，其余 API 不变。
+/// Flutter-OH 分叉实测（2026-11 调研，ref `oh-3.41.9-release`）：
+/// - `Platform.operatingSystem` 在鸿蒙返回 `"ohos"`；`defaultTargetPlatform`
+///   返回 `TargetPlatform.ohos`（枚举存在）。
+/// - `Platform.isOhos` 也存在，但 CPF-Flutter FAQ **明确不建议用**（会让
+///   `flutter run/build hap/attach` 在服务端引擎产物下失败），推荐
+///   `defaultTargetPlatform == TargetPlatform.ohos`。
+/// - 本文件用 `operatingSystem` 字符串判定：**stock Flutter 可编译**（不引用
+///   分叉独有 API），且与 FAQ 的 `operatingSystem == 'ohos'` 等价。
+///
+/// TODO(OH)：若后续收敛为 `defaultTargetPlatform == TargetPlatform.ohos`，
+/// 需先加 stock 兼容分支（如 `kIsWeb` 之外的 `TargetPlatform` 扩展），
+/// 其余 API 不变。
 class PlatformCaps {
   PlatformCaps._();
 

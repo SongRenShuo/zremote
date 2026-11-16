@@ -25,8 +25,13 @@ env:
   # Flutter-OH 引擎产物镜像（FAQ：debug snapshot 不匹配时用它清缓存）
   FLUTTER_STORAGE_BASE_URL: https://flutter-ohos.obs.cn-south-1.myhuaweicloud.com
   # 锁到具体 tag，分叉升级期不随默认分支漂移
-  FLUTTER_OH_VERSION: 3.41.9+ohos-1.0.2
+  FLUTTER_OH_VERSION: 3.41.10-ohos-1.0.1
 
+# 工具链官方路径（CPF-Flutter FAQ）：OpenHarmony 命令行工具 + JDK 17，
+# `./ohsdkmgr install ets:9 js:9 native:9 previewer:9 toolchains:9 --accept-license`
+# 即可，DevEco Studio 非必需；`flutter config --ohos-sdk` 指向 SDK home。
+# 公开可跑样例：niuhuan/harmony-next-flutter-pipeline-docker（容器镜像）。
+# TODO(OH-CI)：首跑若 setup-ohos-sdk 的目录布局不匹配，改走 ohsdkmgr 或该镜像。
 jobs:
   hap:
     runs-on: ubuntu-latest
