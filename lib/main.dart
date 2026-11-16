@@ -6,12 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 import 'models/device_label.dart';
 import 'services/biometric.dart';
-import 'services/device_store.dart';
 import 'services/log_buffer.dart';
-import 'services/notified_event_store.dart';
-import 'services/notifier.dart';
+import 'services/startup_guard.dart';
 import 'state/appearance.dart';
-import 'state/keepalive.dart';
 import 'state/locale.dart';
 import 'state/theme_mode.dart';
 import 'state/session_pool.dart';
@@ -21,36 +18,24 @@ import 'ui/app_shell.dart';
 import 'ui/bevel_card.dart';
 import 'ui/showcase_bits.dart';
 
+/// 启动顺序铁律（fix/hos-startup，鸿蒙白屏根因修复）：
+/// runApp 之前禁止 await 任何平台通道调用——HarmonyOS 上 stock 版
+/// shared_preferences / flutter_secure_storage / flutter_local_notifications
+/// 没有 ohos 平台实现，通道调用会永久悬挂，main() 一旦先 await 它们，
+/// runApp 永不执行 → 首屏全白（Android/iOS 不受影响，但顺序本身是脆弱点）。
+/// 首帧只做纯 Dart 侧装配；插件初始化走 [StartupGuard.warmUp] 后台异步，
+/// 完成后由各 Riverpod notifier 的 _load() 刷新状态（state/locale.dart 等
+/// 均支持无 initial 时异步读盘回落，Android/iOS 的启动读盘语义保持生效，
+/// 只是首帧不再被读盘阻塞）。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // P3-2：诊断日志环形缓冲装配（debugPrint 流捕获 + 原样输出）。
   LogBuffer.installDebugPrintCapture();
-  await NotifierService.instance.init();
-  unawaited(NotifiedEventStore.instance.load());
-  final store = DeviceStore.instance;
-  final initialLocale = await store.localeSetting();
-  final initialBiometric = await store.biometricEnabled();
-  final initialKeepAlive = await store.keepAliveEnabled();
-  final initialThemeMode = await store.themeModeSetting();
-  runApp(
-    ProviderScope(
-      overrides: [
-        localeSettingProvider.overrideWith(
-          () => LocaleSettingNotifier(initial: initialLocale),
-        ),
-        biometricProvider.overrideWith(
-          () => BiometricNotifier(initial: initialBiometric),
-        ),
-        keepAliveEnabledProvider.overrideWith(
-          () => KeepAliveEnabledNotifier(initial: initialKeepAlive),
-        ),
-        themeModeSettingProvider.overrideWith(
-          () => ThemeModeSettingNotifier(initial: initialThemeMode),
-        ),
-      ],
-      child: const ZRemoteApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: ZRemoteApp()));
+  // 对照实验结论（2026-11-16，ohos-x64 模拟器）：先 runApp 后台异步初始化
+  // 首屏正常渲染（见 fix/hos-startup 提交记录）；原「先 await 读盘再 runApp」
+  // 则白屏且无任何 Dart 异常。
+  StartupGuard.warmUp();
 }
 
 class ZRemoteApp extends ConsumerWidget {
