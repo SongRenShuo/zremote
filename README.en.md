@@ -95,7 +95,8 @@ Real-device UI (1080×2400, OLED pure black, Chinese), with device names, worksp
 - About: version, official repo vs. current repo entries, update check with clear results
 
 **Platform & Distribution**
-- Android / iOS; deep links `https://zcode.z.ai/remote*` (App Links) and `zrsong://import`
+- Android / iOS; **HarmonyOS NEXT support in progress** (see the [dev plan](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md))
+- Deep links `https://zcode.z.ai/remote*` (App Links) and `zrsong://import`
 - Android application id `cn.song.zremote`: installs **side by side** with the upstream signed package (account data is not shared; migrate with `.zsb`)
 - Bilingual (Chinese / English)
 
@@ -110,6 +111,7 @@ Get the latest build from the [Releases](https://github.com/SongRenShuo/zremote/
 
 - **Android** — `ZRemoteX-v<version>-android.apk`, install directly (application id `cn.song.zremote`, coexists with the upstream package)
 - **iOS** — `ZRemoteX-v<version>-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
+- **HarmonyOS** — `ZRemoteX-v<version>-ohos.hap` (in progress; the unsigned package must be signed with a Huawei signing certificate before installation)
 
 ## Building
 
@@ -118,6 +120,7 @@ Requirements:
 - Flutter ≥ 3.38 (Dart ≥ 3.10)
 - JDK 17 (Android builds)
 - Xcode (iOS builds, macOS only)
+- HarmonyOS: Flutter-OH SDK (CPF-Flutter/flutter_flutter) + OpenHarmony SDK / DevEco Studio
 
 ```bash
 flutter pub get
@@ -127,6 +130,9 @@ flutter build apk --release
 
 # iOS (unsigned)
 flutter build ios --release --no-codesign
+
+# HarmonyOS (unsigned; needs the Flutter-OH SDK, see ohos/README.md)
+flutter build hap --release --no-codesign
 ```
 
 ## Disclaimer

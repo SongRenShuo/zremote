@@ -96,7 +96,8 @@ ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登�
 - 关于：版本、官方仓库与当前仓库入口、检查更新（三态结果提示）
 
 **平台与分发**
-- Android / iOS；深链 `https://zcode.z.ai/remote*`（App Links）与 `zrsong://import`
+- Android / iOS；**鸿蒙（HarmonyOS NEXT）适配中**（开发计划见 [docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md)）
+- 深链 `https://zcode.z.ai/remote*`（App Links）与 `zrsong://import`
 - Android 包名 `cn.song.zremote`：可与上游 `pjpv/zremote` 正式签名包**同机共存**（账号数据不通用，可用 `.zsb` 迁移）
 - 中英双语
 
@@ -111,6 +112,7 @@ ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登�
 
 - **Android** —— `ZRemoteX-v<版本>-android.apk`，下载后直接安装（包名 `cn.song.zremote`，与上游包共存）
 - **iOS** —— `ZRemoteX-v<版本>-ios-unsigned.ipa`，**未签名包，无法直接安装**：请使用 [AltStore](https://altstore.io)、[Sideloadly](https://sideloadly.io) 或 TrollStore 等工具，用自己的 Apple ID 签名后侧载（免费账号签名有效期 7 天，到期需重新签名）
+- **鸿蒙** —— `ZRemoteX-v<版本>-ohos.hap`（适配中，未签名包需用华为签名证书签名后安装）
 
 ## 构建
 
@@ -119,6 +121,7 @@ ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登�
 - Flutter ≥ 3.38（Dart ≥ 3.10）
 - JDK 17（Android 构建）
 - Xcode（iOS 构建，需 macOS）
+- 鸿蒙：Flutter-OH SDK（CPF-Flutter/flutter_flutter）+ OpenHarmony SDK / DevEco Studio
 
 ```bash
 flutter pub get
@@ -128,6 +131,9 @@ flutter build apk --release
 
 # iOS（未签名）
 flutter build ios --release --no-codesign
+
+# 鸿蒙（未签名；需 Flutter-OH SDK，见 ohos/README.md）
+flutter build hap --release --no-codesign
 ```
 
 ## 声明
