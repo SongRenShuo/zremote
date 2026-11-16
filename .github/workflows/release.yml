@@ -208,9 +208,11 @@ jobs:
           done
           [ "$ok" = 1 ]
 
-      # CPF-Flutter 3.41 嵌入层 Autofill 类型补丁（详见 tool/patch_ohos_autofill.py）
+      # ohpm install 由 build 内部触发，但补丁须在 ArkTS 编译前打：先手动 install 生成 oh_modules
       - name: Patch OH embedder Autofill types
-        run: python3 tool/patch_ohos_autofill.py
+        run: |
+          (cd ohos && ohpm install --all)
+          python3 tool/patch_ohos_autofill.py
 
       - run: flutter build hap --release --no-codesign
 
