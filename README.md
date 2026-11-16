@@ -109,8 +109,8 @@ ZCode 桌面端远程控制伴侣 App（ZRemote 的二次开发分支）。登�
 
 到 [Releases](https://github.com/SongRenShuo/zremote/releases) 页获取最新版：
 
-- **Android** —— `app-release.apk`，下载后直接安装（包名 `cn.song.zremote`，与上游包共存）
-- **iOS** —— `zremote-ios-unsigned.ipa`，**未签名包，无法直接安装**：请使用 [AltStore](https://altstore.io)、[Sideloadly](https://sideloadly.io) 或 TrollStore 等工具，用自己的 Apple ID 签名后侧载（免费账号签名有效期 7 天，到期需重新签名）
+- **Android** —— `ZRemoteX-v<版本>-android.apk`，下载后直接安装（包名 `cn.song.zremote`，与上游包共存）
+- **iOS** —— `ZRemoteX-v<版本>-ios-unsigned.ipa`，**未签名包，无法直接安装**：请使用 [AltStore](https://altstore.io)、[Sideloadly](https://sideloadly.io) 或 TrollStore 等工具，用自己的 Apple ID 签名后侧载（免费账号签名有效期 7 天，到期需重新签名）
 
 ## 构建
 

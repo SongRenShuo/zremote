@@ -108,8 +108,8 @@ Real-device UI (1080×2400, OLED pure black, Chinese), with device names, worksp
 
 Get the latest build from the [Releases](https://github.com/SongRenShuo/zremote/releases) page:
 
-- **Android** — `app-release.apk`, install directly (application id `cn.song.zremote`, coexists with the upstream package)
-- **iOS** — `zremote-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
+- **Android** — `ZRemoteX-v<version>-android.apk`, install directly (application id `cn.song.zremote`, coexists with the upstream package)
+- **iOS** — `ZRemoteX-v<version>-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
 
 ## Building
 

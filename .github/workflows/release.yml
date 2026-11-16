@@ -172,15 +172,25 @@ jobs:
           name: zremote-ios-unsigned-ipa
           path: artifacts/ipa
 
+      # 资产文件名带「应用名 + 版本 + 平台」：`app-release.apk` / `zremote-ios-unsigned.ipa`
+      # 看不出是 ZRemoteX（上游同名），装机/分享时无法辨认（用户反馈）。
+      - name: Rename assets（ZRemoteX + 版本 + 平台）
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
+          cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
+          ls -la artifacts/apk artifacts/ipa
+
       - name: GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           # body 会前置到自动生成的发布说明之前（softprops/action-gh-release 文档），两者共存。
           body: |
-            > **iOS 包 `zremote-ios-unsigned.ipa` 为未签名包，无法直接安装。**
+            > **iOS 包（`ZRemoteX-v<版本>-ios-unsigned.ipa`）为未签名包，无法直接安装。**
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
+          # 用 glob 而非变量：action 的 `with:` 输入不做 env 展开（只有 `run:` 里才展开）。
           files: |
-            artifacts/apk/app-release.apk
-            artifacts/ipa/zremote-ios-unsigned.ipa
+            artifacts/apk/ZRemoteX-v*-android.apk
+            artifacts/ipa/ZRemoteX-v*-ios-unsigned.ipa

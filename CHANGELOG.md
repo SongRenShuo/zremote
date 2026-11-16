@@ -19,6 +19,7 @@
 ### 变更
 
 - **应用改名 ZRemoteX**：Android 启动器标签、iOS 显示名（CFBundleDisplayName/Name）、应用内标题/关于页/设置页脚/锁屏与生物识别文案、拓扑图与左栏品牌统一改为 `ZRemoteX`；设置页在「官方仓库」下新增「当前仓库」入口（`c49c856`）
+- **发布资产改名**：Release 资产由 `app-release.apk` / `zremote-ios-unsigned.ipa` 改为 `ZRemoteX-v<版本>-android.apk` / `ZRemoteX-v<版本>-ios-unsigned.ipa`（文件名即含应用名，避免与上游 ZRemote 混淆）
 
 ### 新增
 
