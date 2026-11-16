@@ -3357,6 +3357,26 @@
   "@platformLimitsNotifyBody": {
     "description": "P5-2 notification capability limit row body"
   },
+  "platformLimitsOhosTitle": "HarmonyOS Platform Limitations",
+  "@platformLimitsOhosTitle": {
+    "description": "P4 HarmonyOS limits section label in settings page"
+  },
+  "platformLimitsOhosIntro": "The following capabilities are limited on HarmonyOS NEXT by the system or the adaptation layer and differ from the Android build:",
+  "@platformLimitsOhosIntro": {
+    "description": "P4 intro line of the HarmonyOS limits card"
+  },
+  "platformLimitsOhosKeepaliveBody": "HarmonyOS foreground services are subject to system scheduling: background keep-alive and auto-claim continuation may be less stable than on Android and are deferred after the system reclaims the app.",
+  "@platformLimitsOhosKeepaliveBody": {
+    "description": "P4 HarmonyOS keepalive limit row body"
+  },
+  "platformLimitsOhosIsolationBody": "The HarmonyOS WebView adaptation layer does not support multiple profiles yet: accounts share the same login state by default and switching accounts requires signing in again (to be finalized after device testing).",
+  "@platformLimitsOhosIsolationBody": {
+    "description": "P4 HarmonyOS webview profile isolation limit row body"
+  },
+  "platformLimitsOhosNotifyBody": "Basic alerts (approval/completion/failure/claim results) work; the action buttons on approval notifications depend on system notification extensions and may be unavailable — open the session page to act.",
+  "@platformLimitsOhosNotifyBody": {
+    "description": "P4 HarmonyOS notification capability limit row body"
+  },
   "diagnosticsEndpointsTitle": "Endpoint Health",
   "@diagnosticsEndpointsTitle": {
     "description": "P6-1 endpoint health section title in diagnostics page"

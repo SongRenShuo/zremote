@@ -14,6 +14,7 @@ import '../models/provider_settings.dart'
         classifyEntitlement,
         entitlementParamsFor,
         pickEntitlementProvider;
+import 'platform_caps.dart';
 import 'rpc_bridge.dart';
 
 /// 额度中心客户端（开发计划 20261115-0901 P1-2 / P1-5）。
@@ -1085,12 +1086,8 @@ class QuotaClient {
     this.clientLanguage = 'zh-CN',
     this.clientTimezone,
     this.dio,
-  }) : platform = platform ??
-           (defaultTargetPlatform == TargetPlatform.iOS
-               ? 'ios-arm64'
-               : 'android-arm64'),
-       osCategory = osCategory ??
-           (defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android');
+  }) : platform = platform ?? PlatformCaps.platformToken,
+       osCategory = osCategory ?? PlatformCaps.osName;
 
   final RpcBridge bridge;
   final QuotaTokenProvider? tokenProvider;

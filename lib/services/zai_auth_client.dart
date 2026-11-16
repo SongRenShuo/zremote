@@ -8,6 +8,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import 'platform_caps.dart';
+
 /// zcode.z.ai OAuth CLI 通路客户端（开发计划 20261115-0901 附录 A.1/A.3）。
 ///
 /// 形态按 P0-1 实测裁定（经验总结 20261115-0930）：原生账密登录放弃，
@@ -215,16 +217,23 @@ class ZaiAuthClientConfig {
     var osVersion = '';
     var platform = 'unknown';
     try {
-      if (Platform.isAndroid) {
+      // 平台判定统一走 PlatformCaps（P1）：stock Flutter 无 Platform.isOhos，
+      // 鸿蒙分支不得直接写 Platform.isAndroid/isIOS 二分。
+      if (PlatformCaps.isAndroid) {
         platform = 'android-arm64';
         osCategory = 'Android';
         final info = await DeviceInfoPlugin().androidInfo;
         osVersion = info.version.release;
-      } else if (Platform.isIOS) {
+      } else if (PlatformCaps.isIOS) {
         platform = 'ios-arm64';
         osCategory = 'iOS';
         final info = await DeviceInfoPlugin().iosInfo;
         osVersion = info.systemVersion;
+      } else if (PlatformCaps.isOhos) {
+        // TODO(OH)：device_info_plus 的 ohos 读数 API 待 P3 联调确认，
+        // 当前先如实留空 osVersion（服务端容忍缺省，与未知平台一致）。
+        platform = PlatformCaps.platformToken;
+        osCategory = PlatformCaps.osDisplayName;
       }
     } catch (e) {
       debugPrint('[zr-auth] device info resolve failed: $e');

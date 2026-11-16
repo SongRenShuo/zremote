@@ -27,7 +27,7 @@ import '../theme.dart';
 import 'about_page.dart';
 import 'data_manage_page.dart';
 import 'haptics.dart';
-import 'ios_limits_section.dart';
+import 'platform_limits_section.dart';
 import 'login_web_page.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
@@ -201,9 +201,9 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
             ),
-            // P5-2：iOS 平台限制说明卡（仅 iOS 设备渲染，非 iOS 零占位）。
+            // P5-2：平台限制说明卡（iOS / 鸿蒙各自条目，Android 零占位）。
             const SizedBox(height: 16),
-            const IosLimitsSection(),
+            const PlatformLimitsSection(),
             const _VersionFooter(),
           ],
         ),

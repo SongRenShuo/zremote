@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/device.dart';
+import 'platform_caps.dart';
 
 const String _kProfilePrefix = 'zr_';
 
@@ -27,10 +28,12 @@ final multiProfileSupportedProvider = FutureProvider<bool>((ref) async {
   // P5-2 iOS 分支：返回 true 的真实语义是「会话页隔离降级横幅抑制」，
   // 并非 iOS 实际支持 MULTI_PROFILE——iOS 系统 WebView 无该概念，
   // 多账号共用登录态的事实陈述移入设置页「iOS 平台限制说明」卡
-  // （ui/ios_limits_section.dart），避免会话页在 iOS 恒显 Android 语义
+  // （ui/platform_limits_section.dart），避免会话页在 iOS 恒显 Android 语义
   // 的「本机 WebView 不支持」警示（原实现非 Android 恒 false 导致恒显）。
-  if (defaultTargetPlatform == TargetPlatform.iOS) return true;
-  if (defaultTargetPlatform != TargetPlatform.android) return false;
+  // 平台判定统一走 PlatformCaps（P1）：鸿蒙暂无 MULTI_PROFILE 语义，
+  // 与桌面/未知平台同为 false（会话页显隔离降级横幅，如实不冒充支持）。
+  if (PlatformCaps.isIOS) return true;
+  if (!PlatformCaps.isAndroid) return false;
   try {
     return await WebViewFeature.isFeatureSupported(
         WebViewFeature.MULTI_PROFILE);

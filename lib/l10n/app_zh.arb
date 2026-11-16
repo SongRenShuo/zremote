@@ -4108,6 +4108,26 @@
   "@platformLimitsNotifyBody": {
     "description": "P5-2 notification capability limit row body"
   },
+  "platformLimitsOhosTitle": "鸿蒙平台限制说明",
+  "@platformLimitsOhosTitle": {
+    "description": "P4 HarmonyOS limits section label in settings page"
+  },
+  "platformLimitsOhosIntro": "以下能力在鸿蒙（HarmonyOS NEXT）上受系统或适配层限制，与 Android 版表现不同，如实说明：",
+  "@platformLimitsOhosIntro": {
+    "description": "P4 intro line of the HarmonyOS limits card"
+  },
+  "platformLimitsOhosKeepaliveBody": "鸿蒙前台服务受系统调度约束：后台保活与自动领取的后台续跑可能不如 Android 稳定，系统回收后顺延。",
+  "@platformLimitsOhosKeepaliveBody": {
+    "description": "P4 HarmonyOS keepalive limit row body"
+  },
+  "platformLimitsOhosIsolationBody": "鸿蒙 WebView 适配层暂不支持多 Profile：多账号默认共用同一登录态，切换账号需重新登录（待真机联调定稿）。",
+  "@platformLimitsOhosIsolationBody": {
+    "description": "P4 HarmonyOS webview profile isolation limit row body"
+  },
+  "platformLimitsOhosNotifyBody": "基础提醒（审批/完成/失败/领取结果）可用；审批通知的动作按钮依赖系统通知扩展，可能不可用，请点进会话页操作。",
+  "@platformLimitsOhosNotifyBody": {
+    "description": "P4 HarmonyOS notification capability limit row body"
+  },
   "diagnosticsEndpointsTitle": "端点健康",
   "@diagnosticsEndpointsTitle": {
     "description": "P6-1 endpoint health section title in diagnostics page"
