@@ -178,8 +178,19 @@ jobs:
       - name: 安装 HarmonyOS 命令行工具 + SDK
         run: |
           set -e
-          curl -fsSL -o /tmp/cmdtools.zip \
-            https://image.cdn.dog/commandline-tools-linux-x64-6.1.1.280.zip
+          ok=0
+          for i in 1 2 3 4 5; do
+            if curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+                 -o /tmp/cmdtools.zip \
+                 https://image.cdn.dog/commandline-tools-linux-x64-6.1.1.280.zip \
+               && unzip -tq /tmp/cmdtools.zip >/dev/null; then
+              ok=1; break
+            fi
+            echo "::warning::工具链下载/校验第 ${i} 次失败，10s 后重试"
+            rm -f /tmp/cmdtools.zip
+            sleep 10
+          done
+          [ "$ok" = 1 ]
           unzip -q /tmp/cmdtools.zip -d "$HOME/ohos-tools"
           TOOLS="$HOME/ohos-tools/command-line-tools"
           echo "HOS_SDK_HOME=$TOOLS/sdk" >> "$GITHUB_ENV"
