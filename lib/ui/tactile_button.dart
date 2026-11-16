@@ -146,12 +146,16 @@ class _TactileButtonState extends State<TactileButton>
             ),
             const SizedBox(width: 6),
           ],
-          Text(
-            widget.label ?? '',
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: foreground,
+          Flexible(
+            child: Text(
+              widget.label ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: foreground,
+              ),
             ),
           ),
         ],
@@ -173,7 +177,13 @@ class _TactileButtonState extends State<TactileButton>
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: contentChild,
+              // 大字号/长标签下按比例缩小内容而不是溢出
+              // （鸿蒙模拟器走查证据：fontScale=1.15 时「建立连接并导入」
+              // 溢出红色 debug 条纹，walk-302-paste-sheet.png）。
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: contentChild,
+              ),
             ),
           ),
           if (topEdge != null)
