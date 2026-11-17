@@ -346,7 +346,9 @@ jobs:
           OHOS_APP=$(find artifacts/ohos -name 'ZRemoteX-ohos-*.app' | head -1)
           [ -n "$OHOS_APP" ] || { echo "::error::未找到鸿蒙 .app 产物"; exit 1; }
           cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.app"
-          ls -la artifacts/apk artifacts/ipa artifacts/ohos
+          # ipa 目录在 iOS 构建取消时不存在，ls 容忍缺失。
+          ls -la artifacts/apk artifacts/ohos
+          [ -d artifacts/ipa ] && ls -la artifacts/ipa || true
 
       - name: GitHub Release
         uses: softprops/action-gh-release@v2
