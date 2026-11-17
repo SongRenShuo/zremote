@@ -118,6 +118,9 @@ jobs:
   ipa:
     # 必须 arm64 的 macos-latest：device_info_plus 13.3.0 的 isiOSAppOnVision
     # 依赖 iOS 26.1 SDK（Xcode 26），Intel 镜像编译失败。容量紧张时若拿不到运行器需重试。
+    # 2026-11-17：容量取消不拖红发行——ipa 失败/取消时 publish 仍用 apk+hap 建 Release
+    # （iOS 资产为可选），与主 ci 的 80ac76c 拆分精神一致。
+    continue-on-error: true
     runs-on: macos-latest
     timeout-minutes: 40
     steps:
@@ -155,8 +158,11 @@ jobs:
           path: zremote-ios-unsigned.ipa
           if-no-files-found: error
 
-  # 鸿蒙 hap 构建腿（开发计划 20261116-1434 P5）：与 apk/ipa 并行。
-  # 工具链与 ohos.yml 同口径；未签名 hap 用于侧载/签名后安装。
+  # 鸿蒙包构建腿（开发计划 20261116-1434 P5）：与 apk/ipa 并行。
+  # 工具链与 ohos.yml 同口径；产出「发布签名的 .app」——AGC 上架/内测的可安装形态。
+  # 注意：.app 是华为应用包（含 entry-default.hap + pack.info + pac.json），双 ABI
+  # （arm64 真机 + x86_64 模拟器）合体在一个 hap 内；AGC 只认 .app 且必须发布签名。
+  # 之前发未签名 hap 只能模拟器装，真机装不了——本腿改为签名 .app（2026-11-17）。
   hap:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -239,42 +245,65 @@ jobs:
       # oh_modules，再打 Autofill 补丁，二次 build 复用（详见 ohos.yml 同段注释）。
       - name: 首轮 build（注入 oh_modules，容忍 Autofill 编译失败）
         continue-on-error: true
-        run: flutter build hap --release --no-codesign
+        run: flutter build app --release --no-codesign
 
       - name: Patch OH embedder Autofill types
         run: python3 tool/patch_ohos_autofill.py
 
-      # 双 ABI：arm64（真机）+ x64（模拟器）。两次输出同名，需先构建先另存。
-      - name: 构建 arm64（真机）
-        run: flutter build hap --release --no-codesign --target-platform ohos-arm64
+      # flutter build app 内部走 hvigor assembleApp，产出双 ABI 三件套 .app：
+      # ohos/build/outputs/default/ohos-default-unsigned.app（含 arm64 + x86_64）。
+      - name: 构建未签名 .app（双 ABI）
+        run: flutter build app --release --no-codesign
 
-      - name: 另存 arm64 产物
-        run: mv build/ohos/hap/entry-default-unsigned.hap build/ohos/hap/entry-default-unsigned-arm64.hap
-
-      # x64 的嵌入层 hash 目录由本轮构建自身生成（target-platform 变化 →
-      # 依赖图变化），无法提前打补丁——同样走「首轮失败 → 补丁 → 二次构建」。
-      - name: 首轮 x64 build（注入 oh_modules，容忍 Autofill 失败）
-        continue-on-error: true
-        run: flutter build hap --release --no-codesign --target-platform ohos-x64
-
-      - name: x64 补丁（glob 覆盖本轮新 hash 目录）
-        run: python3 tool/patch_ohos_autofill.py
-
-      - name: 构建 x64（模拟器）
-        run: flutter build hap --release --no-codesign --target-platform ohos-x64
+      # 用 HOS 发布证书 + 发布 Profile 对 .app 整体签名（本机 verify success 同款）。
+      # 密钥材料来自 secrets；缺失时降级为未签名 hap 腿（保留可构建验证，但真机不可用）。
+      - name: 签名 .app（发布证书 + 发布 Profile）
+        env:
+          OHOS_KEYSTORE_BASE64: ${{ secrets.OHOS_KEYSTORE_BASE64 }}
+          OHOS_CERT_BASE64: ${{ secrets.OHOS_CERT_BASE64 }}
+          OHOS_PROFILE_BASE64: ${{ secrets.OHOS_PROFILE_BASE64 }}
+          OHOS_KEYSTORE_PASSWORD: ${{ secrets.OHOS_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$OHOS_KEYSTORE_BASE64" ] || [ -z "$OHOS_CERT_BASE64" ] || \
+             [ -z "$OHOS_PROFILE_BASE64" ] || [ -z "$OHOS_KEYSTORE_PASSWORD" ]; then
+            echo "::warning::鸿蒙签名 secrets 未配齐，产出未签名 .app（真机不可装）"
+            cp build/ohos/outputs/default/ohos-default-unsigned.app \
+               build/ohos/outputs/default/ZRemoteX-ohos-unsigned.app
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/ohos-sign"
+          echo "$OHOS_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ohos-sign/app.p12"
+          echo "$OHOS_CERT_BASE64"      | base64 -d > "$RUNNER_TEMP/ohos-sign/app.cer"
+          echo "$OHOS_PROFILE_BASE64"   | base64 -d > "$RUNNER_TEMP/ohos-sign/app.p7b"
+          SIGN_TOOL="$HOS_SDK_HOME/default/openharmony/toolchains/lib/hap-sign-tool.jar"
+          java -jar "$SIGN_TOOL" sign-app -mode localSign \
+            -keyAlias zremote-release -keyPwd "$OHOS_KEYSTORE_PASSWORD" \
+            -appCertFile "$RUNNER_TEMP/ohos-sign/app.cer" \
+            -profileFile "$RUNNER_TEMP/ohos-sign/app.p7b" \
+            -inFile build/ohos/outputs/default/ohos-default-unsigned.app \
+            -inForm zip -signAlg SHA256withECDSA \
+            -keystoreFile "$RUNNER_TEMP/ohos-sign/app.p12" \
+            -keystorePwd "$OHOS_KEYSTORE_PASSWORD" \
+            -outFile build/ohos/outputs/default/ZRemoteX-ohos-signed.app \
+            -compatibleVersion 8 -signCode 1
+          # 验签；失败即红（不放带病包出去）
+          java -jar "$SIGN_TOOL" verify-app \
+            -inFile build/ohos/outputs/default/ZRemoteX-ohos-signed.app \
+            -outCertChain "$RUNNER_TEMP/ohos-sign/vc.cer" \
+            -outProfile "$RUNNER_TEMP/ohos-sign/vp.p7b"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: zremote-ohos-hap
-          path: |
-            build/ohos/hap/entry-default-unsigned-arm64.hap
-            build/ohos/hap/entry-default-unsigned.hap
+          name: zremote-ohos-app
+          path: build/ohos/outputs/default/ZRemoteX-ohos-*.app
           if-no-files-found: error
 
-  # 统一建 Release：等 verify + apk + ipa + hap 全绿再建，避免旧版 apk/ipa 两处并发写同一 Release 的竞态，
-  # 也让「验证失败 → 不建 Release」成为原子语义。
+  # 统一建 Release：等 verify + apk + hap 全绿再建（2026-11-17 起 ipa 解耦——
+  # macOS 运行器容量取消频发，iOS 资产改为可选，不阻塞 Android/鸿蒙发行）。
+  # ipa 成功时其资产仍会被附上；取消/失败则本次 Release 无 iOS 资产，下次发行补上。
   publish:
-    needs: [verify, apk, ipa, hap]
+    needs: [verify, apk, hap]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -284,16 +313,17 @@ jobs:
           name: zremote-apk
           path: artifacts/apk
 
-      - name: 下载 IPA 产物
+      - name: 下载 IPA 产物（可选：ipa job 因容量取消时跳过）
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: zremote-ios-unsigned-ipa
           path: artifacts/ipa
 
-      - name: 下载 hap 产物
+      - name: 下载鸿蒙 app 产物
         uses: actions/download-artifact@v4
         with:
-          name: zremote-ohos-hap
+          name: zremote-ohos-app
           path: artifacts/ohos
 
       # 资产文件名带「应用名 + 版本 + 平台」：`app-release.apk` / `zremote-ios-unsigned.ipa`
@@ -303,8 +333,9 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
           cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
-          cp artifacts/ohos/entry-default-unsigned-arm64.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos-arm64.hap"
-          cp artifacts/ohos/entry-default-unsigned.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos-x64.hap"
+          # 签名成功为 ZRemoteX-ohos-signed.app；secrets 缺失时为 ...unsigned.app
+          OHOS_APP=$(ls artifacts/ohos/ZRemoteX-ohos-*.app | head -1)
+          cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.app"
           ls -la artifacts/apk artifacts/ipa artifacts/ohos
 
       - name: GitHub Release
@@ -322,9 +353,10 @@ jobs:
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
             >
-            > **鸿蒙包为未签名包**：`ZRemoteX-v<版本>-ohos-arm64.hap` 用于真机（arm64），`ZRemoteX-v<版本>-ohos-x64.hap` 用于模拟器（x86_64）；均需使用华为签名证书签名后安装。
+            > **鸿蒙包（`ZRemoteX-v<版本>-ohos.app`）**：华为应用包，双 ABI（arm64 真机 + x86_64 模拟器）合体，使用发布证书 + 发布 Profile 签名。
+            > 用于 AGC 上架 / 内测分发；普通用户需通过应用市场/内测链接安装（鸿蒙 NEXT 不支持随意侧载）。若 secrets 未配齐则为未签名包，真机不可装。
           # 用 glob 而非变量：action 的 `with:` 输入不做 env 展开（只有 `run:` 里才展开）。
           files: |
             artifacts/apk/ZRemoteX-v*-android.apk
             artifacts/ipa/ZRemoteX-v*-ios-unsigned.ipa
-            artifacts/ohos/ZRemoteX-v*-ohos-*.hap
+            artifacts/ohos/ZRemoteX-v*-ohos.app

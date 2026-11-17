@@ -96,6 +96,10 @@
 - **L45 hap/跨端出包必须显式声明目标 ABI，默认值往往只服务真机**。证据：v2.1.0 的 hap 未加 `--target-platform`，CI 默认 arm64 → 模拟器（x86_64）报 `install parse native so failed: Abi type does not match`（用户实测截图 + 本机 hdc 复现）；Release 改为 arm64 + x64 双包（资产名带 ABI）。判据：**模拟器验证前先看目标平台架构**；跨端发布把「真机 ABI + 模拟器 ABI」列为发布清单固定项。**Seen 1× (11-17)**
 - **L46 CI 未配 release keystore 时会回退 debug 签名，且 runner 的 debug keystore 每次构建重新生成 → 发布页各版本签名互不相同，跨版本覆盖安装必被拒**。证据：v2.0.1/v2.0.2/v2.0.3 发布包签名指纹逐一不同（apksigner 实测），本地 debug 签名又是另一个；用户「签名变了要卸载」。判据：**发版前确认 secrets 已配 release keystore**（release.yml 已支持 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`）；跨版本覆盖安装是发布签名的验收项，别等用户反馈。**Seen 1× (11-17)**
 
+- **L47 华为 AGC 证书只认 ECC 密钥 CSR（RSA 必被拒），但生成工具不限于 DevEco GUI——官方 `hap-sign-tool` CLI 同样可**。证据：keytool(SHA384) / openssl(SHA256) / RSA4096 / SAN / DER 五种 RSA 系 CSR 上传全被拒「上传的CSR文件无效」（内置浏览器与真实浏览器均无效，非通道问题）；DevEco「Generate Key Store and CSR」生成的 `deveco-debug.csr`（**ECC NIST-P-256 / ecdsa-with-SHA256**）一次成功。后经 `java -jar hap-sign-tool.jar generate-keypair -keyAlg ECC -keySize NIST-P-256` + `generate-csr -signAlg SHA256withECDSA` 生成的发布 CSR 同样一次上传成功；**最初用 RSA 2048 生成的发布 CSR 仍被拒**，改 ECC 后通过——根因是算法不是工具。AGC 错误码 205389875 也明确「CSR 无效：keyalg 需设为 EC」。判据：**鸿蒙 CSR 必须 ECC（NIST-P-256 + SHA256withECDSA）**；GUI（DevEco）或 CLI（hap-sign-tool）皆可，别用 RSA；证书主体信息不审核，但 Country 必须 2 位大写 `CN`。**Seen 2× (11-17)**
+
+- **L48 AGC 上架/内测只认「发布签名 + 三件套」的 `.app`，未签名 hap 真机装不了、手搓 app 必踩 991/996**。证据：把 CI 发的未签名 hap 传 AGC 报 995（非 .app）；用 `app_packing_tool` 手搓 .app（hap 已签/未签 × app 已签/未签四种组合）依次报 991（非法包）/996（未知异常）；根因是手搓缺 `pac.json` 且 hap 名与 pack.info 不匹配。正解：用 `flutter build app --release --no-codesign`（内部走 hvigor `assembleApp`，产出 `entry-default.hap` + `pack.info` + `pac.json` 三件套，双 ABI arm64+x86_64 合体），再用 `hap-sign-tool sign-app -inForm zip` 对 .app 整体签名（发布证书+发布Profile），AGC 一次上传成功。判据：**鸿蒙上架包必须 `flutter build app` 出 .app + 发布签名**，别手搓；CI 旧 hap 腿出的是未签名 hap（仅模拟器可装），真机分发必须走签名 .app（已在 release.yml 改造）。另：本机为跑 DevEco `assembleApp` 用 OH SDK 重跑 pub get 会升级 pubspec.lock 传递依赖 + 删 buildinfo.json5，属副作用须 checkout 还原，否则污染 CI 回归。**Seen 1× (11-17)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
