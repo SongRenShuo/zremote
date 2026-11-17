@@ -95,7 +95,7 @@ Real-device UI (1080×2400, OLED pure black, Chinese), with device names, worksp
 - About: version, official repo vs. current repo entries, update check with clear results
 
 **Platform & Distribution**
-- Android / iOS; **HarmonyOS NEXT support in progress** (see the [dev plan](docs/开发计划/20261116-1434-鸿蒙NEXT全面支持-开发计划.md))
+- Android / iOS / **HarmonyOS NEXT** — same identity (`cn.song.zremote`) on all three platforms; one Release ships all three packages. Emulator walkthrough: [report](docs/验收文档/20261117-鸿蒙模拟器走查-车道D.md)
 - Deep links `https://zcode.z.ai/remote*` (App Links) and `zrsong://import`
 - Android application id `cn.song.zremote`: installs **side by side** with the upstream signed package (account data is not shared; migrate with `.zsb`)
 - Bilingual (Chinese / English)
@@ -111,7 +111,7 @@ Get the latest build from the [Releases](https://github.com/SongRenShuo/zremote/
 
 - **Android** — `ZRemoteX-v<version>-android.apk`, install directly (application id `cn.song.zremote`, coexists with the upstream package)
 - **iOS** — `ZRemoteX-v<version>-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
-- **HarmonyOS** — `ZRemoteX-v<version>-ohos.hap` (in progress; the unsigned package must be signed with a Huawei signing certificate before installation)
+- **HarmonyOS** — `ZRemoteX-v<version>-ohos.hap` (HarmonyOS NEXT; the unsigned package must be signed with a Huawei signing certificate before installation)
 
 ## Building
 
