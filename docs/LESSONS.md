@@ -100,6 +100,16 @@
 
 - **L48 AGC 上架/内测只认「发布签名 + 三件套」的 `.app`，未签名 hap 真机装不了、手搓 app 必踩 991/996**。证据：把 CI 发的未签名 hap 传 AGC 报 995（非 .app）；用 `app_packing_tool` 手搓 .app（hap 已签/未签 × app 已签/未签四种组合）依次报 991（非法包）/996（未知异常）；根因是手搓缺 `pac.json` 且 hap 名与 pack.info 不匹配。正解：用 `flutter build app --release --no-codesign`（内部走 hvigor `assembleApp`，产出 `entry-default.hap` + `pack.info` + `pac.json` 三件套，双 ABI arm64+x86_64 合体），再用 `hap-sign-tool sign-app -inForm zip` 对 .app 整体签名（发布证书+发布Profile），AGC 一次上传成功。判据：**鸿蒙上架包必须 `flutter build app` 出 .app + 发布签名**，别手搓；CI 旧 hap 腿出的是未签名 hap（仅模拟器可装），真机分发必须走签名 .app（已在 release.yml 改造）。另：本机为跑 DevEco `assembleApp` 用 OH SDK 重跑 pub get 会升级 pubspec.lock 传递依赖 + 删 buildinfo.json5，属副作用须 checkout 还原，否则污染 CI 回归。**Seen 1× (11-17)**
 
+- **L49 多平台发行 workflow 里 `publish` 硬依赖任一平台 job，会被「容量取消」这类非代码失败整体拖死（iOS 尤甚）**。证据：v2.2.0 首次发行，`publish.needs: [verify, apk, ipa, hap]`；ipa 在 macOS arm64 运行器上**连续 3 次**跑约 15 分钟后被外部取消（非代码错误），`publish` 直接 skipped → Android/鸿蒙资产明明构建成功也发不出去。正解：`publish.needs` 去掉容量敏感的 ipa（改 `[verify, apk, hap]`），`ipa` 加 `continue-on-error: true`，IPA 产物下载/重命名/`ls` 全部条件化（找不到就 warning 跳过）；iOS 资产改为「有则附上」。判据：**发行流水线的依赖图按「是否会被基础设施容量拖死」分级——容量敏感腿（macOS）必须与 publish 解耦，资产可选化**；`continue-on-error` 对「job 被取消」无效（这是 job 被系统取消，不是失败），只能靠解耦而非忽略错误。**Seen 1× (11-17)**
+
+- **L50 GitHub Release 资产扩展名白名单不含 `.app`——鸿蒙 `.app` 包必须改名 `.hap` 再上传**。证据：v2.2.0 publish 传 `ZRemoteX-v2.2.0-ohos.app` 报 `Validation Failed: name has a file extension that is not allowed`（Android apk 同批上传成功，唯独 .app 被拒）；改 `.hap` 后一次通过。判据：**发布前确认目标仓库/平台的资产扩展名白名单**；GitHub Release 禁 `.app`（也慎 `.jar` 等），鸿蒙包统一用 `.hap` 后缀（内容为 zip 格式包，后缀不改变格式）。**Seen 1× (11-17)**
+
+- **L51 Actions artifact 会保留上传时的目录层级，下游 job 用扁平 `ls`/glob 取文件会漏**。证据：hap 腿 `upload-artifact` 的 `path: build/ohos/**/ZRemoteX-ohos-*.app`，publish 下载后目录变成 `artifacts/ohos/build/ohos/app/ZRemoteX-ohos-signed.app`，`ls artifacts/ohos/ZRemoteX-ohos-*.app` 报 No such file（同批 apk/ipa 因上传的是具体文件、扁平存放而正常）。正解：下游统一 `find <dir> -name '<pattern>' | head -1` 定位，或上游 `upload-artifact` 只传扁平文件。判据：**跨 job 传产物，别假设「下载后是扁平的」——upload 用目录通配就会带层级**；取文件一律 `find`。**Seen 1× (11-17)**
+
+- **L52 `workflow_dispatch`/`rerun`/`rerun-failed-jobs` 用的是「该 run 创建时」的 workflow 定义，改完 YAML 必须重新触发 run 才生效**。证据：修 `.app→.hap` 后调 `rerun-failed-jobs` 重跑 publish，日志里 `files:` 仍是旧的 `...-ohos.app`（未生效）；只能把 tag 移到新 commit 强制触发新 run，新 run 的 publish 才用上 `.hap`。判据：**workflow 语义改动后，别用 rerun 验证——rerun 不读最新 YAML；要么移 tag 触发新 run，要么本地/新 commit 触发**。**Seen 1× (11-17)**
+
+- **L53 Flutter-OH 的构建产物目录随 SDK 版本漂移（`build/ohos/app/` vs `build/ohos/outputs/default/`），跨端脚本别写死**。证据：release.yml 的签名步骤写死 `build/ohos/outputs/default/ohos-default-unsigned.app`，实际 2026-11-17 的 Flutter-OH 产物在 `build/ohos/app/` → `hap-sign-tool` 报 `11017001 Read zip file failed`。正解：`find build/ohos -name 'ohos-default-unsigned.app' | head -1` 定位，输出同目录。判据：**跨端/多版本工具链的产物路径一律「运行时定位」而非写死**；同族还有 NDK/CMake 目录。**Seen 1× (11-17)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
