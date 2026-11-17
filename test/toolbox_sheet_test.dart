@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/event_observer.dart';
@@ -301,6 +302,79 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('toolbox-perm-badge')), findsOneWidget);
       expect(find.text('审批待办'), findsOneWidget);
+    });
+  });
+
+  group('最近使用记忆（车道 F）', () {
+    testWidgets('读取持久化最近使用 → 顶部独立组，原分组不再重复', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.toolbox.recent': ['usage', 'quota'],
+      });
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await pumpSheet(tester, container, onAssetsPressed: () {});
+
+      expect(find.text('最近使用'), findsOneWidget);
+      final yRecent = tester.getTopLeft(find.text('最近使用')).dy;
+      final ySessionOps = tester.getTopLeft(find.text('会话操作')).dy;
+      expect(yRecent, lessThan(ySessionOps));
+
+      // 入口只在最近组出现一次（从原分组移除）。
+      expect(find.text('用量统计'), findsOneWidget);
+      expect(find.text('额度中心'), findsOneWidget);
+    });
+
+    testWidgets('点按入口写入最近使用：前置 + 去重', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.toolbox.recent': ['model', 'usage'],
+      });
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await pumpSheet(tester, container);
+
+      await tester.tap(find.byKey(const Key('toolbox-entry-usage')));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('zremote.toolbox.recent'), ['usage', 'model']);
+    });
+
+    testWidgets('最近使用上限 4 条（旧的被挤掉）', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.toolbox.recent': ['model', 'usage', 'automation', 'quota'],
+      });
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await pumpSheet(tester, container, onDesktopSettingsPressed: () {});
+
+      await tester.tap(
+        find.byKey(const Key('toolbox-entry-desktop-settings')),
+      );
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('zremote.toolbox.recent'), [
+        'desktop-settings',
+        'model',
+        'usage',
+        'automation',
+      ]);
+    });
+
+    testWidgets('搜索态不显示最近使用组（结果按原分组）', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.toolbox.recent': ['usage'],
+      });
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await pumpSheet(tester, container);
+      expect(find.text('最近使用'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('toolbox-search')), '模型');
+      await tester.pumpAndSettle();
+
+      expect(find.text('最近使用'), findsNothing);
+      expect(find.text('模型设置'), findsOneWidget);
     });
   });
 }

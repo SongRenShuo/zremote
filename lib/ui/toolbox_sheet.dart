@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
@@ -96,12 +97,67 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
   String _query = '';
   bool _expanded = false;
 
+  /// 最近使用入口 id（车道 F）：点按后前置持久化，面板顶部生成
+  /// 「最近使用」组，常用操作不用每次翻组。存 SharedPreferences，
+  /// 读取失败静默降级为空（测试/平台缺失不阻塞面板）。
+  List<String> _recent = const [];
+
   /// 「更多」展开后新出现的资产组 / Git 卡用此 key 主动滚进可视区：
   /// 否则新内容整块停在屏幕外，用户会以为没点开（问题十八）。
   final GlobalKey _moreRevealKey = GlobalKey();
 
   /// 折叠阈值：入口数 ≥8 时默认收起（任务 P1-9）。
   static const int collapseThreshold = 8;
+
+  /// 最近使用持久化键与条数上限。
+  static const String _recentPrefsKey = 'zremote.toolbox.recent';
+  static const int _recentMax = 4;
+
+  late final Future<void> _recentReady;
+
+  @override
+  void initState() {
+    super.initState();
+    _recentReady = _loadRecent();
+  }
+
+  Future<void> _loadRecent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _recent = prefs.getStringList(_recentPrefsKey) ?? const [];
+      });
+    } catch (e) {
+      debugPrint('[toolbox] recent load failed: $e');
+    }
+  }
+
+  Future<void> _remember(String id) async {
+    // 等首帧加载完成再写，避免「还没读完旧值就覆盖」。
+    await _recentReady;
+    final next = [
+      id,
+      ..._recent.where((e) => e != id),
+    ].take(_recentMax).toList();
+    // 面板可能已随点按关闭：UI 更新要判 mounted，但持久化必须照常写。
+    if (mounted) setState(() => _recent = next);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_recentPrefsKey, next);
+    } catch (e) {
+      debugPrint('[toolbox] recent save failed: $e');
+    }
+  }
+
+  /// 按持久化顺序取出仍在入口表中的最近使用项（最多 [_recentMax] 条）。
+  List<_ToolEntry> _recentEntries(List<_ToolEntry> entries) {
+    final byId = {for (final e in entries) e.id: e};
+    return [
+      for (final id in _recent.take(_recentMax))
+        if (byId.containsKey(id)) byId[id]!,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +285,14 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
         : !collapsed;
     final showMoreToggle = collapsed;
 
+    // 最近使用（车道 F）：非搜索态把持久化的常用入口提到独立首组，
+    // 并从原分组里移除，避免同一入口重复占位。
+    final recentEntries = _recentEntries(entries);
+    final showRecent = !searching && recentEntries.isNotEmpty;
+    final recentIds = {for (final e in recentEntries) e.id};
+
     String groupLabel(_ToolGroup group) => switch (group) {
+      _ToolGroup.recent => l10n.toolboxGroupRecent,
       _ToolGroup.sessionOps => l10n.toolboxGroupSessionOps,
       _ToolGroup.account => l10n.toolboxGroupAccount,
       _ToolGroup.assets => l10n.toolboxGroupAssets,
@@ -352,10 +415,14 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
               children: [
                 for (final group in _ToolGroup.values) ..._groupSection(
                   label: groupLabel(group),
-                  entries: [
-                    for (final e in visibleEntries)
-                      if (e.group == group) e,
-                  ],
+                  entries: group == _ToolGroup.recent
+                      ? (showRecent ? recentEntries : const <_ToolEntry>[])
+                      : [
+                          for (final e in visibleEntries)
+                            if (e.group == group &&
+                                !(showRecent && recentIds.contains(e.id)))
+                              e,
+                        ],
                   zt: zt,
                 ),
                 if (showGitCard)
@@ -457,6 +524,7 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
           badgeText: entry.badgeText,
           badgeColor: entry.badgeColor,
           onTap: () {
+            _remember(entry.id);
             Navigator.pop(context);
             entry.onTap?.call();
           },
@@ -518,7 +586,7 @@ class _ToolboxSheetState extends ConsumerState<ToolboxSheet> {
   }
 }
 
-enum _ToolGroup { sessionOps, account, assets }
+enum _ToolGroup { recent, sessionOps, account, assets }
 
 class _ToolEntry {
   const _ToolEntry({

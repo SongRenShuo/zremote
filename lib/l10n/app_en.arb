@@ -2728,6 +2728,10 @@
   "@toolboxGroupAssets": {
     "description": "P1-9 toolbox group: assets"
   },
+  "toolboxGroupRecent": "Recent",
+  "@toolboxGroupRecent": {
+    "description": "Toolbox group: recently used entries (lane F)"
+  },
   "toolboxSearchHint": "Search tools…",
   "@toolboxSearchHint": {
     "description": "P1-9 toolbox local search hint"

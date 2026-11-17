@@ -3479,6 +3479,10 @@
   "@toolboxGroupAssets": {
     "description": "P1-9 toolbox group: assets"
   },
+  "toolboxGroupRecent": "最近使用",
+  "@toolboxGroupRecent": {
+    "description": "Toolbox group: recently used entries (lane F)"
+  },
   "toolboxSearchHint": "搜索工具…",
   "@toolboxSearchHint": {
     "description": "P1-9 toolbox local search hint"
