@@ -345,7 +345,9 @@ jobs:
           # artifact 保留 build/ohos/** 目录层级，用 find 定位。
           OHOS_APP=$(find artifacts/ohos -name 'ZRemoteX-ohos-*.app' | head -1)
           [ -n "$OHOS_APP" ] || { echo "::error::未找到鸿蒙 .app 产物"; exit 1; }
-          cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.app"
+          # GitHub Release 资产不允许 .app 扩展名（Validation Failed），用 .hap
+          # （内容同为 zip 格式包，与 v2.1.1 及历史发行一致）。
+          cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.hap"
           # ipa 目录在 iOS 构建取消时不存在，ls 容忍缺失。
           ls -la artifacts/apk artifacts/ohos
           [ -d artifacts/ipa ] && ls -la artifacts/ipa || true
@@ -366,10 +368,10 @@ jobs:
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
             > 若本次 Release 无 iOS 资产，是 macOS 运行器容量不足导致 iOS 构建取消（非代码问题），后续发行会补上。
             >
-            > **鸿蒙包（`ZRemoteX-v<版本>-ohos.app`）**：华为应用包，双 ABI（arm64 真机 + x86_64 模拟器）合体，使用发布证书 + 发布 Profile 签名。
+            > **鸿蒙包（`ZRemoteX-v<版本>-ohos.hap`）**：华为应用包，双 ABI（arm64 真机 + x86_64 模拟器）合体，使用发布证书 + 发布 Profile 签名。
             > 用于 AGC 上架 / 内测分发；普通用户需通过应用市场/内测链接安装（鸿蒙 NEXT 不支持随意侧载）。若 secrets 未配齐则为未签名包，真机不可装。
           # 用 glob 而非变量：action 的 `with:` 输入不做 env 展开（只有 `run:` 里才展开）。
           files: |
             artifacts/apk/ZRemoteX-v*-android.apk
             artifacts/ipa/ZRemoteX-v*-ios-unsigned.ipa
-            artifacts/ohos/ZRemoteX-v*-ohos.app
+            artifacts/ohos/ZRemoteX-v*-ohos.hap
