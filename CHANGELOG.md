@@ -9,6 +9,7 @@
 ## [2.1.1] - 2026-11-17
 
 > 修复发版两个硬问题：鸿蒙包补 x64 ABI（模拟器可安装）、Android 发布包改用固定 release 签名（跨版本覆盖安装不再要求卸载）。本地 1249 例全绿 + analyze 零问题。
+> 已发布：四资产 `ZRemoteX-v2.1.1-android.apk`（76.2MB）/ `-ios-unsigned.ipa`（10.8MB）/ `-ohos-arm64.hap`（28.2MB）/ `-ohos-x64.hap`（30.5MB）；apk 签名实测 `CN=ZRemoteX`。
 
 ### 修复
 
