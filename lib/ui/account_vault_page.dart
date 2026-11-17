@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:file_picker_ohos/file_picker_ohos.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -305,7 +305,14 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
   Future<void> _import() async {
     final l10n = AppLocalizations.of(context)!;
     final source = widget.importSource ?? _pickImportFile;
-    final bytes = await source();
+    Uint8List? bytes;
+    try {
+      bytes = await source();
+    } catch (e) {
+      if (!mounted) return;
+      _toast('$e');
+      return;
+    }
     if (bytes == null || !mounted) return;
     final password = await _askPassword(l10n.acctImportPwdTitle);
     if (password == null || !mounted) return;
@@ -369,11 +376,10 @@ class _AccountVaultPageState extends ConsumerState<AccountVaultPage> {
   }
 
   /// 默认导入入口：系统文件选择器取单文件。
-  /// （file_picker_ohos fork 基于 10.3.8 旧架构：platform.pickFiles 返回
-  /// FilePickerResult，与 stock 13.x 的 FilePicker.pickFile 静态入口不同；
-  /// 旧 PlatformFile 亦无 readAsBytes()，用 withData 取 bytes 兜底。）
+  /// stock file_picker 11.x：`FilePicker.pickFiles` 返回 FilePickerResult；
+  /// ohos 侧 stock 无实现会抛 MissingPluginException——由调用处 catch 降级提示。
   Future<Uint8List?> _pickImportFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['zsb'],
       withData: true,

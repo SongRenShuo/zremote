@@ -75,12 +75,11 @@ dependencies:
       url: https://gitcode.com/CPF-Flutter/flutter_packages.git
       path: packages/path_provider/path_provider
       ref: br_path_provider-v2.1.5_ohos
-  # file_picker fork 基于 10.3.8 旧架构（FilePicker.platform.pickFiles），
-  # 包名被 fork 改为 file_picker_ohos；调用点见 ui/account_vault_page.dart。
-  # vendor 化到 third_party（原 git 依赖的 pub 缓存绝对路径会被 hvigor
-  # 00303231 拒绝——旧架构 ohos 平台包必须以相对 srcPath 注册）。
-  file_picker_ohos:
-    path: third_party/fluttertpc_file_picker
+  # file_picker 全平台统一 stock hosted（11.x，兼容 win32 ^5 生态）。
+  # 曾评估 13.x：其 windows_file_picker 链要 win32 ^6，与 share_plus/
+  # secure_storage fork（锁 ^5）冲突；ohos 侧 .zsb 导入暂降级（调用处
+  # catch 提示），导出不受影响。
+  file_picker: ^11.0.3
   # device_info_plus 暂保留 stock hosted：CPF fork 主包 lib 内联 ohos 实现
   # 且使用 Flutter-OH 专有的 Platform.isOhos，stock SDK 下测试编译失败
   # （宁缺毋滥，见车道 B 适配对照表「风险」列）。
