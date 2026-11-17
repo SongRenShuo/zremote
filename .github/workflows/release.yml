@@ -332,7 +332,12 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
-          cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
+          # iOS 资产可选（ipa job 因 macOS 容量取消时不存在）。
+          if [ -f artifacts/ipa/zremote-ios-unsigned.ipa ]; then
+            cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
+          else
+            echo "::warning::本次无 iOS 资产（ipa job 未成功），Release 仅含 Android/鸿蒙"
+          fi
           # 签名成功为 ZRemoteX-ohos-signed.app；secrets 缺失时为 ...unsigned.app
           OHOS_APP=$(ls artifacts/ohos/ZRemoteX-ohos-*.app | head -1)
           cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.app"
@@ -349,9 +354,10 @@ jobs:
             > **Android 包（`ZRemoteX-v<版本>-android.apk`）**：使用仓库配置的发布密钥签名，可直接安装；
             > 若仓库未配置 `KEYSTORE_BASE64`，则回退 debug 签名，可能无法覆盖本机已安装的正式签名版。
             >
-            > **iOS 包（`ZRemoteX-v<版本>-ios-unsigned.ipa`）为未签名包，无法直接安装。**
+            > **iOS 包（`ZRemoteX-v<版本>-ios-unsigned.ipa`，若存在）为未签名包，无法直接安装。**
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
+            > 若本次 Release 无 iOS 资产，是 macOS 运行器容量不足导致 iOS 构建取消（非代码问题），后续发行会补上。
             >
             > **鸿蒙包（`ZRemoteX-v<版本>-ohos.app`）**：华为应用包，双 ABI（arm64 真机 + x86_64 模拟器）合体，使用发布证书 + 发布 Profile 签名。
             > 用于 AGC 上架 / 内测分发；普通用户需通过应用市场/内测链接安装（鸿蒙 NEXT 不支持随意侧载）。若 secrets 未配齐则为未签名包，真机不可装。
