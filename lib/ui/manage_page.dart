@@ -227,6 +227,14 @@ class ManagePage extends ConsumerWidget {
               sub: l10n.loginEntrySheetSub,
               value: 'login',
             ),
+            // 20261117-1230 R2：有设备后也可从账号库添加设备（弹框最后一项）。
+            entry(
+              key: const Key('import-sheet-account-vault'),
+              icon: Icons.account_circle_outlined,
+              label: l10n.acctVaultEntry,
+              sub: l10n.devicesAddFromAccount,
+              value: 'account-vault',
+            ),
           ],
         );
       },
@@ -239,6 +247,8 @@ class ManagePage extends ConsumerWidget {
         await _showPasteDialog(context, ref);
       case 'login':
         await _openLogin(context, ref);
+      case 'account-vault':
+        await _openAccountVault(context, ref);
     }
   }
 
