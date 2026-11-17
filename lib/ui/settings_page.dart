@@ -163,7 +163,13 @@ class SettingsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             SectionLabel(l10n.settingsClaimAutoSection),
-            const _CardGroup(children: [_ClaimAutoTile()]),
+            const _CardGroup(
+              children: [
+                _ClaimAutoTile(),
+                _GroupDivider(),
+                _ClaimBatchButton(),
+              ],
+            ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
@@ -703,6 +709,99 @@ class _ClaimAutoTileState extends ConsumerState<_ClaimAutoTile> {
         key: const Key('settings-claim-auto-switch'),
         value: enabled,
         onChanged: _apply,
+      ),
+    );
+  }
+}
+
+/// 全局一键手动领取（20261117-1230）：一键领取所有在线设备当前可领套餐。
+/// 只处理 live 且已装配 WebView 的设备；逐台领取，单台失败不中断，
+/// 结束以 SnackBar 汇总（成功/失败/跳过台数）。0 设备可点（提示无在线设备）。
+class _ClaimBatchButton extends ConsumerStatefulWidget {
+  const _ClaimBatchButton();
+
+  @override
+  ConsumerState<_ClaimBatchButton> createState() => _ClaimBatchButtonState();
+}
+
+class _ClaimBatchButtonState extends ConsumerState<_ClaimBatchButton> {
+  bool _running = false;
+
+  Future<void> _run() async {
+    if (_running) return;
+    setState(() => _running = true);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final result = await ref
+          .read(claimSchedulerHubProvider.notifier)
+          .claimAllLive();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsClaimBatchSummary(
+              result.totalClaimed,
+              result.totalFailed,
+              result.skipped,
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final zt = context.zt;
+    return InkWell(
+      onTap: _running ? null : _run,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: zt.accent.withValues(alpha: 0.10),
+              ),
+              child: _running
+                  ? Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: zt.accent,
+                      ),
+                    )
+                  : Icon(Icons.card_giftcard_rounded, size: 17, color: zt.accent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsClaimBatchTitle,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: zt.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    l10n.settingsClaimBatchSub,
+                    style: TextStyle(fontSize: 11.5, color: zt.textLo),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

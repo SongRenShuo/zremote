@@ -641,6 +641,23 @@
   "@settingsClaimAutoHint": {
     "description": "Settings section footnote under global auto claim"
   },
+  "settingsClaimBatchTitle": "Claim all devices",
+  "@settingsClaimBatchTitle": {
+    "description": "Settings tile: global one-click manual claim for all online devices"
+  },
+  "settingsClaimBatchSub": "Claim all available rewards on every online device now (ones needing manual captcha are skipped)",
+  "@settingsClaimBatchSub": {
+    "description": "Settings tile subtitle for global manual claim"
+  },
+  "settingsClaimBatchSummary": "Done: {ok} claimed, {fail} failed, {skip} device(s) skipped",
+  "@settingsClaimBatchSummary": {
+    "description": "Global manual claim result snackbar",
+    "placeholders": {
+      "ok": {"type": "int"},
+      "fail": {"type": "int"},
+      "skip": {"type": "int"}
+    }
+  },
   "claimAutoTabLabel": "Plans",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

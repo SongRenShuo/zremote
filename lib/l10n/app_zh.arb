@@ -1369,6 +1369,23 @@
   "@settingsClaimAutoHint": {
     "description": "Settings section footnote under global auto claim"
   },
+  "settingsClaimBatchTitle": "一键领取所有设备",
+  "@settingsClaimBatchTitle": {
+    "description": "Settings tile: global one-click manual claim for all online devices"
+  },
+  "settingsClaimBatchSub": "立即领取所有在线设备的可领活动（验证码需人工的会跳过）",
+  "@settingsClaimBatchSub": {
+    "description": "Settings tile subtitle for global manual claim"
+  },
+  "settingsClaimBatchSummary": "领取完成：成功 {ok}，失败 {fail}，跳过 {skip} 台设备",
+  "@settingsClaimBatchSummary": {
+    "description": "Global manual claim result snackbar",
+    "placeholders": {
+      "ok": {"type": "int"},
+      "fail": {"type": "int"},
+      "skip": {"type": "int"}
+    }
+  },
   "claimAutoTabLabel": "可领活动",
   "@claimAutoTabLabel": {
     "description": "Claim page segmented tab: claimable plans"

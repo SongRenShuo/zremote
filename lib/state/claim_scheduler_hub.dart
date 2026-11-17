@@ -1,14 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/claim.dart';
 import '../models/device.dart';
 import '../services/claim_scheduler.dart';
 import '../services/device_store.dart';
+import '../services/manual_claim_batch.dart';
 import '../services/notifier.dart';
 import '../services/rpc_bridge.dart';
+import 'approval_center.dart';
 import 'claim_history.dart';
+import 'session_pool.dart';
+import 'session_status.dart';
 
 /// 自动领取装配层（P2-1）：session_view 挂桥时 attach、会话 dispose 时
 /// detach；事件（成功/失败/需人工验证码）→ 历史落账 + 系统通知。
@@ -73,6 +78,93 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
   /// 自动轮状态快照（UI 冷却/在飞展示，D1③）；无代理返回 null。
   ClaimSchedulerSnapshot? snapshotOf(String deviceId) =>
       state[deviceId]?.snapshot();
+
+  /// 全局一键手动领取（20261117-1230）：遍历所有 live 且已装配的设备，
+  /// 逐台领取其全部可领套餐。参照 quota_alert sweep 模式——单台失败不中断，
+  /// 非 live / 未装配跳过并计数。结果由 UI SnackBar 汇总。
+  ///
+  /// 领取走 HostClaimRpcClient 三段 RPC（与单设备手动领取同语义），
+  /// 不复用 runNow（后者是自动轮语义，只领 previews.first 至上限）。
+  Future<ManualClaimBatchResult> claimAllLive() async {
+    final devices = ref.read(deviceListProvider);
+    final statuses = ref.read(sessionStatusProvider);
+    final result = <ManualClaimDeviceResult>[];
+    var skipped = 0;
+    for (final device in devices) {
+      if (statuses[device.id] != SessionStatus.live) {
+        skipped++;
+        result.add(
+          ManualClaimDeviceResult(deviceId: device.id, reason: 'notLive'),
+        );
+        continue;
+      }
+      final bridge = ref
+          .read(approvalCenterProvider.notifier)
+          .clientOf(device.id)
+          ?.bridge;
+      if (bridge == null) {
+        skipped++;
+        result.add(
+          ManualClaimDeviceResult(deviceId: device.id, reason: 'notAttached'),
+        );
+        continue;
+      }
+      // 手动让位：阻止自动轮与手动批次并发。
+      manualStarted(device.id);
+      try {
+        final runner = ManualClaimRunner(
+          deviceId: device.id,
+          client: HostClaimRpcClient(bridge),
+          onClaimed: (plan, outcome) {
+            ref
+                .read(claimHistoryProvider.notifier)
+                .record(
+                  device.id,
+                  planId: plan.planId,
+                  planName: plan.name,
+                  success: true,
+                  code: outcome.code,
+                  message: outcome.message,
+                  source: ClaimRecordSource.manual,
+                  benefitSummary: claimBenefitSummary(plan.entitlements),
+                );
+          },
+          onFailed: (plan, message, code) {
+            ref
+                .read(claimHistoryProvider.notifier)
+                .record(
+                  device.id,
+                  planId: plan.planId,
+                  planName: plan.name,
+                  success: false,
+                  code: code,
+                  message: message,
+                  source: ClaimRecordSource.manual,
+                );
+          },
+        );
+        final (ok, fail) = await runner.fetchAndRunAll();
+        result.add(
+          ManualClaimDeviceResult(
+            deviceId: device.id,
+            claimed: ok,
+            failed: fail,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[claim-batch] device ${device.id} failed: $e');
+        result.add(
+          ManualClaimDeviceResult(
+            deviceId: device.id,
+            reason: 'error:${e.toString()}',
+          ),
+        );
+      } finally {
+        manualEnded(device.id);
+      }
+    }
+    return ManualClaimBatchResult(results: result, skipped: skipped);
+  }
 
   /// Blocked 同因去重窗口：同因在窗口内不重复落史（防 10min 冷却循环刷屏）。
   static const Duration blockedDedupWindow = Duration(hours: 1);
