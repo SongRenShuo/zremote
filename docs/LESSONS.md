@@ -91,6 +91,8 @@
 - **L42 平台接口包与 ohos 子包双向不兼容时，正解是「以 fork 为基线 + 把本地特性移植进去」，而不是互相打补丁**。证据：本地 MULTI_PROFILE fork 缺 CPF 的 `ohosId` 等新 API；CPF 基线缺本地 `MULTI_PROFILE`/`androidWebProfile` 且生成码硬编码 `TargetPlatform.ohos`（stock SDK 编译不过）。做法：CPF `flutter_inappwebview_platform_interface` 覆盖为基线（含 `dev_packages/flutter_inappwebview_internal_annotations` 一并 vendor），再把 MULTI_PROFILE 枚举 2 文件 3 处 + `androidWebProfile`（字段/构造/fromMap/toMap）移植进新基线，`TargetPlatform.ohos` 15 处改 `defaultTargetPlatform.name == 'ohos'`（stock/OH 双兼容）。判据：**一份 pubspec 服务两端时，接口层只留一个基线；本地特性单向移植，避免双向补丁漂移**；fork 里 `Platform.isOhos`/`TargetPlatform.ohos` 这类 OH 专有符号是「同一源码双 SDK 编译」的第一杀手（同 L32/L33）。**Seen 1× (11-17)**
 - **L43 应用启动白屏先查「runApp 前是否 await 平台通道」——插件无实现时是悬挂而非抛异常**。证据：鸿蒙首屏白屏，VM service 取证 `ext.flutter.inspector.isWidgetTreeReady=false`、`didSendFirstFrameEvent=false`、isolate 事件循环空闲、**全程零异常零 MissingPluginException**；对照实验「先 runApp 再后台初始化」首屏立即渲染 → 根因是 `main()` 在 `runApp` 前 await 了 shared_preferences/secure_storage 通道，无 ohos 实现的插件调用**永不完成**。判据：**白屏 + Dart 零日志 = 优先用 VM service 看 isolate 挂起，而不是找异常栈**；启动初始化一律「先渲染后异步」，8s 超时兜底（`lib/services/startup_guard.dart`）。**Seen 1× (11-17)**
 
+- **L44 一份 pubspec 服务三端时，插件依赖冲突要「整包统一」解决，别在 fork 间打补丁**。证据：release ipa 腿三连败——① fork `file_picker_ohos` 的 iOS podspec 名不匹配；② fork 的 iOS 集成残留（umbrella/header 布局）与其 SwiftPM 目录结构不匹配；③ 换 stock file_picker 13.x 又与其 `windows_file_picker`（win32 ^6）和 share_plus/secure_storage fork（win32 ^5）三方冲突。最终解：**全平台统一 stock file_picker 11.x + win32 5.x 生态**（secure_storage 回退 git、fork win32 约束复原、删 fork vendor 副本），一次收敛；代价是 ohos 侧 .zsb 导入降级（导出不受影响）。判据：**三端工程里 fork 与 stock 混用，先算「传递依赖约束图」能否有公共解**（win32 这类被多插件共享的包尤其致命）；fork 的残留平台集成（podspec/module_map/目录布局）在换端时必成雷区。**Seen 1× (11-17)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
