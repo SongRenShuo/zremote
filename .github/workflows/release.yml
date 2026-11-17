@@ -250,8 +250,8 @@ jobs:
       - name: Patch OH embedder Autofill types
         run: python3 tool/patch_ohos_autofill.py
 
-      # flutter build app 内部走 hvigor assembleApp，产出双 ABI 三件套 .app：
-      # ohos/build/outputs/default/ohos-default-unsigned.app（含 arm64 + x86_64）。
+      # flutter build app 内部走 hvigor assembleApp，产出双 ABI 三件套 .app（含 arm64 + x86_64）。
+      # 产物目录随 Flutter-OH 版本不同（实测 2026-11-17：build/ohos/app/），故用 find 定位。
       - name: 构建未签名 .app（双 ABI）
         run: flutter build app --release --no-codesign
 
@@ -265,11 +265,13 @@ jobs:
           OHOS_KEYSTORE_PASSWORD: ${{ secrets.OHOS_KEYSTORE_PASSWORD }}
         run: |
           set -e
+          UNSIGNED=$(find build/ohos -name 'ohos-default-unsigned.app' | head -1)
+          [ -n "$UNSIGNED" ] || { echo "::error::未找到 ohos-default-unsigned.app"; exit 1; }
+          OUT_DIR=$(dirname "$UNSIGNED")
           if [ -z "$OHOS_KEYSTORE_BASE64" ] || [ -z "$OHOS_CERT_BASE64" ] || \
              [ -z "$OHOS_PROFILE_BASE64" ] || [ -z "$OHOS_KEYSTORE_PASSWORD" ]; then
             echo "::warning::鸿蒙签名 secrets 未配齐，产出未签名 .app（真机不可装）"
-            cp build/ohos/outputs/default/ohos-default-unsigned.app \
-               build/ohos/outputs/default/ZRemoteX-ohos-unsigned.app
+            cp "$UNSIGNED" "$OUT_DIR/ZRemoteX-ohos-unsigned.app"
             exit 0
           fi
           mkdir -p "$RUNNER_TEMP/ohos-sign"
@@ -281,22 +283,22 @@ jobs:
             -keyAlias zremote-release -keyPwd "$OHOS_KEYSTORE_PASSWORD" \
             -appCertFile "$RUNNER_TEMP/ohos-sign/app.cer" \
             -profileFile "$RUNNER_TEMP/ohos-sign/app.p7b" \
-            -inFile build/ohos/outputs/default/ohos-default-unsigned.app \
+            -inFile "$UNSIGNED" \
             -inForm zip -signAlg SHA256withECDSA \
             -keystoreFile "$RUNNER_TEMP/ohos-sign/app.p12" \
             -keystorePwd "$OHOS_KEYSTORE_PASSWORD" \
-            -outFile build/ohos/outputs/default/ZRemoteX-ohos-signed.app \
+            -outFile "$OUT_DIR/ZRemoteX-ohos-signed.app" \
             -compatibleVersion 8 -signCode 1
           # 验签；失败即红（不放带病包出去）
           java -jar "$SIGN_TOOL" verify-app \
-            -inFile build/ohos/outputs/default/ZRemoteX-ohos-signed.app \
+            -inFile "$OUT_DIR/ZRemoteX-ohos-signed.app" \
             -outCertChain "$RUNNER_TEMP/ohos-sign/vc.cer" \
             -outProfile "$RUNNER_TEMP/ohos-sign/vp.p7b"
 
       - uses: actions/upload-artifact@v4
         with:
           name: zremote-ohos-app
-          path: build/ohos/outputs/default/ZRemoteX-ohos-*.app
+          path: build/ohos/**/ZRemoteX-ohos-*.app
           if-no-files-found: error
 
   # 统一建 Release：等 verify + apk + hap 全绿再建（2026-11-17 起 ipa 解耦——
