@@ -160,6 +160,13 @@ jobs:
   hap:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # 与 ohos.yml 同口径：stock 引擎 stamp/产物走中国镜像（OH 镜像会让
+    # engine_stamp.json 404）；FLUTTER_OH_VERSION 锁 tag 防分叉升级漂移。
+    # 必须放 job 级：pub get / 首轮 build / 二次 build 都要用；旧版只写在
+    # 「准备 Flutter-OH SDK」step 级 env，后续步骤拿不到 → 首轮 build 404。
+    env:
+      FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+      FLUTTER_OH_VERSION: 3.41.10-ohos-1.0.1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -199,12 +206,19 @@ jobs:
           chmod +x "$TOOLS/bin"/* 2>/dev/null || true
 
       - name: 准备 Flutter-OH SDK（锁 tag）
-        env:
-          FLUTTER_OH_VERSION: 3.41.10-ohos-1.0.1
-          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
         run: |
-          git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
-            https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
+          # gitcode 偶发断流（同 L34 的下载污染类），克隆重试 3 次再判红
+          ok=0
+          for i in 1 2 3; do
+            if git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
+                 https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"; then
+              ok=1; break
+            fi
+            echo "::warning::Flutter-OH 克隆第 ${i} 次失败，10s 后重试"
+            rm -rf "$HOME/flutter_oh"
+            sleep 10
+          done
+          [ "$ok" = 1 ]
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
           # GITHUB_PATH 对本 step 不生效——用绝对路径完成首轮初始化
           "$HOME/flutter_oh/bin/flutter" --version
@@ -279,6 +293,11 @@ jobs:
           generate_release_notes: true
           # body 会前置到自动生成的发布说明之前（softprops/action-gh-release 文档），两者共存。
           body: |
+            三个平台的安装包（文件名带应用名 + 版本 + 平台）：
+
+            > **Android 包（`ZRemoteX-v<版本>-android.apk`）**：使用仓库配置的发布密钥签名，可直接安装；
+            > 若仓库未配置 `KEYSTORE_BASE64`，则回退 debug 签名，可能无法覆盖本机已安装的正式签名版。
+            >
             > **iOS 包（`ZRemoteX-v<版本>-ios-unsigned.ipa`）为未签名包，无法直接安装。**
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
