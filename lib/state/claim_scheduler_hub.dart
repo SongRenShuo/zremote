@@ -8,7 +8,6 @@ import '../services/claim_scheduler.dart';
 import '../services/device_store.dart';
 import '../services/notifier.dart';
 import '../services/rpc_bridge.dart';
-import 'claim_config.dart';
 import 'claim_history.dart';
 
 /// 自动领取装配层（P2-1）：session_view 挂桥时 attach、会话 dispose 时
@@ -18,14 +17,7 @@ import 'claim_history.dart';
 /// [DirectClaimRpcClient]），本期不接。
 class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
   @override
-  Map<String, ClaimSchedulerAgent> build() {
-    // 全局自动领取总闸（20261117-0024 G2）：settings 页切换即时广播到
-    // 全部已装配代理（L21：ref.listen 同步派发，这里无页面栈操作，安全）。
-    ref.listen(claimGlobalEnabledProvider, (_, next) {
-      setGlobalEnabled(next);
-    });
-    return const {};
-  }
+  Map<String, ClaimSchedulerAgent> build() => const {};
 
   /// 会话挂桥（onWebViewCreated）时装配代理；重复 attach 先停旧表。
   Future<void> attach(RemoteDevice device, RpcBridge bridge) async {
@@ -37,8 +29,6 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
       config: config,
       onEvent: (event) => _handleEvent(device, event),
     );
-    // start 前先读全局总闸落位（避免「先以默认开启动再停」的竞态窗口）。
-    agent.setGlobalEnabled(await DeviceStore.instance.claimGlobalEnabled());
     state = {...state, device.id: agent};
     agent.start();
   }
@@ -60,13 +50,6 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
   /// 仅设备 live 时运行轮次（sessionStatusProvider 监听转发）。
   void setLive(String deviceId, bool live) {
     state[deviceId]?.setLive(live);
-  }
-
-  /// 全局总闸变更广播到全部已装配代理（settings 页切换，20261117-0024 G2）。
-  void setGlobalEnabled(bool enabled) {
-    for (final agent in state.values) {
-      agent.setGlobalEnabled(enabled);
-    }
   }
 
   /// 手动刷新/领取开始：让位 + 阻止自动 tick。

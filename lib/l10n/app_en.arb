@@ -627,17 +627,17 @@
   },
   "settingsClaimAutoTitle": "Global auto claim",
   "@settingsClaimAutoTitle": {
-    "description": "Settings tile title: global auto-claim master switch"
+    "description": "Settings tile title: one-click enable/disable auto claim for all devices"
   },
-  "settingsClaimAutoOn": "On: each device follows its own claim-page switch",
+  "settingsClaimAutoOn": "All devices enabled (except individually overridden)",
   "@settingsClaimAutoOn": {
     "description": "Settings tile subtitle when global switch is on"
   },
-  "settingsClaimAutoOff": "Off: auto claim stopped on all devices",
+  "settingsClaimAutoOff": "All devices disabled (except individually overridden)",
   "@settingsClaimAutoOff": {
     "description": "Settings tile subtitle when global switch is off"
   },
-  "settingsClaimAutoHint": "This master switch applies to all devices; device-level switches live on each device's claim page",
+  "settingsClaimAutoHint": "One-click enable/disable auto claim on all devices. Devices changed individually on their claim page keep their own setting; new devices inherit this switch",
   "@settingsClaimAutoHint": {
     "description": "Settings section footnote under global auto claim"
   },

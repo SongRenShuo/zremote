@@ -373,6 +373,54 @@ class DeviceStore {
     await prefs.setString(_claimGlobalKey, jsonEncode(enabled));
   }
 
+  /// 全局总开关 = 一键批量设置所有设备（20261117-1230 R1 单层语义）：
+  /// 存全局默认值（供新设备继承），并遍历所有设备 id，仅把
+  /// **未独立设置**（locallyOverridden=false）的设备 enabled 写为 [enabled]。
+  /// 用户单独改过的设备保持原值。串行写入、单设备失败不中断整批。
+  /// 返回被改写的设备 id 列表（供调用方即时同步已装配代理）。
+  Future<List<String>> applyGlobalClaimDefault(
+    bool enabled, {
+    List<String>? deviceIds,
+  }) async {
+    await saveClaimGlobalEnabled(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    final ids = deviceIds ?? await _readIndex();
+    final changed = <String>[];
+    for (final id in ids) {
+      try {
+        final key = '$_claimConfigPrefix$id';
+        final raw = prefs.getString(key);
+        final config =
+            raw == null || raw.isEmpty
+            ? const ClaimAutoConfig()
+            : ClaimAutoConfig.fromJson(
+                jsonDecode(raw) as Map<String, dynamic>,
+              );
+        if (config.locallyOverridden) continue;
+        final next = config.copyWith(enabled: enabled);
+        if (next == config) continue;
+        await prefs.setString(key, jsonEncode(next.toJson()));
+        changed.add(id);
+      } catch (e) {
+        debugPrint('[claim-config] apply global to $id failed: $e');
+      }
+    }
+    return changed;
+  }
+
+  /// 新设备加入时继承当前全局默认值（20261117-1230 R1）。
+  /// 仅当该 id 尚无配置时写入，避免覆盖已有设置。
+  Future<void> initClaimConfigForNewDevice(String deviceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_claimConfigPrefix$deviceId';
+    if (prefs.containsKey(key)) return;
+    final enabled = await claimGlobalEnabled();
+    await prefs.setString(
+      key,
+      jsonEncode(const ClaimAutoConfig().copyWith(enabled: enabled).toJson()),
+    );
+  }
+
   static const _quotaAlertPrefix = 'zremote.quotaAlert.';
 
   /// 额度预警水位（`zremote.quotaAlert.<deviceId>`）：容错解析，脏值回落

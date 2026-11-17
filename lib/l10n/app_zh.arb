@@ -1355,17 +1355,17 @@
   },
   "settingsClaimAutoTitle": "全局自动领取",
   "@settingsClaimAutoTitle": {
-    "description": "Settings tile title: global auto-claim master switch"
+    "description": "Settings tile title: one-click enable/disable auto claim for all devices"
   },
-  "settingsClaimAutoOn": "已开启：各设备按其领取页开关自动领取",
+  "settingsClaimAutoOn": "已一键开启所有设备（单独设置过的除外）",
   "@settingsClaimAutoOn": {
     "description": "Settings tile subtitle when global switch is on"
   },
-  "settingsClaimAutoOff": "已关闭：所有设备已停止自动领取",
+  "settingsClaimAutoOff": "已一键关闭所有设备（单独设置过的除外）",
   "@settingsClaimAutoOff": {
     "description": "Settings tile subtitle when global switch is off"
   },
-  "settingsClaimAutoHint": "总闸作用于全部设备；设备级开关在各设备的领取页内",
+  "settingsClaimAutoHint": "一键开启/关闭所有设备的自动领取；在设备领取页单独改过的设备以设备自身设置为准，新加入设备默认跟随此开关",
   "@settingsClaimAutoHint": {
     "description": "Settings section footnote under global auto claim"
   },

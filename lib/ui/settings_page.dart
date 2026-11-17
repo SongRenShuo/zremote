@@ -18,6 +18,7 @@ import '../state/appearance.dart';
 import '../state/app_lifecycle.dart';
 import '../state/behavior.dart';
 import '../state/claim_config.dart';
+import '../state/claim_scheduler_hub.dart';
 import '../state/locale.dart';
 import '../state/notification_prefs.dart';
 import '../state/keepalive.dart';
@@ -657,9 +658,9 @@ class _BatteryTile extends ConsumerStatefulWidget {
   ConsumerState<_BatteryTile> createState() => _BatteryTileState();
 }
 
-/// 全局自动领取总闸（20261117-0024 G3，zcode-switch auto_claim 同语义）：
-/// 一处开关管全部设备；设备级开关保留在各设备领取页。默认开（升级零回归），
-/// 0 设备也可操作（L27 判据）。
+/// 全局自动领取总开关（20261117-1230 R1 单层语义）：
+/// 一键开启/关闭所有设备的自动领取（设备内单独设置过的除外），并作为
+/// 新加入设备的默认值。0 设备也可操作（L27 判据）。
 class _ClaimAutoTile extends ConsumerStatefulWidget {
   const _ClaimAutoTile();
 
@@ -675,6 +676,21 @@ class _ClaimAutoTileState extends ConsumerState<_ClaimAutoTile> {
     unawaited(ref.read(claimGlobalEnabledProvider.notifier).load());
   }
 
+  /// 一键切换：批量写入 → 即时同步已装配代理（R1-3）。
+  Future<void> _apply(bool value) async {
+    final changed = await ref
+        .read(claimGlobalEnabledProvider.notifier)
+        .applyAll(value);
+    if (changed.isEmpty || !mounted) return;
+    final hub = ref.read(claimSchedulerHubProvider.notifier);
+    for (final id in changed) {
+      // 直接读盘而非 claimConfigProvider.load（后者内存已有旧值会跳过读盘），
+      // 保证同步代理用的是本次批量写入后的最新配置。
+      final config = await DeviceStore.instance.claimAutoConfig(id);
+      hub.updateConfig(id, config);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final enabled = ref.watch(claimGlobalEnabledProvider);
@@ -686,8 +702,7 @@ class _ClaimAutoTileState extends ConsumerState<_ClaimAutoTile> {
       trailing: Switch(
         key: const Key('settings-claim-auto-switch'),
         value: enabled,
-        onChanged: (v) =>
-            ref.read(claimGlobalEnabledProvider.notifier).setEnabled(v),
+        onChanged: _apply,
       ),
     );
   }
