@@ -335,13 +335,16 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
           # iOS 资产可选（ipa job 因 macOS 容量取消时不存在）。
-          if [ -f artifacts/ipa/zremote-ios-unsigned.ipa ]; then
-            cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
+          IPA=$(find artifacts/ipa -name 'zremote-ios-unsigned.ipa' 2>/dev/null | head -1)
+          if [ -n "$IPA" ]; then
+            cp "$IPA" "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
           else
             echo "::warning::本次无 iOS 资产（ipa job 未成功），Release 仅含 Android/鸿蒙"
           fi
-          # 签名成功为 ZRemoteX-ohos-signed.app；secrets 缺失时为 ...unsigned.app
-          OHOS_APP=$(ls artifacts/ohos/ZRemoteX-ohos-*.app | head -1)
+          # 签名成功为 ZRemoteX-ohos-signed.app；secrets 缺失时为 ...unsigned.app。
+          # artifact 保留 build/ohos/** 目录层级，用 find 定位。
+          OHOS_APP=$(find artifacts/ohos -name 'ZRemoteX-ohos-*.app' | head -1)
+          [ -n "$OHOS_APP" ] || { echo "::error::未找到鸿蒙 .app 产物"; exit 1; }
           cp "$OHOS_APP" "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.app"
           ls -la artifacts/apk artifacts/ipa artifacts/ohos
 
