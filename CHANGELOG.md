@@ -6,6 +6,15 @@
 
 （暂无）
 
+## [2.1.1] - 2026-11-17
+
+> 修复发版两个硬问题：鸿蒙包补 x64 ABI（模拟器可安装）、Android 发布包改用固定 release 签名（跨版本覆盖安装不再要求卸载）。本地 1249 例全绿 + analyze 零问题。
+
+### 修复
+
+- **鸿蒙包双 ABI**：Release 同时产出 `ZRemoteX-v<版本>-ohos-arm64.hap`（真机）与 `-ohos-x64.hap`（模拟器）；旧版只有 arm64，模拟器装机会报 `Abi type does not match`
+- **Android 发布包签名固定**：CI 配置 release keystore（secrets），各版本签名一致——此前 CI 回退 debug 签名且每次构建指纹不同，导致跨版本覆盖安装被拒、必须卸载
+
 ## [2.1.0] - 2026-11-17
 
 > **鸿蒙（HarmonyOS NEXT）支持上线** + 领取体验增强 + 后台通知可靠性：一次发版三端分发（Android APK / iOS 未签名 IPA / 鸿蒙 HAP）。本地 **1249 例全绿** + analyze 零问题；鸿蒙模拟器走查 7 组（截图证据，见走查报告）。

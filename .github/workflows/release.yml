@@ -244,12 +244,31 @@ jobs:
       - name: Patch OH embedder Autofill types
         run: python3 tool/patch_ohos_autofill.py
 
-      - run: flutter build hap --release --no-codesign
+      # 双 ABI：arm64（真机）+ x64（模拟器）。两次输出同名，需先构建先另存。
+      - name: 构建 arm64（真机）
+        run: flutter build hap --release --no-codesign --target-platform ohos-arm64
+
+      - name: 另存 arm64 产物
+        run: mv build/ohos/hap/entry-default-unsigned.hap build/ohos/hap/entry-default-unsigned-arm64.hap
+
+      # x64 的嵌入层 hash 目录由本轮构建自身生成（target-platform 变化 →
+      # 依赖图变化），无法提前打补丁——同样走「首轮失败 → 补丁 → 二次构建」。
+      - name: 首轮 x64 build（注入 oh_modules，容忍 Autofill 失败）
+        continue-on-error: true
+        run: flutter build hap --release --no-codesign --target-platform ohos-x64
+
+      - name: x64 补丁（glob 覆盖本轮新 hash 目录）
+        run: python3 tool/patch_ohos_autofill.py
+
+      - name: 构建 x64（模拟器）
+        run: flutter build hap --release --no-codesign --target-platform ohos-x64
 
       - uses: actions/upload-artifact@v4
         with:
           name: zremote-ohos-hap
-          path: build/ohos/hap/entry-default-unsigned.hap
+          path: |
+            build/ohos/hap/entry-default-unsigned-arm64.hap
+            build/ohos/hap/entry-default-unsigned.hap
           if-no-files-found: error
 
   # 统一建 Release：等 verify + apk + ipa + hap 全绿再建，避免旧版 apk/ipa 两处并发写同一 Release 的竞态，
@@ -284,7 +303,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           cp artifacts/apk/app-release.apk "artifacts/apk/ZRemoteX-v${VERSION}-android.apk"
           cp artifacts/ipa/zremote-ios-unsigned.ipa "artifacts/ipa/ZRemoteX-v${VERSION}-ios-unsigned.ipa"
-          cp artifacts/ohos/entry-default-unsigned.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos.hap"
+          cp artifacts/ohos/entry-default-unsigned-arm64.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos-arm64.hap"
+          cp artifacts/ohos/entry-default-unsigned.hap "artifacts/ohos/ZRemoteX-v${VERSION}-ohos-x64.hap"
           ls -la artifacts/apk artifacts/ipa artifacts/ohos
 
       - name: GitHub Release
@@ -302,9 +322,9 @@ jobs:
             > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
             > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
             >
-            > **鸿蒙包（`ZRemoteX-v<版本>-ohos.hap`）为未签名包**，需使用华为签名证书签名后安装。
+            > **鸿蒙包为未签名包**：`ZRemoteX-v<版本>-ohos-arm64.hap` 用于真机（arm64），`ZRemoteX-v<版本>-ohos-x64.hap` 用于模拟器（x86_64）；均需使用华为签名证书签名后安装。
           # 用 glob 而非变量：action 的 `with:` 输入不做 env 展开（只有 `run:` 里才展开）。
           files: |
             artifacts/apk/ZRemoteX-v*-android.apk
             artifacts/ipa/ZRemoteX-v*-ios-unsigned.ipa
-            artifacts/ohos/ZRemoteX-v*-ohos.hap
+            artifacts/ohos/ZRemoteX-v*-ohos-*.hap

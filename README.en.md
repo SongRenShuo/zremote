@@ -111,7 +111,7 @@ Get the latest build from the [Releases](https://github.com/SongRenShuo/zremote/
 
 - **Android** — `ZRemoteX-v<version>-android.apk`, install directly (application id `cn.song.zremote`, coexists with the upstream package)
 - **iOS** — `ZRemoteX-v<version>-ios-unsigned.ipa`, an **unsigned build that cannot be installed directly**: sideload it with your own Apple ID via [AltStore](https://altstore.io), [Sideloadly](https://sideloadly.io), TrollStore, or similar (free-account signatures last 7 days and must be renewed)
-- **HarmonyOS** — `ZRemoteX-v<version>-ohos.hap` (HarmonyOS NEXT; the unsigned package must be signed with a Huawei signing certificate before installation)
+- **HarmonyOS** — `ZRemoteX-v<version>-ohos-arm64.hap` (physical device) / `ZRemoteX-v<version>-ohos-x64.hap` (emulator); HarmonyOS NEXT, the unsigned package must be signed with a Huawei signing certificate before installation
 
 ## Building
 

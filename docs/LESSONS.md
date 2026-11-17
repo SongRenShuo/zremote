@@ -93,6 +93,9 @@
 
 - **L44 一份 pubspec 服务三端时，插件依赖冲突要「整包统一」解决，别在 fork 间打补丁**。证据：release ipa 腿三连败——① fork `file_picker_ohos` 的 iOS podspec 名不匹配；② fork 的 iOS 集成残留（umbrella/header 布局）与其 SwiftPM 目录结构不匹配；③ 换 stock file_picker 13.x 又与其 `windows_file_picker`（win32 ^6）和 share_plus/secure_storage fork（win32 ^5）三方冲突。最终解：**全平台统一 stock file_picker 11.x + win32 5.x 生态**（secure_storage 回退 git、fork win32 约束复原、删 fork vendor 副本），一次收敛；代价是 ohos 侧 .zsb 导入降级（导出不受影响）。判据：**三端工程里 fork 与 stock 混用，先算「传递依赖约束图」能否有公共解**（win32 这类被多插件共享的包尤其致命）；fork 的残留平台集成（podspec/module_map/目录布局）在换端时必成雷区。**Seen 1× (11-17)**
 
+- **L45 hap/跨端出包必须显式声明目标 ABI，默认值往往只服务真机**。证据：v2.1.0 的 hap 未加 `--target-platform`，CI 默认 arm64 → 模拟器（x86_64）报 `install parse native so failed: Abi type does not match`（用户实测截图 + 本机 hdc 复现）；Release 改为 arm64 + x64 双包（资产名带 ABI）。判据：**模拟器验证前先看目标平台架构**；跨端发布把「真机 ABI + 模拟器 ABI」列为发布清单固定项。**Seen 1× (11-17)**
+- **L46 CI 未配 release keystore 时会回退 debug 签名，且 runner 的 debug keystore 每次构建重新生成 → 发布页各版本签名互不相同，跨版本覆盖安装必被拒**。证据：v2.0.1/v2.0.2/v2.0.3 发布包签名指纹逐一不同（apksigner 实测），本地 debug 签名又是另一个；用户「签名变了要卸载」。判据：**发版前确认 secrets 已配 release keystore**（release.yml 已支持 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`）；跨版本覆盖安装是发布签名的验收项，别等用户反馈。**Seen 1× (11-17)**
+
 ## 升级区（Seen ≥ 3 → 编码与验收标准 的指针）
 
 - 无（账本刚开册）。
