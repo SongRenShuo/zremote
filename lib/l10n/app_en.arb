@@ -2369,15 +2369,6 @@
   "@quotaUnitMinutes": {
     "description": "Unit label for duration minutes"
   },
-  "quotaResetsAt": "Resets at {time}",
-  "@quotaResetsAt": {
-    "description": "Window reset timestamp",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "quotaResetInHm": "Resets in {hours}h {minutes}m",
   "@quotaResetInHm": {
     "description": "Reset countdown with hours and minutes",
@@ -2396,6 +2387,28 @@
     "placeholders": {
       "minutes": {
         "type": "int"
+      }
+    }
+  },
+  "quotaResetSoon": "Resetting soon",
+  "@quotaResetSoon": {
+    "description": "Reset countdown: less than one minute remaining"
+  },
+  "quotaResetPassed": "Already reset at {time}",
+  "@quotaResetPassed": {
+    "description": "Reset time already passed (stale snapshot)",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetTooltip": "Window resets at {time}",
+  "@quotaResetTooltip": {
+    "description": "Tooltip with the exact reset clock time",
+    "placeholders": {
+      "time": {
+        "type": "String"
       }
     }
   },

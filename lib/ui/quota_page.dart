@@ -17,6 +17,9 @@ import 'hw_chip.dart';
 import 'status_led.dart';
 import 'tactile_button.dart';
 
+/// 窗口重置倒计时展示信息（车道 F）：文案 + 可读性配色 + 完整时间提示。
+typedef _ResetInfo = ({String label, Color color, String tooltip});
+
 /// 额度中心（开发计划 20261115-0901 P1-2 / P1-5）：
 /// 汇总卡 + 多套餐分组 + 模型余额行 + 下拉刷新 + 数据来源标注 + 重置卡区块。
 class QuotaPage extends ConsumerStatefulWidget {
@@ -623,7 +626,7 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
         ? null
         : (100 - item.percentUsed!).clamp(0, 100);
     final label = _windowLabel(l10n, item);
-    final resetText = _resetText(l10n, item.resetAt);
+    final resetInfo = _resetInfo(l10n, zt, item.resetAt);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -641,12 +644,25 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
               ),
             ),
             const SizedBox(width: 10),
-            if (resetText != null)
+            if (resetInfo != null)
               Padding(
                 padding: const EdgeInsets.only(right: 10),
-                child: Text(
-                  resetText,
-                  style: zrMono(fontSize: 10.5, color: zt.textTertiary),
+                child: Tooltip(
+                  message: resetInfo.tooltip,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.schedule, size: 11, color: resetInfo.color),
+                      const SizedBox(width: 3),
+                      Text(
+                        resetInfo.label,
+                        style: zrMono(
+                          fontSize: 10.5,
+                          color: resetInfo.color,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             Text(
@@ -927,16 +943,38 @@ class _QuotaPageState extends ConsumerState<QuotaPage> {
     };
   }
 
-  String? _resetText(AppLocalizations l10n, DateTime? resetAt) {
+  /// 窗口重置倒计时（车道 F 可读性）：
+  /// - 已过重置点 → 「已于 HH:mm 重置」，不再显示容易误解的「xx 重置」；
+  /// - 1 分钟内 → 「即将重置」（绿），替代「0 分钟后重置」；
+  /// - 1 小时内 / 15 分钟内 → 绿色提示「快重置了」，其余用 textLo（比
+  ///   textTertiary 对比度更高），并附完整重置时间 Tooltip。
+  _ResetInfo? _resetInfo(
+    AppLocalizations l10n,
+    ZTPalette zt,
+    DateTime? resetAt,
+  ) {
     if (resetAt == null) return null;
+    final clock = _fmtClock(resetAt);
+    final tooltip = l10n.quotaResetTooltip(clock);
     final diff = resetAt.difference(DateTime.now());
-    if (diff.isNegative || diff.inMinutes <= 0) {
-      return l10n.quotaResetsAt(_fmtClock(resetAt));
+    if (diff.isNegative || diff.inSeconds <= 0) {
+      return (label: l10n.quotaResetPassed(clock), color: zt.textLo, tooltip: tooltip);
+    }
+    if (diff.inMinutes < 1) {
+      return (label: l10n.quotaResetSoon, color: zt.live, tooltip: tooltip);
     }
     if (diff.inHours > 0) {
-      return l10n.quotaResetInHm(diff.inHours, diff.inMinutes % 60);
+      return (
+        label: l10n.quotaResetInHm(diff.inHours, diff.inMinutes % 60),
+        color: diff.inHours == 1 ? zt.live : zt.textLo,
+        tooltip: tooltip,
+      );
     }
-    return l10n.quotaResetInM(diff.inMinutes);
+    return (
+      label: l10n.quotaResetInM(diff.inMinutes),
+      color: diff.inMinutes <= 15 ? zt.live : zt.textLo,
+      tooltip: tooltip,
+    );
   }
 
   static Color _percentColor(ZTPalette zt, num remaining) =>

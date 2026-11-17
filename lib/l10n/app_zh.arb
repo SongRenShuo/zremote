@@ -3120,15 +3120,6 @@
   "@quotaUnitMinutes": {
     "description": "Unit label for duration minutes"
   },
-  "quotaResetsAt": "{time} 重置",
-  "@quotaResetsAt": {
-    "description": "Window reset timestamp",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "quotaResetInHm": "{hours} 小时 {minutes} 分后重置",
   "@quotaResetInHm": {
     "description": "Reset countdown with hours and minutes",
@@ -3147,6 +3138,28 @@
     "placeholders": {
       "minutes": {
         "type": "int"
+      }
+    }
+  },
+  "quotaResetSoon": "即将重置",
+  "@quotaResetSoon": {
+    "description": "Reset countdown: less than one minute remaining"
+  },
+  "quotaResetPassed": "已于 {time} 重置",
+  "@quotaResetPassed": {
+    "description": "Reset time already passed (stale snapshot)",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "quotaResetTooltip": "窗口重置时间：{time}",
+  "@quotaResetTooltip": {
+    "description": "Tooltip with the exact reset clock time",
+    "placeholders": {
+      "time": {
+        "type": "String"
       }
     }
   },

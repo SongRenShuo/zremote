@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/quota_client.dart';
+import 'package:zremote/theme.dart';
 import 'package:zremote/ui/quota_page.dart';
 
 import 'scripted_bridge.dart';
@@ -395,5 +396,81 @@ void main() {
     await tester.tap(find.byKey(const Key('quota-alert-claim')));
     await tester.pumpAndSettle();
     expect(claimed, 1);
+  });
+
+  group('窗口重置倒计时可读性（车道 F）', () {
+    String clk(DateTime t) =>
+        '${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')} '
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+    QuotaOverview overviewWithReset(DateTime? resetAt) {
+      final slot = PlanSlot(
+        pid: 'p1',
+        tierCode: QuotaTierCode.max,
+        tier: 'Max',
+        name: 'Max 套餐',
+        total: 100,
+        used: 10,
+        remaining: 90,
+        percentUsed: 10,
+        items: [
+          QuotaItem(
+            name: 'TOKENS_LIMIT',
+            kind: 'prompt_count',
+            window: 'hours:5',
+            total: 100,
+            used: 10,
+            percentUsed: 10,
+            resetAt: resetAt,
+          ),
+        ],
+      );
+      return QuotaOverview(
+        plans: [slot],
+        items: slot.items,
+        refreshedAt: DateTime(2026, 11, 17, 10, 0),
+        sources: const ['host-snapshot'],
+      );
+    }
+
+    testWidgets('已过重置点 → 「已于 … 重置」而非「xx 重置」', (tester) async {
+      final resetAt = DateTime.now().subtract(const Duration(minutes: 5));
+      await _pumpPage(tester, overview: overviewWithReset(resetAt));
+
+      expect(find.text('已于 ${clk(resetAt)} 重置'), findsNWidgets(2));
+      expect(
+        find.byTooltip('窗口重置时间：${clk(resetAt)}'),
+        findsNWidgets(2),
+      );
+      expect(find.textContaining('重置'), findsWidgets);
+    });
+
+    testWidgets('1 分钟内 → 「即将重置」绿色，替代「0 分钟后重置」', (tester) async {
+      final resetAt = DateTime.now().add(const Duration(seconds: 45));
+      await _pumpPage(tester, overview: overviewWithReset(resetAt));
+
+      expect(find.text('即将重置'), findsNWidgets(2));
+      expect(find.text('0 分钟后重置'), findsNothing);
+      final text = tester.widget<Text>(find.text('即将重置').first);
+      expect(text.style?.color, ZT.light.live);
+    });
+
+    testWidgets('1 小时以上 → 小时倒计时 + textLo（对比度高于 textTertiary）', (
+      tester,
+    ) async {
+      // 加 30s 余量：Duration.inMinutes 向下取整，避免构建耗时把分钟数截掉一位。
+      final resetAt = DateTime.now().add(
+        const Duration(hours: 2, minutes: 3, seconds: 30),
+      );
+      await _pumpPage(tester, overview: overviewWithReset(resetAt));
+
+      expect(find.text('2 小时 3 分后重置'), findsNWidgets(2));
+      final text = tester.widget<Text>(find.text('2 小时 3 分后重置').first);
+      expect(text.style?.color, ZT.light.textLo);
+      expect(
+        find.byTooltip('窗口重置时间：${clk(resetAt)}'),
+        findsNWidgets(2),
+      );
+    });
   });
 }
