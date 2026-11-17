@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos.dart';
 
 import 'notified_event_store.dart';
 import 'notifier.dart';
@@ -51,6 +52,21 @@ class StartupGuard {
       _log('NotifiedEventStore.load done');
     } catch (e) {
       _log('NotifiedEventStore.load failed: $e');
+    }
+    // 通道健康探针（车道D 走查 2026-11-17）：鸿蒙上主包
+    // flutter_secure_storage 的 _selectOptions 无 ohos 分支，任何 read/write
+    // 都同步抛 UnsupportedError(unsupported_platform)（hilog 证据：
+    // startup-guard secure-storage probe error），且 DeviceStore.loadAll
+    // 因此永远拿不到设备索引。修复=改用 vendor 包 flutter_secure_storage_ohos
+    // （_selectOptions 含 Platform.operatingSystem=='ohos' 分支）。这里保留
+    // 一次只读探针，通道坏时 hilog 立即可见，不给启动增加写放大。
+    try {
+      final back = await const FlutterSecureStorage()
+          .read(key: 'zremote.diag.probe')
+          .timeout(const Duration(seconds: 5));
+      _log('secure-storage probe: ${back ?? "empty(null)"}');
+    } catch (e) {
+      _log('secure-storage probe error: $e');
     }
     _log('background init end');
   }
