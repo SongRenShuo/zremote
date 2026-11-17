@@ -82,11 +82,21 @@ jobs:
 
       - name: 准备 Flutter-OH SDK（锁 tag）
         run: |
-          git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
-            https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"
+          # gitcode 偶发断流（同 L34 的下载污染类），克隆重试 3 次再判红
+          ok=0
+          for i in 1 2 3; do
+            if git clone --depth 1 --branch "${FLUTTER_OH_VERSION}" \
+                 https://gitcode.com/CPF-Flutter/flutter_flutter.git "$HOME/flutter_oh"; then
+              ok=1; break
+            fi
+            echo "::warning::Flutter-OH 克隆第 ${i} 次失败，10s 后重试"
+            rm -rf "$HOME/flutter_oh"
+            sleep 10
+          done
+          [ "$ok" = 1 ]
           echo "$HOME/flutter_oh/bin" >> "$GITHUB_PATH"
           # GITHUB_PATH 对本 step 不生效——用绝对路径完成首轮初始化
-          export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+          # FLUTTER_STORAGE_BASE_URL 由 workflow 级 env 提供（stock 引擎 stamp 走中国镜像）
           "$HOME/flutter_oh/bin/flutter" --version
           "$HOME/flutter_oh/bin/flutter" config --ohos-sdk "$HOS_SDK_HOME"
           "$HOME/flutter_oh/bin/flutter" doctor | grep -i -A4 "HarmonyOS" || true
