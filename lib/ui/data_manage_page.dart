@@ -296,9 +296,9 @@ class _DeviceClearTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          if (device.kind == DeviceKind.v2) ...[
+          if ((device.params['app_version'] ?? '').isNotEmpty) ...[
             Text(
-              l10n.deviceV2Badge,
+              "v${device.params['app_version']}",
               style: TextStyle(fontSize: 10.5, color: context.zt.textLo),
             ),
             const SizedBox(width: 8),

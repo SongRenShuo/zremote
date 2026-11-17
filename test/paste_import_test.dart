@@ -190,7 +190,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('TEST-DESKTOP'), findsOneWidget);
-    expect(find.text('V2 账号'), findsOneWidget);
+    // 20261117-1230 R3：徽标改读真实 app_version，不再是静态「V2 账号」。
+    expect(find.text('v3.16.1'), findsOneWidget);
+    expect(find.text('V2 账号'), findsNothing);
     expect(find.text('设备testold19'), findsOneWidget);
   });
 }
