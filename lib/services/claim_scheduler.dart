@@ -429,6 +429,10 @@ enum ClaimBlockedReason {
 
   /// 账号未配置套餐（manual_claim_preview_missing_data）。
   accountNotConfigured,
+
+  /// 宿主后台已释放通道（ChannelClient is disposed，L39 宿主侧限制）：
+  /// 前台打开设备页面后自动恢复。落史降频（6h 窗口，20261118-0030 F3）。
+  hostBackgroundUnavailable,
 }
 
 /// 自动轮阻断事件：本轮没有产生任何领取动作的原因。
@@ -476,6 +480,7 @@ class ClaimSchedulerAgent {
     Future<void> Function(Duration)? delay,
     math.Random? random,
     this.onEvent,
+    this.beforePreview,
   }) : _client = client,
        _config = config,
        _nowFunc = now ?? DateTime.now,
@@ -496,6 +501,11 @@ class ClaimSchedulerAgent {
 
   /// 事件回调（成功/失败/需人工验证码）；装配层负责历史与通知。
   final void Function(ClaimSchedulerEvent event)? onEvent;
+
+  /// 每轮 preview 前的激活钩子（20261118-0030 F2：上报 app_launch/
+  /// app_daily_active 让服务端出可领套餐）。异常由装配层静默吞掉，
+  /// 不阻断轮次。
+  final Future<void> Function()? beforePreview;
 
   bool _started = false;
   bool _roundInFlight = false;
@@ -646,6 +656,13 @@ class ClaimSchedulerAgent {
     _roundsRun++;
     _roundInFlight = true;
     try {
+      // F2（20261118-0030）：每轮 preview 前先激活（服务端"看到活跃"才出
+      // 可领套餐）。钩子异常静默吞掉，不影响轮次。
+      try {
+        await beforePreview?.call();
+      } catch (e) {
+        debugPrint('[claim-auto] $deviceId activation skipped: $e');
+      }
       var claimed = 0;
       while (_generation == gen &&
           !_abortRequested &&
@@ -666,11 +683,14 @@ class ClaimSchedulerAgent {
             ClaimSchedulerPolicy.genericFailureCooldown,
           );
           debugPrint('[claim-auto] $deviceId preview error: $e');
+          // F3（20261118-0030）：宿主后台释放通道（L39 宿主侧限制）单独归类，
+          // 供落史降频与恢复指引；其他异常仍按 previewError。
+          final detail = e.toString();
+          final reason = detail.contains('ChannelClient is disposed')
+              ? ClaimBlockedReason.hostBackgroundUnavailable
+              : ClaimBlockedReason.previewError;
           onEvent?.call(
-            ClaimAutoBlocked(
-              reason: ClaimBlockedReason.previewError,
-              detail: e.toString(),
-            ),
+            ClaimAutoBlocked(reason: reason, detail: detail),
           );
           return;
         }

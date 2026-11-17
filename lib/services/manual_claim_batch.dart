@@ -43,6 +43,10 @@ class ManualClaimBatchResult {
 
   int get totalFailed =>
       results.fold(0, (sum, r) => sum + r.failed);
+
+  /// 无券/未绑套餐的设备数（业务态，非失败——20261118-0030 F1 分档呈现）。
+  int get totalNoPlans =>
+      results.where((r) => r.reason == 'noPlans').length;
 }
 
 /// 单台设备的手动领取执行器（20261117-1230 全局一键领取）。
@@ -108,9 +112,22 @@ class ManualClaimRunner {
     return (ok, fail);
   }
 
-  /// 先拉预览再领取全部；无券/未绑套餐返回 (0,0)（无失败）。
-  Future<(int, int)> fetchAndRunAll() async {
-    final previews = await _client.fetchPreviews();
-    return runAll(previews);
+  /// 先拉预览再领取全部。
+  /// 返回 (成功数, 失败数, 备注)：备注空串 = 正常执行；
+  /// `noPlans` = 账号无券/未绑套餐（业务态，非失败——对齐自动轮"干净收轮"）；
+  /// `error:<detail>` = preview 拉取异常（20261118-0030 F1：此前被 catch 吞成
+  /// 0/0 导致汇总误导性全零）。
+  Future<(int, int, String)> fetchAndRunAll() async {
+    final List<ClaimPreview> previews;
+    try {
+      previews = await _client.fetchPreviews();
+    } on ClaimPreviewMissingData {
+      return (0, 0, 'noPlans');
+    } catch (e) {
+      debugPrint('[claim-batch] $deviceId fetchPreviews failed: $e');
+      return (0, 0, 'error:$e');
+    }
+    final (ok, fail) = await runAll(previews);
+    return (ok, fail, '');
   }
 }

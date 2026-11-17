@@ -1,18 +1,20 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/claim.dart';
 import '../models/device.dart';
+import '../services/activation_report.dart';
 import '../services/claim_scheduler.dart';
 import '../services/device_store.dart';
 import '../services/manual_claim_batch.dart';
 import '../services/notifier.dart';
 import '../services/rpc_bridge.dart';
+import 'accounts.dart';
 import 'approval_center.dart';
 import 'claim_history.dart';
-import 'session_pool.dart';
 import 'session_status.dart';
 
 /// 自动领取装配层（P2-1）：session_view 挂桥时 attach、会话 dispose 时
@@ -33,6 +35,12 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
       client: HostClaimRpcClient(bridge),
       config: config,
       onEvent: (event) => _handleEvent(device, event),
+      // F2（20261118-0030）：每轮 preview 前先激活（服务端"看到活跃"才出
+      // 可领套餐）；无绑定账号/无 user_id/上报失败均静默跳过。
+      beforePreview: () => _reportActivationFor(
+        device,
+        ref.read(accountsProvider),
+      ),
     );
     state = {...state, device.id: agent};
     agent.start();
@@ -86,8 +94,11 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
   /// 领取走 HostClaimRpcClient 三段 RPC（与单设备手动领取同语义），
   /// 不复用 runNow（后者是自动轮语义，只领 previews.first 至上限）。
   Future<ManualClaimBatchResult> claimAllLive() async {
-    final devices = ref.read(deviceListProvider);
+    // 磁盘真值兜底（20261118-0030 F1④）：DeviceListNotifier 首次 read 可能
+    // 还是空列表（build 同步返回 []，_load 异步填数），导致误导性 0/0/0。
+    final devices = await DeviceStore.instance.loadAll();
     final statuses = ref.read(sessionStatusProvider);
+    final accountsState = ref.read(accountsProvider);
     final result = <ManualClaimDeviceResult>[];
     var skipped = 0;
     for (final device in devices) {
@@ -112,6 +123,9 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
       // 手动让位：阻止自动轮与手动批次并发。
       manualStarted(device.id);
       try {
+        // 激活前置（20261118-0030 F2）：服务端"看到活跃"才出可领套餐；
+        // 上报失败静默跳过，不阻断预览。
+        await _reportActivationFor(device, accountsState);
         final runner = ManualClaimRunner(
           deviceId: device.id,
           client: HostClaimRpcClient(bridge),
@@ -143,19 +157,22 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
                 );
           },
         );
-        final (ok, fail) = await runner.fetchAndRunAll();
+        final (ok, fail, note) = await runner.fetchAndRunAll();
         result.add(
           ManualClaimDeviceResult(
             deviceId: device.id,
             claimed: ok,
             failed: fail,
+            reason: note,
           ),
         );
       } catch (e) {
         debugPrint('[claim-batch] device ${device.id} failed: $e');
+        // F1：异常设备计入失败（此前吞成 claimed=0/failed=0 致汇总全零误导）。
         result.add(
           ManualClaimDeviceResult(
             deviceId: device.id,
+            failed: 1,
             reason: 'error:${e.toString()}',
           ),
         );
@@ -166,8 +183,38 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
     return ManualClaimBatchResult(results: result, skipped: skipped);
   }
 
+  /// 对设备的绑定账号上报激活事件（F2-B）；无绑定账号/无 user_id/上报失败
+  /// 均静默跳过（不阻断预览）。
+  Future<void> _reportActivationFor(
+    RemoteDevice device,
+    AccountsState accountsState,
+  ) async {
+    try {
+      final account = accountsState.activeAccountOf(device);
+      if (account == null) return;
+      final userId = ActivationReporter.userIdFromCredentials(
+        account.credentials,
+      );
+      if (userId == null || userId.isEmpty) return;
+      final mid = await DeviceStore.instance.ensureDeviceMid(account.id);
+      final reporter = ActivationReporter(
+        dio: Dio(),
+        userId: userId,
+        deviceMid: mid,
+        appVersion: await ActivationReporter.currentAppVersion(),
+      );
+      await reporter.report();
+    } catch (e) {
+      debugPrint('[claim-batch] activation ${device.id} skipped: $e');
+    }
+  }
+
   /// Blocked 同因去重窗口：同因在窗口内不重复落史（防 10min 冷却循环刷屏）。
   static const Duration blockedDedupWindow = Duration(hours: 1);
+
+  /// 宿主后台释放通道（hostBackgroundUnavailable）的降频窗口（F3）：
+  /// 属宿主侧限制非 App 可修复，6h 内同类只落一条。
+  static const Duration hostBackgroundDedupWindow = Duration(hours: 6);
 
   final Map<String, _BlockedDedup> _blockedDedup = {};
 
@@ -178,9 +225,12 @@ class ClaimSchedulerHub extends Notifier<Map<String, ClaimSchedulerAgent>> {
   ) {
     final last = _blockedDedup[device.id];
     final now = DateTime.now();
+    final window = reason == ClaimBlockedReason.hostBackgroundUnavailable
+        ? hostBackgroundDedupWindow
+        : blockedDedupWindow;
     if (last != null &&
         last.reason == reason &&
-        now.difference(last.at) < blockedDedupWindow) {
+        now.difference(last.at) < window) {
       return; // 同因在窗口内：不重复落史。
     }
     _blockedDedup[device.id] = (reason: reason, at: now);

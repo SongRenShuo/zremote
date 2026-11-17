@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,6 +47,17 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // hub.attach → accountsProvider.load / claimAllLive.loadAll 依赖 secure
+    // storage（20261118-0030）：测试环境 mock 空 backing（无设备/无凭据）。
+    const secureChannel = MethodChannel(
+      'plugins.it_nomads.com/flutter_secure_storage',
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(secureChannel, (call) async => null);
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(secureChannel, null);
+    });
   });
 
   Future<ProviderContainer> pumpPage(

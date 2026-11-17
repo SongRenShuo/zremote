@@ -1341,9 +1341,13 @@
   "@claimBlockedNoPlans": {
     "description": "History blocked record: no claimable plans"
   },
-  "claimBlockedAccountNotConfigured": "自动轮被阻断：账号未配置套餐",
+  "claimBlockedAccountNotConfigured": "自动轮被阻断：账号暂无可领套餐（在电脑端 ZCode 打开页面活跃一次后重试）",
   "@claimBlockedAccountNotConfigured": {
-    "description": "History blocked record: account has no plan configured"
+    "description": "History blocked record: server has no activation for this account (20261118-0030 F2-C)"
+  },
+  "claimBlockedHostBackground": "宿主后台已释放通道：前台打开设备页面后自动恢复",
+  "@claimBlockedHostBackground": {
+    "description": "History blocked record: host disposed its ChannelClient in background (L39, 20261118-0030 F3)"
   },
   "claimGlobalOffHint": "全局自动领取已关闭，可在设置中开启",
   "@claimGlobalOffHint": {
@@ -1377,12 +1381,13 @@
   "@settingsClaimBatchSub": {
     "description": "Settings tile subtitle for global manual claim"
   },
-  "settingsClaimBatchSummary": "领取完成：成功 {ok}，失败 {fail}，跳过 {skip} 台设备",
+  "settingsClaimBatchSummary": "领取完成：成功 {ok}，失败 {fail}，无券 {noPlans} 台，未就绪 {skip} 台",
   "@settingsClaimBatchSummary": {
-    "description": "Global manual claim result snackbar",
+    "description": "Global manual claim result snackbar (20261118-0030 F1: 分档呈现，不再出现误导性全零)",
     "placeholders": {
       "ok": {"type": "int"},
       "fail": {"type": "int"},
+      "noPlans": {"type": "int"},
       "skip": {"type": "int"}
     }
   },

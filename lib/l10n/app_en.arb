@@ -613,9 +613,13 @@
   "@claimBlockedNoPlans": {
     "description": "History blocked record: no claimable plans"
   },
-  "claimBlockedAccountNotConfigured": "Auto round blocked: no plan configured for this account",
+  "claimBlockedAccountNotConfigured": "Auto round blocked: no claimable plans yet (open ZCode on desktop once to activate, then retry)",
   "@claimBlockedAccountNotConfigured": {
-    "description": "History blocked record: account has no plan configured"
+    "description": "History blocked record: server has no activation for this account (20261118-0030 F2-C)"
+  },
+  "claimBlockedHostBackground": "Host released its channel in background: reopen the device page to recover",
+  "@claimBlockedHostBackground": {
+    "description": "History blocked record: host disposed its ChannelClient in background (L39, 20261118-0030 F3)"
   },
   "claimGlobalOffHint": "Global auto claim is off — enable it in Settings",
   "@claimGlobalOffHint": {
@@ -649,12 +653,13 @@
   "@settingsClaimBatchSub": {
     "description": "Settings tile subtitle for global manual claim"
   },
-  "settingsClaimBatchSummary": "Done: {ok} claimed, {fail} failed, {skip} device(s) skipped",
+  "settingsClaimBatchSummary": "Done: {ok} claimed, {fail} failed, {noPlans} device(s) with no plans, {skip} not ready",
   "@settingsClaimBatchSummary": {
-    "description": "Global manual claim result snackbar",
+    "description": "Global manual claim result snackbar (20261118-0030 F1)",
     "placeholders": {
       "ok": {"type": "int"},
       "fail": {"type": "int"},
+      "noPlans": {"type": "int"},
       "skip": {"type": "int"}
     }
   },

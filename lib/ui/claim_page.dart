@@ -1104,7 +1104,7 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     );
   }
 
-  /// 阻断记录的原因 → 可读文案（20261116-2341 D1/D3）。
+  /// 阻断记录的原因 → 可读文案（20261116-2341 D1/D3；20261118-0030 F3 补宿主后台）。
   String _blockedText(AppLocalizations l10n, ClaimBlockedReason reason) =>
       switch (reason) {
         ClaimBlockedReason.previewError => l10n.claimBlockedPreviewError,
@@ -1113,6 +1113,8 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         ClaimBlockedReason.noPlans => l10n.claimBlockedNoPlans,
         ClaimBlockedReason.accountNotConfigured =>
           l10n.claimBlockedAccountNotConfigured,
+        ClaimBlockedReason.hostBackgroundUnavailable =>
+          l10n.claimBlockedHostBackground,
       };
 
   Widget _historyCard(AppLocalizations l10n, ClaimRecord record) {
@@ -1221,7 +1223,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                     Expanded(
                       child: Text(
                         resultText,
-                        maxLines: 1,
+                        // F4（20261118-0030）：阻断详情（如完整 RPC 错误）可读
+                        // 到 3 行，不再单行截断看不全。
+                        maxLines: record.blockedReason != null ? 3 : 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,

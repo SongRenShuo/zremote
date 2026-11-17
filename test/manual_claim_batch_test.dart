@@ -22,12 +22,16 @@ class _FakeClient implements ClaimRpcClient {
   final String? verifyParam;
   final Set<String> failPlanIds;
   final Set<String> throwPlanIds;
+  Object? previewError;
 
   final claimed = <String>[];
   final failed = <String>[];
 
   @override
-  Future<List<ClaimPreview>> fetchPreviews() async => previews;
+  Future<List<ClaimPreview>> fetchPreviews() async {
+    if (previewError != null) throw previewError!;
+    return previews;
+  }
 
   @override
   Future<CaptchaConfig> fetchCaptchaConfig() async => config;
@@ -125,9 +129,33 @@ void main() {
   test('fetchAndRunAll：无券 → (0,0)（无失败）', () async {
     final client = _FakeClient(previews: const []);
     final runner = ManualClaimRunner(deviceId: 'd1', client: client);
-    final (ok, fail) = await runner.fetchAndRunAll();
+    final (ok, fail, note) = await runner.fetchAndRunAll();
     expect(ok, 0);
     expect(fail, 0);
+    expect(note, isEmpty);
+  });
+
+  test('fetchAndRunAll：未绑套餐（MissingData）→ (0,0,noPlans) 业务态不吞异常',
+      () async {
+    // 反向验证（S2）：摘掉 fetchAndRunAll 的 MissingData 捕获，此用例变红
+    //（异常上抛），对应一键领取"误导性 0/0/0"缺陷。
+    final client = _FakeClient(previews: const []);
+    client.previewError = const ClaimPreviewMissingData();
+    final runner = ManualClaimRunner(deviceId: 'd1', client: client);
+    final (ok, fail, note) = await runner.fetchAndRunAll();
+    expect(ok, 0);
+    expect(fail, 0);
+    expect(note, 'noPlans');
+  });
+
+  test('fetchAndRunAll：preview RPC 异常 → (0,0,error:…)', () async {
+    final client = _FakeClient(previews: const []);
+    client.previewError = StateError('boom');
+    final runner = ManualClaimRunner(deviceId: 'd1', client: client);
+    final (ok, fail, note) = await runner.fetchAndRunAll();
+    expect(ok, 0);
+    expect(fail, 0);
+    expect(note, startsWith('error:'));
   });
 
   test('汇总结果：totalClaimed / totalFailed 累加', () {

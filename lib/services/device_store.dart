@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage_ohos/flutter_secure_storage_ohos.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/device.dart';
 import '../models/notification_prefs.dart';
@@ -419,6 +420,21 @@ class DeviceStore {
       key,
       jsonEncode(const ClaimAutoConfig().copyWith(enabled: enabled).toJson()),
     );
+  }
+
+  static const _deviceMidPrefix = 'zremote.deviceMid.';
+
+  /// 每账号虚拟设备 mid（20261118-0030 F2-B，zcode-switch store.rs:1121 同语义）：
+  /// 激活事件上报用（服务端靠 user_id + device_mid 关联账号，无 Authorization 头）。
+  /// 首次生成 uuid v4 后持久化，之后稳定复用。
+  Future<String> ensureDeviceMid(String accountId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_deviceMidPrefix$accountId';
+    final existing = prefs.getString(key);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final mid = const Uuid().v4();
+    await prefs.setString(key, mid);
+    return mid;
   }
 
   static const _quotaAlertPrefix = 'zremote.quotaAlert.';

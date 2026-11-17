@@ -52,3 +52,6 @@ lib/l10n/*.dart
 
 # local credentials (GitHub API token etc., never commit)
 .local/
+
+# ZCode tool workspace (session-local config)
+.zcode/

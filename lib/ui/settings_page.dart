@@ -742,6 +742,7 @@ class _ClaimBatchButtonState extends ConsumerState<_ClaimBatchButton> {
             l10n.settingsClaimBatchSummary(
               result.totalClaimed,
               result.totalFailed,
+              result.totalNoPlans,
               result.skipped,
             ),
           ),

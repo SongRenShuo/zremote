@@ -29,8 +29,14 @@ void main() {
             'buildSignature': '',
           },
         );
+    // claimAllLive → loadAll 依赖 secure storage（20261118-0030）。
+    const secureChannel = MethodChannel(
+      'plugins.it_nomads.com/flutter_secure_storage',
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(secureChannel, (call) async => null);
     addTearDown(() {
-      for (final c in [keepaliveChannel, packageInfoChannel]) {
+      for (final c in [keepaliveChannel, packageInfoChannel, secureChannel]) {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(c, null);
       }
@@ -67,7 +73,7 @@ void main() {
 
     // 空设备态：claimAllLive 遍历 0 台 → 汇总 0/0/0。
     expect(
-      find.textContaining('领取完成：成功 0，失败 0，跳过 0 台设备'),
+      find.textContaining('领取完成：成功 0，失败 0，无券 0 台，未就绪 0 台'),
       findsOneWidget,
     );
   });
