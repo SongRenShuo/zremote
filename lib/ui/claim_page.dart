@@ -64,6 +64,9 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
   /// 自动轮冷却展示的定时刷新（快照非响应式，30s 兜底重读）。
   Timer? _snapshotTicker;
 
+  /// 轮询倒计时的 1s tick（20261118-0110 G4）：仅自动领取开启时驱动刷新。
+  Timer? _countdownTicker;
+
   final Set<String> _busy = {};
 
   @override
@@ -82,12 +85,20 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         if (mounted) setState(() {});
       },
     );
+    _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final config =
+          ref.read(claimConfigProvider)[widget.device.id] ??
+          const ClaimAutoConfig();
+      if (config.enabled) setState(() {});
+    });
     _refresh();
   }
 
   @override
   void dispose() {
     _snapshotTicker?.cancel();
+    _countdownTicker?.cancel();
     super.dispose();
   }
 
@@ -804,6 +815,8 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
               ),
             ),
             _runNowRow(l10n),
+            // 倒计时 + 进度条（20261118-0110 G4）：下次检查可见。
+            _countdownRow(l10n),
           ],
           Text(
             l10n.claimAutoSessionHint,
@@ -814,6 +827,100 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
         ],
       ),
     );
+  }
+
+  /// 轮询倒计时行（20261118-0110 G4）：下次检查倒计时 + 进度条；
+  /// 轮在飞 / 冷却 / 静默时分别显示对应状态（优先级：在飞 > 冷却 > 静默 > 倒计时）。
+  Widget _countdownRow(AppLocalizations l10n) {
+    final zt = context.zt;
+    final snapshot = ref
+        .read(claimSchedulerHubProvider.notifier)
+        .snapshotOf(widget.device.id);
+    if (snapshot == null) return const SizedBox.shrink();
+    final now = DateTime.now();
+
+    String? statusText;
+    double? progress;
+    if (snapshot.roundInFlight) {
+      statusText = l10n.claimCheckingNow;
+    } else {
+      final cooldown = snapshot.cooldownUntil;
+      if (cooldown != null && cooldown.isAfter(now)) {
+        statusText = l10n.claimWaitingCooldown(_hhmmOfDay(cooldown));
+      } else {
+        final silentWait = ClaimSchedulerPolicy.silentWait(
+          now,
+          silentStartMinutes:
+              ref.watch(claimConfigProvider)[widget.device.id]?.silentStartMinutes ??
+              ClaimSchedulerPolicy.defaultSilentStart,
+          silentEndMinutes:
+              ref.watch(claimConfigProvider)[widget.device.id]?.silentEndMinutes ??
+              ClaimSchedulerPolicy.defaultSilentEnd,
+        );
+        if (silentWait > Duration.zero) {
+          statusText = l10n.claimWaitingSilent(
+            _hhmmOfDay(now.add(silentWait)),
+          );
+        } else {
+          final next = snapshot.nextRoundAt;
+          if (next != null && next.isAfter(now)) {
+            final remaining = next.difference(now);
+            final total = Duration(
+              minutes: snapshot.intervalMinutes,
+            );
+            final elapsed = total - remaining;
+            progress = (elapsed.inMilliseconds / total.inMilliseconds)
+                .clamp(0.0, 1.0);
+            statusText = l10n.claimNextCheckIn(_mmss(remaining));
+          }
+        }
+      }
+    }
+    if (statusText == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 2, 10, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule_rounded, size: 14, color: zt.textLo),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: zrMono(fontSize: 11.5, color: zt.textLo),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (progress != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                key: const Key('claim-countdown-progress'),
+                value: progress,
+                minHeight: 3,
+                backgroundColor: zt.hairline,
+                valueColor: AlwaysStoppedAnimation(zt.accent),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 剩余时长 mm:ss（超 1h 显示 h:mm:ss）。
+  static String _mmss(Duration d) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    final s = d.inSeconds % 60;
+    return h > 0 ? '$h:$two($m):$two($s)' : '${two(m)}:$two($s)';
   }
 
   /// 「立即执行一轮」行（20261116-2341 D4）：清冷却立即跑一轮；
@@ -996,6 +1103,49 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                     l10n.claimAutoSilentEnd,
                     config.silentEndMinutes,
                     false,
+                  ),
+                  const SizedBox(height: 14),
+                  // 轮询间隔选择（20261118-0110 G4）：1–120 分钟可选。
+                  Text(
+                    l10n.claimIntervalEntry,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: zt.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.claimIntervalSheetHint,
+                    style: TextStyle(fontSize: 12, color: zt.textLo),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final m in const [
+                        1,
+                        2,
+                        5,
+                        10,
+                        15,
+                        30,
+                        60,
+                        120,
+                      ])
+                        ChoiceChip(
+                          key: Key('claim-interval-$m'),
+                          label: Text(l10n.claimIntervalMinutesValue(m)),
+                          selected: config.intervalMinutes == m,
+                          onSelected: (_) async {
+                            await ref
+                                .read(claimConfigProvider.notifier)
+                                .setInterval(widget.device.id, m);
+                            setSheetState(() {});
+                          },
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   TextButton(

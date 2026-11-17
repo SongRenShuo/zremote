@@ -171,6 +171,8 @@ class SettingsPage extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
+            const _ClaimGlobalCountdown(),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
               child: Text(
@@ -805,6 +807,95 @@ class _ClaimBatchButtonState extends ConsumerState<_ClaimBatchButton> {
         ),
       ),
     );
+  }
+}
+
+/// 全局（多设备聚合）轮询倒计时（20261118-0110 G5）：所有已启用自动领取
+/// 设备中最早的下次检查时刻，1s tick 刷新。0 台启用时不渲染。
+class _ClaimGlobalCountdown extends ConsumerStatefulWidget {
+  const _ClaimGlobalCountdown();
+
+  @override
+  ConsumerState<_ClaimGlobalCountdown> createState() =>
+      _ClaimGlobalCountdownState();
+}
+
+class _ClaimGlobalCountdownState
+    extends ConsumerState<_ClaimGlobalCountdown> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final agents = ref.watch(claimSchedulerHubProvider);
+    var enabledCount = 0;
+    var anyInFlight = false;
+    DateTime? earliest;
+    for (final agent in agents.values) {
+      final snapshot = agent.snapshot();
+      if (!snapshot.enabled || !snapshot.running) continue;
+      enabledCount++;
+      if (snapshot.roundInFlight) anyInFlight = true;
+      final n = snapshot.nextRoundAt;
+      if (n != null && (earliest == null || n.isBefore(earliest))) {
+        earliest = n;
+      }
+    }
+    if (enabledCount == 0) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+    final zt = context.zt;
+    final text = anyInFlight
+        ? l10n.settingsClaimChecking
+        : earliest == null
+        ? null
+        : l10n.settingsClaimGlobalNext(
+            _countdownText(earliest.difference(DateTime.now())),
+            enabledCount,
+          );
+    if (text == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
+      child: Row(
+        key: const Key('settings-claim-countdown'),
+        children: [
+          Icon(Icons.schedule_rounded, size: 13, color: zt.textTertiary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: zrMono(fontSize: 11.5, color: zt.textTertiary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 剩余时长 mm:ss（超 1h 显示 h:mm:ss）。
+  static String _countdownText(Duration d) {
+    if (d.isNegative) d = Duration.zero;
+    String two(int v) => v.toString().padLeft(2, '0');
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    final s = d.inSeconds % 60;
+    return h > 0 ? '$h:$two($m):$two($s)' : '${two(m)}:$two($s)';
   }
 }
 

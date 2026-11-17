@@ -274,6 +274,40 @@ void main() {
       );
     });
 
+    test('轮询间隔（intervalMinutes，20261118-0110 G1）：默认 10 + 往返 + clamp',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      // 默认 10；旧数据无键回落 10（升级零回归）。
+      expect(
+        (await DeviceStore.instance.claimAutoConfig('d-int')).intervalMinutes,
+        10,
+      );
+
+      final notifier = container.read(claimConfigProvider.notifier);
+      await notifier.load('d-int');
+      await notifier.setInterval('d-int', 1);
+      final stored = await DeviceStore.instance.claimAutoConfig('d-int');
+      expect(stored.intervalMinutes, 1);
+      // 1 分钟是下限（clamp [1,120]）。
+      await notifier.setInterval('d-int', 0);
+      expect(
+        (await DeviceStore.instance.claimAutoConfig('d-int')).intervalMinutes,
+        1,
+      );
+
+      // 往返 JSON 保真。
+      final roundTrip = ClaimAutoConfig.fromJson(stored.toJson());
+      expect(roundTrip, stored);
+      // 反向验证（S2）：摘掉 fromJson 的 intervalMinutes 解析，此断言变红。
+      expect(
+        ClaimAutoConfig.fromJson(<String, dynamic>{
+          'enabled': true,
+          'intervalMinutes': 30,
+        }).intervalMinutes,
+        30,
+      );
+    });
+
     test('ClaimGlobalEnabledNotifier：setEnabled 即时态 + 落盘 + load 回读',
         () async {
       SharedPreferences.setMockInitialValues({});

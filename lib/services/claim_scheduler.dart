@@ -46,9 +46,18 @@ abstract final class ClaimSchedulerPolicy {
 
   static const int defaultSilentEnd = 8 * 60;
 
-  /// 轮间隔 = 基准 ±20% jitter（[8min, 12min] 闭区间内）。
-  static Duration roundIntervalJittered(math.Random random) {
-    final baseMs = roundInterval.inMilliseconds;
+  /// 轮询间隔默认 10min；可配置范围 [1, 120] 分钟（20261118-0110 G1）。
+  static const int defaultIntervalMinutes = 10;
+  static const int minIntervalMinutes = 1;
+  static const int maxIntervalMinutes = 120;
+
+  /// 轮间隔 = 基准 ±20% jitter。基准来自每设备配置（20261118-0110 G2），
+  /// 默认 10min；间隔 1min 时抖动带为 [0.8min, 1.2min]。
+  static Duration roundIntervalJittered(
+    math.Random random, {
+    int baseMinutes = 10,
+  }) {
+    final baseMs = baseMinutes * 60 * 1000;
     final span = (baseMs * 0.20).round();
     final offset = (random.nextDouble() * 2 - 1) * span;
     return Duration(milliseconds: baseMs + offset.round());
@@ -104,6 +113,7 @@ class ClaimAutoConfig {
     this.silentStartMinutes = ClaimSchedulerPolicy.defaultSilentStart,
     this.silentEndMinutes = ClaimSchedulerPolicy.defaultSilentEnd,
     this.locallyOverridden = false,
+    this.intervalMinutes = ClaimSchedulerPolicy.defaultIntervalMinutes,
   });
 
   final bool enabled;
@@ -119,6 +129,10 @@ class ClaimAutoConfig {
   /// 缺省 false：旧数据与新设备默认都跟随全局。
   final bool locallyOverridden;
 
+  /// 轮询间隔基准（分钟，20261118-0110 G1）：默认 10，clamp [1,120]。
+  /// 实际间隔 = 基准 ±20% 抖动。
+  final int intervalMinutes;
+
   /// start == end 表示关闭静默时段。
   bool get silentEnabled => silentStartMinutes != silentEndMinutes;
 
@@ -127,11 +141,13 @@ class ClaimAutoConfig {
     int? silentStartMinutes,
     int? silentEndMinutes,
     bool? locallyOverridden,
+    int? intervalMinutes,
   }) => ClaimAutoConfig(
     enabled: enabled ?? this.enabled,
     silentStartMinutes: silentStartMinutes ?? this.silentStartMinutes,
     silentEndMinutes: silentEndMinutes ?? this.silentEndMinutes,
     locallyOverridden: locallyOverridden ?? this.locallyOverridden,
+    intervalMinutes: intervalMinutes ?? this.intervalMinutes,
   );
 
   Map<String, dynamic> toJson() => {
@@ -139,6 +155,7 @@ class ClaimAutoConfig {
     'silentStart': silentStartMinutes,
     'silentEnd': silentEndMinutes,
     'locallyOverridden': locallyOverridden,
+    'intervalMinutes': intervalMinutes,
   };
 
   /// 容错解析：字段缺失/类型漂移回落默认值（规范 M5）。
@@ -153,6 +170,10 @@ class ClaimAutoConfig {
         ? (j['silentEnd'] as num).toInt().clamp(0, 24 * 60 - 1)
         : ClaimSchedulerPolicy.defaultSilentEnd,
     locallyOverridden: j['locallyOverridden'] == true,
+    intervalMinutes:
+        j['intervalMinutes'] is num
+        ? (j['intervalMinutes'] as num).toInt().clamp(1, 120)
+        : ClaimSchedulerPolicy.defaultIntervalMinutes,
   );
 
   @override
@@ -161,7 +182,8 @@ class ClaimAutoConfig {
       other.enabled == enabled &&
       other.silentStartMinutes == silentStartMinutes &&
       other.silentEndMinutes == silentEndMinutes &&
-      other.locallyOverridden == locallyOverridden;
+      other.locallyOverridden == locallyOverridden &&
+      other.intervalMinutes == intervalMinutes;
 
   @override
   int get hashCode => Object.hash(
@@ -169,6 +191,7 @@ class ClaimAutoConfig {
     silentStartMinutes,
     silentEndMinutes,
     locallyOverridden,
+    intervalMinutes,
   );
 }
 
@@ -451,19 +474,31 @@ class ClaimSchedulerSnapshot {
   const ClaimSchedulerSnapshot({
     required this.enabled,
     required this.roundInFlight,
+    required this.running,
     this.cooldownUntil,
     this.manualCooldownUntil,
+    this.nextRoundAt,
+    this.intervalMinutes = 10,
   });
 
   final bool enabled;
 
   final bool roundInFlight;
 
+  /// 循环是否已启动（false = 停表/未启动）。
+  final bool running;
+
   /// 失败冷却截止（null = 无冷却）。
   final DateTime? cooldownUntil;
 
   /// 手动操作冷却截止（null = 无冷却）。
   final DateTime? manualCooldownUntil;
+
+  /// 下次轮询时刻（20261118-0110 G3）：null = 未启动 / 轮次在飞。
+  final DateTime? nextRoundAt;
+
+  /// 轮询间隔基准（分钟，倒计时进度条分母用）。
+  final int intervalMinutes;
 }
 
 /// 自动领取调度代理（纯逻辑，时钟/延迟/RPC 全注入，可全矩阵单测）。
@@ -522,6 +557,9 @@ class ClaimSchedulerAgent {
 
   int _roundsRun = 0;
 
+  /// 下次轮询时刻（20261118-0110 G3）：null = 未启动 / 轮次在飞 / 已停表。
+  DateTime? _nextRoundAt;
+
   DateTime _now() => _nowFunc();
 
   Future<void> _delay(Duration d) => _delayFunc(d);
@@ -545,12 +583,16 @@ class ClaimSchedulerAgent {
   /// 当前是否有轮次在飞。
   bool get roundInFlight => _roundInFlight;
 
-  /// UI 展示用状态快照（冷却截止/在飞/启用态，20261116-2341 D1③）。
+  /// UI 展示用状态快照（冷却截止/在飞/启用态/下次轮询，20261116-2341 D1③
+  /// + 20261118-0110 G3）。
   ClaimSchedulerSnapshot snapshot() => ClaimSchedulerSnapshot(
     enabled: _config.enabled,
     roundInFlight: _roundInFlight,
+    running: _started,
     cooldownUntil: _cooldownUntil,
     manualCooldownUntil: _manualCooldownUntil,
+    nextRoundAt: _started ? _nextRoundAt : null,
+    intervalMinutes: _config.intervalMinutes,
   );
 
   /// 立即执行一轮（UI「立即执行一轮」入口，20261116-2341 D1②）：
@@ -580,6 +622,7 @@ class ClaimSchedulerAgent {
 
   void stop() {
     _started = false;
+    _nextRoundAt = null;
     _generation++; // 在飞循环/轮次在下一个检查点退出。
   }
 
@@ -615,16 +658,24 @@ class ClaimSchedulerAgent {
   }
 
   Future<void> _runLoop(int gen) async {
+    _nextRoundAt = _now().add(ClaimSchedulerPolicy.firstDelay);
     await _delay(ClaimSchedulerPolicy.firstDelay);
     while (_generation == gen) {
       final gate = _gateWait();
       if (gate != null) {
+        _nextRoundAt = _now().add(gate);
         await _delay(gate);
         continue;
       }
+      _nextRoundAt = null; // 轮次即将在飞。
       await _runRound(gen);
       if (_generation != gen) break;
-      await _delay(ClaimSchedulerPolicy.roundIntervalJittered(_random));
+      final interval = ClaimSchedulerPolicy.roundIntervalJittered(
+        _random,
+        baseMinutes: _config.intervalMinutes,
+      );
+      _nextRoundAt = _now().add(interval);
+      await _delay(interval);
     }
   }
 

@@ -621,6 +621,46 @@
   "@claimBlockedHostBackground": {
     "description": "History blocked record: host disposed its ChannelClient in background (L39, 20261118-0030 F3)"
   },
+  "claimIntervalEntry": "Polling interval",
+  "@claimIntervalEntry": {
+    "description": "Auto-claim polling interval settings entry (20261118-0110 G4)"
+  },
+  "claimIntervalSheetHint": "Interval between automatic checks, with ±20% jitter; too short may trigger risk controls",
+  "@claimIntervalSheetHint": {
+    "description": "Interval sheet footnote"
+  },
+  "claimIntervalMinutesValue": "{n} min",
+  "@claimIntervalMinutesValue": {
+    "description": "Interval value label",
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "claimNextCheckIn": "Check in {time}",
+  "@claimNextCheckIn": {
+    "description": "Countdown until next auto-claim round",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "claimCheckingNow": "Checking…",
+  "@claimCheckingNow": {
+    "description": "Auto round in flight"
+  },
+  "claimWaitingSilent": "Silent until {time}",
+  "@claimWaitingSilent": {
+    "description": "Waiting for silent window to end",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "claimWaitingCooldown": "Cooldown until {time}",
+  "@claimWaitingCooldown": {
+    "description": "Waiting for failure cooldown to end",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
   "claimGlobalOffHint": "Global auto claim is off — enable it in Settings",
   "@claimGlobalOffHint": {
     "description": "Claim page hint when the global auto-claim master switch is off (20261117-0024 G4)"
@@ -662,6 +702,18 @@
       "noPlans": {"type": "int"},
       "skip": {"type": "int"}
     }
+  },
+  "settingsClaimGlobalNext": "Check in {time} ({n} device(s))",
+  "@settingsClaimGlobalNext": {
+    "description": "Global aggregated countdown: earliest next check across enabled devices (20261118-0110 G5)",
+    "placeholders": {
+      "time": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+  "settingsClaimChecking": "Checking…",
+  "@settingsClaimChecking": {
+    "description": "Global countdown while a round is in flight"
   },
   "claimAutoTabLabel": "Plans",
   "@claimAutoTabLabel": {

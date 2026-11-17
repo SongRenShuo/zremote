@@ -43,6 +43,15 @@ class ClaimConfigNotifier extends Notifier<Map<String, ClaimAutoConfig>> {
           silentEndMinutes: endMinutes,
         ),
       );
+
+  /// 轮询间隔（分钟，20261118-0110 G1）：clamp [1,120]，不改独立设置标记
+  /// （间隔不是"开关覆盖"语义的一部分）。
+  Future<void> setInterval(String deviceId, int minutes) => _save(
+    deviceId,
+    (state[deviceId] ?? const ClaimAutoConfig()).copyWith(
+      intervalMinutes: minutes.clamp(1, 120),
+    ),
+  );
 }
 
 final claimConfigProvider =

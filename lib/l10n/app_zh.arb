@@ -1349,6 +1349,46 @@
   "@claimBlockedHostBackground": {
     "description": "History blocked record: host disposed its ChannelClient in background (L39, 20261118-0030 F3)"
   },
+  "claimIntervalEntry": "轮询间隔",
+  "@claimIntervalEntry": {
+    "description": "Auto-claim polling interval settings entry (20261118-0110 G4)"
+  },
+  "claimIntervalSheetHint": "每次检查可领活动的间隔，实际按 ±20% 抖动；过短可能触发风控",
+  "@claimIntervalSheetHint": {
+    "description": "Interval sheet footnote"
+  },
+  "claimIntervalMinutesValue": "{n} 分钟",
+  "@claimIntervalMinutesValue": {
+    "description": "Interval value label",
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "claimNextCheckIn": "{time} 后检查",
+  "@claimNextCheckIn": {
+    "description": "Countdown until next auto-claim round",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "claimCheckingNow": "正在检查…",
+  "@claimCheckingNow": {
+    "description": "Auto round in flight"
+  },
+  "claimWaitingSilent": "静默中，{time} 恢复",
+  "@claimWaitingSilent": {
+    "description": "Waiting for silent window to end",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "claimWaitingCooldown": "冷却至 {time}",
+  "@claimWaitingCooldown": {
+    "description": "Waiting for failure cooldown to end",
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
   "claimGlobalOffHint": "全局自动领取已关闭，可在设置中开启",
   "@claimGlobalOffHint": {
     "description": "Claim page hint when the global auto-claim master switch is off (20261117-0024 G4)"
@@ -1390,6 +1430,18 @@
       "noPlans": {"type": "int"},
       "skip": {"type": "int"}
     }
+  },
+  "settingsClaimGlobalNext": "{time} 后检查（{n} 台设备）",
+  "@settingsClaimGlobalNext": {
+    "description": "Global aggregated countdown: earliest next check across enabled devices (20261118-0110 G5)",
+    "placeholders": {
+      "time": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+  "settingsClaimChecking": "正在检查…",
+  "@settingsClaimChecking": {
+    "description": "Global countdown while a round is in flight"
   },
   "claimAutoTabLabel": "可领活动",
   "@claimAutoTabLabel": {

@@ -163,13 +163,35 @@ void main() {
     test('轮间隔 jitter 恒在 [8min, 12min]', () {
       final random = math.Random(7);
       for (var i = 0; i < 500; i++) {
-        final d = ClaimSchedulerPolicy.roundIntervalJittered(random);
+        final d = ClaimSchedulerPolicy.roundIntervalJittered(
+          random,
+          baseMinutes: 10,
+        );
         expect(
           d.inMilliseconds,
           allOf(
             greaterThanOrEqualTo(const Duration(minutes: 8).inMilliseconds),
             lessThanOrEqualTo(const Duration(minutes: 12).inMilliseconds),
           ),
+        );
+      }
+    });
+
+    test('可配置间隔：jitter 随 baseMinutes 漂移（1min → [0.8, 1.2]min）',
+        () {
+      final random = math.Random(7);
+      for (var i = 0; i < 500; i++) {
+        final d = ClaimSchedulerPolicy.roundIntervalJittered(
+          random,
+          baseMinutes: 1,
+        );
+        expect(
+          d.inMilliseconds,
+          allOf(
+            greaterThanOrEqualTo(const Duration(seconds: 48).inMilliseconds),
+            lessThanOrEqualTo(const Duration(seconds: 72).inMilliseconds),
+          ),
+          reason: '20261118-0110 G2：间隔随配置缩放',
         );
       }
     });
@@ -736,6 +758,52 @@ void main() {
       s = agent.snapshot();
       expect(s.enabled, isTrue, reason: '快照反映配置态');
       expect(s.cooldownUntil, DateTime(2026, 11, 15, 13), reason: '1003 → 1h');
+    });
+
+    test('可配置间隔 + nextRoundAt（20261118-0110 G2/G3）', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [];
+      h.makeAgent(
+        config: const ClaimAutoConfig(enabled: true, intervalMinutes: 1),
+      );
+      h.agent.start();
+
+      // 首轮前：nextRoundAt = start + 2min。
+      var s = h.agent.snapshot();
+      expect(s.nextRoundAt, DateTime(2026, 11, 15, 12, 2));
+      await h.advance(const Duration(minutes: 2));
+      expect(h.client.previewCalls, 1);
+
+      // 轮后 nextRoundAt = now + [0.8, 1.2]min（interval=1）。
+      s = h.agent.snapshot();
+      expect(s.nextRoundAt, isNotNull);
+      final diff = s.nextRoundAt!.difference(DateTime(2026, 11, 15, 12, 2));
+      expect(
+        diff.inMilliseconds,
+        allOf(
+          greaterThanOrEqualTo(const Duration(seconds: 48).inMilliseconds),
+          lessThanOrEqualTo(const Duration(seconds: 72).inMilliseconds),
+        ),
+        reason: '1min 配置生效（±20% 抖动）',
+      );
+
+      // advance 过下界 → 第二轮触发，nextRoundAt 重算。
+      await h.advance(const Duration(seconds: 72));
+      expect(h.client.previewCalls, 2);
+      s = h.agent.snapshot();
+      expect(s.nextRoundAt, isNotNull, reason: '下轮时间已重算');
+      // interval 字段随配置。
+      expect(s.intervalMinutes, 1);
+    });
+
+    test('stop 后 nextRoundAt 清 null（倒计时区域隐藏）', () async {
+      final h = _Harness(DateTime(2026, 11, 15, 12));
+      h.client.previews = [];
+      h.makeAgent();
+      h.agent.start();
+      expect(h.agent.snapshot().nextRoundAt, isNotNull);
+      h.agent.stop();
+      expect(h.agent.snapshot().nextRoundAt, isNull);
     });
   });
 
