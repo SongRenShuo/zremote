@@ -3358,6 +3358,39 @@
   "@uxSessionNoMatch": {
     "description": "Session panel: no match after filter"
   },
+  "uxSessionEmptySearchHint": "No sessions match \"{query}\". Try another keyword or clear the search.",
+  "@uxSessionEmptySearchHint": {
+    "description": "Session panel: search empty-state hint with query",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "uxSessionEmptyRunningTitle": "No running sessions",
+  "@uxSessionEmptyRunningTitle": {
+    "description": "Session panel: running filter empty-state title"
+  },
+  "uxSessionEmptyRunningHint": "Nothing is running right now. Switch to \"All\" to see everything.",
+  "@uxSessionEmptyRunningHint": {
+    "description": "Session panel: running filter empty-state hint"
+  },
+  "uxSessionEmptyNeedsInputTitle": "No sessions need input",
+  "@uxSessionEmptyNeedsInputTitle": {
+    "description": "Session panel: needs-input filter empty-state title"
+  },
+  "uxSessionEmptyNeedsInputHint": "Nothing is waiting for your input. Switch to \"All\" to see everything.",
+  "@uxSessionEmptyNeedsInputHint": {
+    "description": "Session panel: needs-input filter empty-state hint"
+  },
+  "uxSessionEmptyShowAll": "Show all",
+  "@uxSessionEmptyShowAll": {
+    "description": "Session panel: empty-state action to clear status filter"
+  },
+  "uxSessionClearSearch": "Clear search",
+  "@uxSessionClearSearch": {
+    "description": "Session panel: clear search field"
+  },
   "uxWidePickDevice": "Pick a device from the rail",
   "@uxWidePickDevice": {
     "description": "Wide layout: pick device hint"

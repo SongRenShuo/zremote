@@ -331,4 +331,111 @@ void main() {
       expect(find.byKey(const Key('session-stop-button')), findsNothing);
     });
   });
+
+  group('搜索/过滤空态引导（车道 F）', () {
+    testWidgets('搜索无结果：通用标题 + 带关键词引导 + 「清除搜索」动作', (tester) async {
+      await pumpPanel(tester, [
+        sess('s1', title: '重构登录', phase: 'running'),
+        sess('s2', title: '修 BUG', phase: 'error'),
+      ]);
+      await tester.enterText(
+        find.byKey(const Key('session-panel-search')),
+        '不存在',
+      );
+      await tester.pump();
+
+      expect(find.text('无匹配会话'), findsOneWidget);
+      expect(
+        find.text('未找到与「不存在」相关的会话，换个关键词或清除搜索试试'),
+        findsOneWidget,
+      );
+      expect(find.text('清除搜索'), findsOneWidget);
+      expect(
+        find.byKey(const Key('session-panel-empty-action')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('session-panel-empty-action')));
+      await tester.pump();
+
+      expect(find.text('无匹配会话'), findsNothing);
+      expect(find.text('重构登录'), findsOneWidget);
+    });
+
+    testWidgets('搜索框一键清除按钮（有词才出现）', (tester) async {
+      await pumpPanel(tester, [sess('s1', title: '任务A')]);
+      expect(
+        find.byKey(const Key('session-panel-search-clear')),
+        findsNothing,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('session-panel-search')),
+        '任务',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const Key('session-panel-search-clear')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('session-panel-search-clear')));
+      await tester.pump();
+      expect(
+        find.byKey(const Key('session-panel-search-clear')),
+        findsNothing,
+      );
+      expect(find.text('任务A'), findsOneWidget);
+    });
+
+    testWidgets('运行中过滤空态：具体原因 + 「查看全部」动作', (tester) async {
+      await pumpPanel(tester, [
+        sess('s1', title: '已完成', phase: 'completedSuccess'),
+      ]);
+      await tester.tap(find.text('运行中'));
+      await tester.pump();
+
+      expect(find.text('没有运行中的会话'), findsOneWidget);
+      expect(find.textContaining('切换到「全部」'), findsOneWidget);
+      expect(find.text('查看全部'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('session-panel-empty-action')));
+      await tester.pump();
+      expect(find.text('没有运行中的会话'), findsNothing);
+      expect(find.byKey(const Key('session-active-dot-s1')), findsOneWidget);
+    });
+
+    testWidgets('需输入过滤空态：待输入原因文案，不串用运行中文案', (tester) async {
+      await pumpPanel(tester, [
+        sess('s1', title: '普通会话', phase: 'running'),
+      ]);
+      await tester.tap(find.text('需输入'));
+      await tester.pump();
+
+      expect(find.text('没有待输入的会话'), findsOneWidget);
+      expect(find.text('没有运行中的会话'), findsNothing);
+    });
+
+    testWidgets('搜索 + 过滤组合空态：搜索原因优先，动作仍是清除搜索', (tester) async {
+      await pumpPanel(tester, [
+        sess('s1', title: '跑着', phase: 'running'),
+        sess('s2', title: '待输入', phase: 'completedSuccess', userInputCount: 1),
+      ]);
+      await tester.tap(find.text('需输入'));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('session-panel-search')),
+        '跑着',
+      );
+      await tester.pump();
+
+      // 「跑着」被需输入过滤掉 → 空态；标题沿用搜索文案，引导含关键词。
+      expect(find.text('无匹配会话'), findsOneWidget);
+      expect(
+        find.text('未找到与「跑着」相关的会话，换个关键词或清除搜索试试'),
+        findsOneWidget,
+      );
+      expect(find.text('没有待输入的会话'), findsNothing);
+    });
+  });
 }

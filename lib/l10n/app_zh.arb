@@ -4109,6 +4109,39 @@
   "@uxSessionNoMatch": {
     "description": "Session panel: no match after filter"
   },
+  "uxSessionEmptySearchHint": "未找到与「{query}」相关的会话，换个关键词或清除搜索试试",
+  "@uxSessionEmptySearchHint": {
+    "description": "Session panel: search empty-state hint with query",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "uxSessionEmptyRunningTitle": "没有运行中的会话",
+  "@uxSessionEmptyRunningTitle": {
+    "description": "Session panel: running filter empty-state title"
+  },
+  "uxSessionEmptyRunningHint": "当前没有正在运行的会话，切换到「全部」查看全部",
+  "@uxSessionEmptyRunningHint": {
+    "description": "Session panel: running filter empty-state hint"
+  },
+  "uxSessionEmptyNeedsInputTitle": "没有待输入的会话",
+  "@uxSessionEmptyNeedsInputTitle": {
+    "description": "Session panel: needs-input filter empty-state title"
+  },
+  "uxSessionEmptyNeedsInputHint": "当前没有需要你输入的会话，切换到「全部」查看全部",
+  "@uxSessionEmptyNeedsInputHint": {
+    "description": "Session panel: needs-input filter empty-state hint"
+  },
+  "uxSessionEmptyShowAll": "查看全部",
+  "@uxSessionEmptyShowAll": {
+    "description": "Session panel: empty-state action to clear status filter"
+  },
+  "uxSessionClearSearch": "清除搜索",
+  "@uxSessionClearSearch": {
+    "description": "Session panel: clear search field"
+  },
   "uxWidePickDevice": "从左侧选择设备",
   "@uxWidePickDevice": {
     "description": "Wide layout: pick device hint"

@@ -79,6 +79,54 @@ class _SessionPanelSheetState extends State<SessionPanelSheet> {
     super.dispose();
   }
 
+  bool get _searching => _search.text.trim().isNotEmpty;
+
+  void _clearSearch() {
+    ZrHaptics.tap();
+    _search.clear();
+    setState(() {});
+    FocusScope.of(context).unfocus();
+  }
+
+  /// 空态主文案：搜索无结果沿用「无匹配会话」（老用例契约），
+  /// 过滤无结果给出具体原因。
+  String _emptyTitle(AppLocalizations l10n) {
+    if (_searching) return l10n.uxSessionNoMatch;
+    return switch (_kind) {
+      SessionFilterKind.running => l10n.uxSessionEmptyRunningTitle,
+      SessionFilterKind.needsInput => l10n.uxSessionEmptyNeedsInputTitle,
+      SessionFilterKind.all => l10n.uxSessionNoMatch,
+    };
+  }
+
+  String _emptyHint(AppLocalizations l10n) {
+    if (_searching) {
+      return l10n.uxSessionEmptySearchHint(_search.text.trim());
+    }
+    return switch (_kind) {
+      SessionFilterKind.running => l10n.uxSessionEmptyRunningHint,
+      SessionFilterKind.needsInput => l10n.uxSessionEmptyNeedsInputHint,
+      SessionFilterKind.all => '',
+    };
+  }
+
+  String? _emptyActionLabel(AppLocalizations l10n) {
+    if (_searching) return l10n.uxSessionClearSearch;
+    if (_kind != SessionFilterKind.all) return l10n.uxSessionEmptyShowAll;
+    return null;
+  }
+
+  void _emptyAction() {
+    ZrHaptics.tap();
+    if (_searching) {
+      _clearSearch();
+      return;
+    }
+    if (_kind != SessionFilterKind.all) {
+      setState(() => _kind = SessionFilterKind.all);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -173,6 +221,24 @@ class _SessionPanelSheetState extends State<SessionPanelSheet> {
               decoration: InputDecoration(
                 hintText: l10n.uxSessionSearchHint,
                 prefixIcon: Icon(Icons.search, size: 17, color: context.zt.textLo),
+                // 搜索态提供「一键清除」：空态引导也可达（车道 F 搜索体验）。
+                suffixIcon: _searching
+                    ? IconButton(
+                        key: const Key('session-panel-search-clear'),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 15,
+                          color: context.zt.textLo,
+                        ),
+                        tooltip: l10n.uxSessionClearSearch,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 isDense: true,
               ),
@@ -214,12 +280,17 @@ class _SessionPanelSheetState extends State<SessionPanelSheet> {
             ),
           )
         else if (visible.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Text(
-              l10n.uxSessionNoMatch,
-              style: TextStyle(fontSize: 13, color: context.zt.textLo),
-            ),
+          // 空态区分「搜索无结果」与「状态过滤无结果」，并给出下一步动作
+          // （清除搜索 / 查看全部），避免用户面对一句「无匹配会话」不知道
+          // 是词不对还是过滤太窄。
+          _EmptyState(
+            icon: _searching
+                ? Icons.search_off_rounded
+                : Icons.filter_alt_off_rounded,
+            title: _emptyTitle(l10n),
+            hint: _emptyHint(l10n),
+            actionLabel: _emptyActionLabel(l10n),
+            onAction: _emptyAction,
           )
         else
           Flexible(
@@ -617,6 +688,63 @@ class _PhasePill extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+/// 搜索/过滤空态：图标 + 原因 + 引导 + 下一步动作。
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.hint,
+    required this.onAction,
+    this.actionLabel,
+  });
+
+  final IconData icon;
+  final String title;
+  final String hint;
+  final String? actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 28, color: zt.textTertiary),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: zt.textHi,
+            ),
+          ),
+          if (hint.isNotEmpty) ...[
+            const SizedBox(height: 5),
+            Text(
+              hint,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11.5, height: 1.4, color: zt.textLo),
+            ),
+          ],
+          if (actionLabel != null) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              key: const Key('session-panel-empty-action'),
+              onPressed: onAction,
+              child: Text(actionLabel!),
+            ),
+          ],
+        ],
       ),
     );
   }
