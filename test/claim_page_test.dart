@@ -741,34 +741,22 @@ void main() {
       expect(find.text('自动'), findsOneWidget);
     });
 
-    testWidgets('全局总闸关 → 「立即执行」不渲染 + 提示行出现；重开恢复（G4）',
+    testWidgets('单层语义：设备开关独立控制「立即执行」显示（无全局提示）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       final bridge = ScriptedBridge(script: [
         [previewsResponse([])],
       ]);
       final container = await pumpPage(tester, bridge: bridge);
-      // 默认开：开设备开关让「立即执行」行渲染（全局默认开 → 行为零回归）。
+      // 设备开关关 → 无立即执行行。
+      expect(find.byKey(const Key('claim-run-now-btn')), findsNothing);
+
       await container
           .read(claimConfigProvider.notifier)
           .setEnabled('d1', true);
       await tester.pump();
       expect(find.byKey(const Key('claim-run-now-btn')), findsOneWidget);
-      expect(find.byKey(const Key('claim-global-off-hint')), findsNothing);
-
-      await container
-          .read(claimGlobalEnabledProvider.notifier)
-          .setEnabled(false);
-      await tester.pump();
-      expect(find.byKey(const Key('claim-run-now-btn')), findsNothing);
-      expect(find.byKey(const Key('claim-global-off-hint')), findsOneWidget);
-      expect(find.textContaining('全局自动领取已关闭'), findsOneWidget);
-
-      await container
-          .read(claimGlobalEnabledProvider.notifier)
-          .setEnabled(true);
-      await tester.pump();
-      expect(find.byKey(const Key('claim-run-now-btn')), findsOneWidget);
+      // 全局提示层已移除（单层语义）。
       expect(find.byKey(const Key('claim-global-off-hint')), findsNothing);
     });
   });

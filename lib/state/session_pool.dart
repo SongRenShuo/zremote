@@ -20,6 +20,13 @@ class DeviceListNotifier extends Notifier<List<RemoteDevice>> {
 
   Future<void> add(RemoteDevice device) async {
     await DeviceStore.instance.add(device);
+    // 新设备继承全局自动领取默认值（20261117-1230 R1）：所有新增路径
+    // （登录导入/账号库/深链/扫码）都经此漏斗，统一初始化领取配置。
+    try {
+      await DeviceStore.instance.initClaimConfigForNewDevice(device.id);
+    } catch (e) {
+      debugPrint('[device-list] init claim config failed: $e');
+    }
     state = [...state, device];
   }
 

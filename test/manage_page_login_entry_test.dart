@@ -7,6 +7,7 @@ import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/state/keepalive.dart';
 import 'package:zremote/state/session_pool.dart';
+import 'package:zremote/ui/account_vault_page.dart';
 import 'package:zremote/ui/manage_page.dart';
 
 class _FakeDeviceListNotifier extends DeviceListNotifier {
@@ -101,6 +102,23 @@ void main() {
     await tester.tap(sheetLogin);
     await tester.pumpAndSettle();
     await _expectLoginPage(tester);
+  });
+
+  testWidgets('有设备：接入新设备 sheet 末尾「从账户添加设备」可达账号库', (
+    tester,
+  ) async {
+    await _pumpManage(tester, [_device('vault1')]);
+
+    await tester.tap(find.byTooltip('扫码导入'));
+    await tester.pumpAndSettle();
+
+    final vaultEntry = find.byKey(const Key('import-sheet-account-vault'));
+    expect(vaultEntry, findsOneWidget);
+    expect(find.text('账号库'), findsOneWidget);
+
+    await tester.tap(vaultEntry);
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountVaultPage), findsOneWidget);
   });
 
   testWidgets('0 设备：顶栏 + 可见且 sheet 登录项可达 LoginWebPage（空态不回归）', (

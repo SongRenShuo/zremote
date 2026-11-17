@@ -739,56 +739,33 @@ void main() {
     });
   });
 
-  group('全局总闸门控（20261117-0024 G2）', () {
-    test('默认开：设备开关开 → start 照跑（升级零回归锁）', () async {
+  group('locallyOverridden 独立设置标记（20261117-1230 R1）', () {
+    test('默认值 false；fromJson 缺失回落 false；JSON 往返保真', () {
+      const cfg = ClaimAutoConfig();
+      expect(cfg.locallyOverridden, isFalse);
+      expect(
+        ClaimAutoConfig.fromJson({}).locallyOverridden,
+        isFalse,
+        reason: '旧数据无键 → false（跟随全局）',
+      );
+      final overridden = cfg.copyWith(
+        enabled: true,
+        locallyOverridden: true,
+      );
+      expect(
+        ClaimAutoConfig.fromJson(overridden.toJson()),
+        overridden,
+        reason: '往返保真（equality 含 locallyOverridden）',
+      );
+    });
+
+    test('设备开关开 → start 照跑（单层语义：无运行期全局门）', () async {
       final h = _Harness(DateTime(2026, 11, 15, 12));
       h.client.previews = [];
       h.makeAgent();
-      expect(h.agent.globalEnabled, isTrue, reason: '全局默认开（计划 §3）');
       h.agent.start();
       await h.advance(const Duration(minutes: 2));
       expect(h.client.previewCalls, 1);
-    });
-
-    test('全局关 → 停表零调用；重开 → 设备开关已开则恢复循环', () async {
-      final h = _Harness(DateTime(2026, 11, 15, 12));
-      h.client.previews = [];
-      h.makeAgent();
-      h.agent.start();
-      await h.advance(const Duration(minutes: 2));
-      expect(h.client.previewCalls, 1);
-
-      h.agent.setGlobalEnabled(false);
-      await h.advance(const Duration(hours: 24));
-      expect(h.client.previewCalls, 1, reason: '全局关：零调用');
-      expect(h.agent.started, isFalse);
-
-      h.agent.setGlobalEnabled(true);
-      await h.advance(const Duration(minutes: 2));
-      expect(h.client.previewCalls, 2, reason: '重开：设备开关已开则恢复');
-    });
-
-    test('全局关时 updateConfig(enabled) 不启动；runNow 拒绝', () async {
-      final h = _Harness(DateTime(2026, 11, 15, 12));
-      h.client.previews = [];
-      h.makeAgent(config: const ClaimAutoConfig(enabled: false));
-      h.agent.setGlobalEnabled(false);
-
-      h.agent.updateConfig(const ClaimAutoConfig(enabled: true));
-      expect(h.agent.started, isFalse, reason: '全局门优先');
-      expect(h.client.previewCalls, 0);
-      expect(await h.agent.runNow(), isFalse, reason: 'runNow 全局门');
-    });
-
-    test('未 start 时 setGlobalEnabled(false) → 后续 start 不启动（attach 前置路径）',
-        () async {
-      final h = _Harness(DateTime(2026, 11, 15, 12));
-      h.client.previews = [];
-      h.makeAgent();
-      h.agent.setGlobalEnabled(false);
-      h.agent.start();
-      await h.advance(const Duration(hours: 1));
-      expect(h.client.previewCalls, 0);
     });
   });
 

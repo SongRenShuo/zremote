@@ -103,6 +103,7 @@ class ClaimAutoConfig {
     this.enabled = false,
     this.silentStartMinutes = ClaimSchedulerPolicy.defaultSilentStart,
     this.silentEndMinutes = ClaimSchedulerPolicy.defaultSilentEnd,
+    this.locallyOverridden = false,
   });
 
   final bool enabled;
@@ -113,6 +114,11 @@ class ClaimAutoConfig {
   /// 静默窗口结束（当天分钟数，默认 8*60，不含）。
   final int silentEndMinutes;
 
+  /// 用户在该设备领取页单独切换过开关（20261117-1230 R1）。
+  /// true = 设备自己说了算，全局总开关批量写入时跳过此设备。
+  /// 缺省 false：旧数据与新设备默认都跟随全局。
+  final bool locallyOverridden;
+
   /// start == end 表示关闭静默时段。
   bool get silentEnabled => silentStartMinutes != silentEndMinutes;
 
@@ -120,16 +126,19 @@ class ClaimAutoConfig {
     bool? enabled,
     int? silentStartMinutes,
     int? silentEndMinutes,
+    bool? locallyOverridden,
   }) => ClaimAutoConfig(
     enabled: enabled ?? this.enabled,
     silentStartMinutes: silentStartMinutes ?? this.silentStartMinutes,
     silentEndMinutes: silentEndMinutes ?? this.silentEndMinutes,
+    locallyOverridden: locallyOverridden ?? this.locallyOverridden,
   );
 
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
     'silentStart': silentStartMinutes,
     'silentEnd': silentEndMinutes,
+    'locallyOverridden': locallyOverridden,
   };
 
   /// 容错解析：字段缺失/类型漂移回落默认值（规范 M5）。
@@ -143,6 +152,7 @@ class ClaimAutoConfig {
         j['silentEnd'] is num
         ? (j['silentEnd'] as num).toInt().clamp(0, 24 * 60 - 1)
         : ClaimSchedulerPolicy.defaultSilentEnd,
+    locallyOverridden: j['locallyOverridden'] == true,
   );
 
   @override
@@ -150,10 +160,16 @@ class ClaimAutoConfig {
       other is ClaimAutoConfig &&
       other.enabled == enabled &&
       other.silentStartMinutes == silentStartMinutes &&
-      other.silentEndMinutes == silentEndMinutes;
+      other.silentEndMinutes == silentEndMinutes &&
+      other.locallyOverridden == locallyOverridden;
 
   @override
-  int get hashCode => Object.hash(enabled, silentStartMinutes, silentEndMinutes);
+  int get hashCode => Object.hash(
+    enabled,
+    silentStartMinutes,
+    silentEndMinutes,
+    locallyOverridden,
+  );
 }
 
 /// 领取链路 RPC 门面（通路 A 宿主 RPC / 通路 B 直连实验位共用接口）。
@@ -487,10 +503,6 @@ class ClaimSchedulerAgent {
   bool _manualActive = false;
   bool _abortRequested = false;
 
-  /// 全局自动领取总闸（20261117-0024 G2）。默认开：与既有 per-device
-  /// 行为零差异（计划 §3 裁定——避免已开设备的升级回归）。
-  bool _globalEnabled = true;
-
   /// 代际令牌：stop/重启后旧循环在下一个检查点退出（防双循环）。
   int _generation = 0;
 
@@ -520,9 +532,6 @@ class ClaimSchedulerAgent {
   /// 自动领取是否已启用（UI「立即执行」入口的可用判据）。
   bool get enabled => _config.enabled;
 
-  /// 全局总闸当前读数（测试/诊断用）。
-  bool get globalEnabled => _globalEnabled;
-
   /// 当前是否有轮次在飞。
   bool get roundInFlight => _roundInFlight;
 
@@ -537,13 +546,12 @@ class ClaimSchedulerAgent {
   /// 立即执行一轮（UI「立即执行一轮」入口，20261116-2341 D1②）：
   /// 清除失败冷却并越过首轮延迟，立即跑一轮。
   ///
-  /// 门控保留：未启用 / 全局总闸关 / 设备非 live / 手动操作进行中 /
+  /// 门控保留：未启用 / 设备非 live / 手动操作进行中 /
   /// 已有轮次在飞时不触发（返回 false）。与在飞自动循环互斥由
   /// [_roundInFlight] 保证；循环若在门控等待中，其醒来后照常检查门
   /// （冷却已被清，直接跑轮）。
   Future<bool> runNow() async {
     if (!_config.enabled) return false;
-    if (!_globalEnabled) return false;
     if (!_live) return false;
     if (_manualActive) return false;
     if (_roundInFlight) return false;
@@ -554,7 +562,6 @@ class ClaimSchedulerAgent {
 
   void start() {
     if (_started) return;
-    if (!_globalEnabled) return; // 全局总闸关：零调用（20261117-0024 G2）。
     if (!_config.enabled) return; // 开关默认关：未启用不启动（零调用）。
     _started = true;
     final gen = ++_generation;
@@ -566,19 +573,7 @@ class ClaimSchedulerAgent {
     _generation++; // 在飞循环/轮次在下一个检查点退出。
   }
 
-  /// 全局自动领取总闸（20261117-0024 G2）：false → 停表；
-  /// true → 若设备开关已开则恢复循环（幂等，代际令牌防双循环）。
-  void setGlobalEnabled(bool enabled) {
-    if (_globalEnabled == enabled) return;
-    _globalEnabled = enabled;
-    if (enabled && _config.enabled) {
-      start();
-    } else {
-      stop();
-    }
-  }
-
-  /// 配置更新：开 → 启动（首轮 2min 重计，全局闸关时不启动）；关 → 停表。
+  /// 配置更新：开 → 启动（首轮 2min 重计）；关 → 停表。
   void updateConfig(ClaimAutoConfig config) {
     _config = config;
     if (config.enabled) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -241,7 +243,9 @@ void main() {
           enabled: true,
           silentStartMinutes: 0,
           silentEndMinutes: 6 * 60,
+          locallyOverridden: true,
         ),
+        reason: 'setEnabled 打独立标记（20261117-1230 R1）',
       );
       final stored = await DeviceStore.instance.claimAutoConfig('d1');
       expect(stored.enabled, isTrue);
@@ -289,6 +293,82 @@ void main() {
       final notifier2 = container2.read(claimGlobalEnabledProvider.notifier);
       await notifier2.load();
       expect(container2.read(claimGlobalEnabledProvider), isFalse);
+    });
+
+    test('一键批量：仅覆盖未独立设置的设备（locallyOverridden 反向验证）',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.claimConfig.d-follow': jsonEncode(
+          const ClaimAutoConfig(enabled: true).toJson(),
+        ),
+        'zremote.claimConfig.d-indep': jsonEncode(
+          const ClaimAutoConfig(
+            enabled: true,
+            locallyOverridden: true,
+          ).toJson(),
+        ),
+      });
+      final changed = await DeviceStore.instance.applyGlobalClaimDefault(
+        false,
+        deviceIds: ['d-follow', 'd-indep'],
+      );
+      expect(changed, ['d-follow'], reason: '仅未独立设置的设备被改写');
+
+      final follow = await DeviceStore.instance.claimAutoConfig('d-follow');
+      expect(follow.enabled, isFalse, reason: '跟随设备被一键关');
+      expect(follow.locallyOverridden, isFalse);
+
+      final indep = await DeviceStore.instance.claimAutoConfig('d-indep');
+      expect(indep.enabled, isTrue, reason: '独立设备不被覆盖');
+      expect(indep.locallyOverridden, isTrue);
+
+      expect(await DeviceStore.instance.claimGlobalEnabled(), isFalse);
+    });
+
+    test('设备页 setEnabled 打独立标记；setSilent 不打标', () async {
+      SharedPreferences.setMockInitialValues({});
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      final cfg = c.read(claimConfigProvider.notifier);
+      await cfg.load('d1');
+      await cfg.setEnabled('d1', true);
+      expect(
+        c.read(claimConfigProvider)['d1']!.locallyOverridden,
+        isTrue,
+        reason: '设备单独切开关 → 打标',
+      );
+
+      final c2 = ProviderContainer();
+      addTearDown(c2.dispose);
+      final cfg2 = c2.read(claimConfigProvider.notifier);
+      await cfg2.load('d2');
+      await cfg2.setSilent('d2', 0, 360);
+      expect(
+        c2.read(claimConfigProvider)['d2']!.locallyOverridden,
+        isFalse,
+        reason: '仅改静默时段不视为独立覆盖',
+      );
+    });
+
+    test('新设备继承全局默认值；已有配置不被覆盖', () async {
+      SharedPreferences.setMockInitialValues({});
+      await DeviceStore.instance.saveClaimGlobalEnabled(false);
+
+      await DeviceStore.instance.initClaimConfigForNewDevice('new-1');
+      final inherited = await DeviceStore.instance.claimAutoConfig('new-1');
+      expect(inherited.enabled, isFalse, reason: '继承全局默认关');
+      expect(inherited.locallyOverridden, isFalse);
+
+      // 已有配置（且独立设置过）不被覆盖。
+      await DeviceStore.instance.saveClaimAutoConfig(
+        'new-1',
+        const ClaimAutoConfig(enabled: true, locallyOverridden: true),
+      );
+      await DeviceStore.instance.saveClaimGlobalEnabled(true);
+      await DeviceStore.instance.initClaimConfigForNewDevice('new-1');
+      final kept = await DeviceStore.instance.claimAutoConfig('new-1');
+      expect(kept.enabled, isTrue, reason: '已有配置不被初始化覆盖');
+      expect(kept.locallyOverridden, isTrue);
     });
   });
 }

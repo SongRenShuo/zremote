@@ -25,9 +25,14 @@ class ClaimConfigNotifier extends Notifier<Map<String, ClaimAutoConfig>> {
     await DeviceStore.instance.saveClaimAutoConfig(deviceId, config);
   }
 
+  /// 设备领取页单独切换开关：打 locallyOverridden 标记（20261117-1230 R1）。
+  /// 打标后该设备不再受全局总开关批量写入影响（"单独设置优先"）。
   Future<void> setEnabled(String deviceId, bool enabled) => _save(
     deviceId,
-    (state[deviceId] ?? const ClaimAutoConfig()).copyWith(enabled: enabled),
+    (state[deviceId] ?? const ClaimAutoConfig()).copyWith(
+      enabled: enabled,
+      locallyOverridden: true,
+    ),
   );
 
   Future<void> setSilent(String deviceId, int startMinutes, int endMinutes) =>
@@ -45,8 +50,10 @@ final claimConfigProvider =
       ClaimConfigNotifier.new,
     );
 
-/// 全局自动领取总闸（20261117-0024 G1，zcode-switch auto_claim 同语义）：
-/// 实际自动领取 = 全局 && 设备开关。默认开（升级零回归，计划 §3 裁定）。
+/// 全局自动领取总开关（20261117-1230 R1 单层语义，替代 20261117-0024 的
+/// 双层门控）：state = "新设备默认启停值"（默认开，升级零回归）。
+/// 切换时批量写入所有设备的领取配置（跳过 locallyOverridden 的设备），
+/// 不再作为运行期门控——每台设备只看自己的 enabled。
 class ClaimGlobalEnabledNotifier extends Notifier<bool> {
   @override
   bool build() => true;
@@ -57,11 +64,24 @@ class ClaimGlobalEnabledNotifier extends Notifier<bool> {
   @visibleForTesting
   Future<void> get lastSave => _lastSave ?? Future<void>.value();
 
-  /// 会话挂桥/页面加载时读盘（未加载时内存态回落默认开）。
+  /// 加载全局默认值（未加载时内存态回落默认开）。
   Future<void> load() async {
     state = await DeviceStore.instance.claimGlobalEnabled();
   }
 
+  /// 一键设置全部：批量写入所有未独立设置的设备，返回被改写 id。
+  /// 调用方可用返回 id 即时同步已装配代理（R1-3）。
+  Future<List<String>> applyAll(bool enabled) async {
+    state = enabled;
+    try {
+      return await DeviceStore.instance.applyGlobalClaimDefault(enabled);
+    } catch (e) {
+      debugPrint('[claim-config] global apply failed: $e');
+      return const <String>[];
+    }
+  }
+
+  /// 兼容旧调用点：不关心受影响 id（fire-and-forget 串行落盘）。
   Future<void> setEnabled(bool enabled) async {
     state = enabled;
     final previous = _lastSave ?? Future<void>.value();

@@ -428,7 +428,7 @@ class _WideDeviceRail extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 d.displayName(l10n),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13,

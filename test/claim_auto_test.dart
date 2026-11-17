@@ -456,7 +456,7 @@ void main() {
       expect(s.roundInFlight, isFalse);
     });
 
-    test('setGlobalEnabled 广播：已装配代理停表/恢复（20261117-0024 G2）',
+    test('单层语义：agent 只看设备 enabled，无运行期全局门（attach 照跑）',
         () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -465,32 +465,13 @@ void main() {
       await hub.attach(device, ScriptedBridge(script: const []).bridge);
       hub.updateConfig('d1', const ClaimAutoConfig(enabled: true));
       final agent = container.read(claimSchedulerHubProvider)['d1']!;
-      expect(agent.started, isTrue, reason: '全局默认开');
+      expect(agent.started, isTrue, reason: '设备开关开即跑');
+      expect(agent.enabled, isTrue);
 
-      hub.setGlobalEnabled(false);
-      expect(agent.started, isFalse, reason: '全局关 → 全部代理停表');
-      expect(agent.globalEnabled, isFalse);
-
-      hub.setGlobalEnabled(true);
-      expect(agent.started, isTrue, reason: '全局开 + 设备开关开 → 恢复');
+      hub.updateConfig('d1', const ClaimAutoConfig(enabled: false));
+      expect(agent.started, isFalse, reason: '设备开关关即停');
 
       hub.detach('d1');
-    });
-
-    test('attach 读盘：全局总闸关 → 代理不启动（含 runNow 拒绝）', () async {
-      SharedPreferences.setMockInitialValues({
-        'zremote.claimGlobal': 'false',
-      });
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final hub = container.read(claimSchedulerHubProvider.notifier);
-
-      await hub.attach(device, ScriptedBridge(script: const []).bridge);
-      hub.updateConfig('d1', const ClaimAutoConfig(enabled: true));
-      final agent = container.read(claimSchedulerHubProvider)['d1']!;
-      expect(agent.started, isFalse, reason: 'attach 读盘全局关');
-      expect(agent.globalEnabled, isFalse);
-      expect(await hub.runNow('d1'), isFalse, reason: 'runNow 全局门');
     });
   });
 }

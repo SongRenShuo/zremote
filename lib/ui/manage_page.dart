@@ -227,6 +227,14 @@ class ManagePage extends ConsumerWidget {
               sub: l10n.loginEntrySheetSub,
               value: 'login',
             ),
+            // 20261117-1230 R2：有设备后也可从账号库添加设备（弹框最后一项）。
+            entry(
+              key: const Key('import-sheet-account-vault'),
+              icon: Icons.account_circle_outlined,
+              label: l10n.acctVaultEntry,
+              sub: l10n.devicesAddFromAccount,
+              value: 'account-vault',
+            ),
           ],
         );
       },
@@ -239,6 +247,8 @@ class ManagePage extends ConsumerWidget {
         await _showPasteDialog(context, ref);
       case 'login':
         await _openLogin(context, ref);
+      case 'account-vault':
+        await _openAccountVault(context, ref);
     }
   }
 
@@ -1133,6 +1143,7 @@ class _DeviceCard extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final displayName = device.displayName(l10n);
+    final versionLabel = device.params['app_version'] ?? '';
     final platformIcon = _devicePlatformIcon(displayName);
     final live = status == SessionStatus.live;
     final unread = feed?.unread ?? 0;
@@ -1207,51 +1218,55 @@ class _DeviceCard extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                // 20261117-1230 R3：名称独占首行、徽章下移换行，
+                // 不再被同行徽标挤成「…」看不全。
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Text(
-                        displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                          color: zt.textHi,
+                    Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: zt.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // 真实版本号（20261117-1230 R3）：读 app_version，
+                        // 无值则不显示（不再用静态「V2 账号」误导）。
+                        if (versionLabel.isNotEmpty)
+                          HwChip(text: 'v$versionLabel'),
+                        ZrStatusChip(
+                          label: chipLabel,
+                          color: chipColor,
+                          withLed: true,
                         ),
-                      ),
+                        // P4-2 徽章统一：待审批 / 今日已领（未读在下方指标行）。
+                        if (feed?.permPending ?? false)
+                          _ZrBadgeChip(
+                            key: Key('device-badge-perm-${device.id}'),
+                            icon: Icons.approval_rounded,
+                            label: l10n.uxBadgePermPending,
+                            color: zt.danger,
+                          ),
+                        if (todayClaimed > 0)
+                          _ZrBadgeChip(
+                            key: Key('device-badge-claim-${device.id}'),
+                            icon: Icons.card_giftcard_rounded,
+                            label: l10n.claimHistTodayCount(todayClaimed),
+                            color: zt.accent,
+                          ),
+                      ],
                     ),
-                    if (device.kind == DeviceKind.v2) ...[
-                      const SizedBox(width: 6),
-                      HwChip(text: l10n.deviceV2Badge),
-                    ],
-                    const SizedBox(width: 8),
-                    ZrStatusChip(
-                      label: chipLabel,
-                      color: chipColor,
-                      withLed: true,
-                    ),
-                    // P4-2 徽章统一：待审批 / 今日已领（未读在下方指标行）。
-                    if (feed?.permPending ?? false) ...[
-                      const SizedBox(width: 6),
-                      _ZrBadgeChip(
-                        key: Key('device-badge-perm-${device.id}'),
-                        icon: Icons.approval_rounded,
-                        label: l10n.uxBadgePermPending,
-                        color: zt.danger,
-                      ),
-                    ],
-                    if (todayClaimed > 0) ...[
-                      const SizedBox(width: 6),
-                      _ZrBadgeChip(
-                        key: Key('device-badge-claim-${device.id}'),
-                        icon: Icons.card_giftcard_rounded,
-                        label: l10n.claimHistTodayCount(todayClaimed),
-                        color: zt.accent,
-                      ),
-                    ],
                   ],
                 ),
               ),

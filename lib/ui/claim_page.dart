@@ -71,8 +71,6 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
     super.initState();
     // P2-5/P2-6：配置加载 + 历史快照恢复（离线可见最后快照）。
     unawaited(ref.read(claimConfigProvider.notifier).load(widget.device.id));
-    // 全局总闸读盘兜底（20261117-0024 G4，幂等）。
-    unawaited(ref.read(claimGlobalEnabledProvider.notifier).load());
     unawaited(
       ref.read(claimHistoryProvider.notifier).restoreFromStore(
             widget.device.id,
@@ -805,39 +803,13 @@ class _ClaimPageState extends ConsumerState<ClaimPage> {
                 ),
               ),
             ),
-            // 全局总闸关 → 不渲染「立即执行」，改提示（20261117-0024 G4）。
-            if (ref.watch(claimGlobalEnabledProvider)) _runNowRow(l10n),
+            _runNowRow(l10n),
           ],
-          if (!ref.watch(claimGlobalEnabledProvider))
-            _globalOffHint(l10n),
           Text(
             l10n.claimAutoSessionHint,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 10.5, color: zt.textTertiary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 全局总闸关闭提示（20261117-0024 G4）：设备开关开着也不生效。
-  Widget _globalOffHint(AppLocalizations l10n) {
-    final zt = context.zt;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 10, 6),
-      child: Row(
-        key: const Key('claim-global-off-hint'),
-        children: [
-          Icon(Icons.info_outline, size: 14, color: zt.warn),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              l10n.claimGlobalOffHint,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: zt.textLo),
-            ),
           ),
         ],
       ),
